@@ -3,6 +3,16 @@ function [mod, el_types] = fn_add_fluid_solid_interface_els(mod, el_types, varar
 %   Adds the necessary interface elements between all solid and fluid
 %   elements in a model. Without these there is no coupling between the
 %   solid and fluid domains.
+
+%Deal with legacy v2 calls where args are mod, matls, varargin
+if isstruct(el_types) && isfield(el_types, 'rho')
+    matls = el_types;
+    if isstruct(matls)
+        matls = arrayfun(@(x) x, matls, 'UniformOutput', false);
+    end
+    [mod, el_types] = fn_create_el_types_for_legacy_v2_models(mod, matls);
+end
+
 if numel(varargin) < 1
     options = [];
 else
@@ -26,6 +36,9 @@ end
 if ~any(strcmp(el_types, options.interface_el_name))
     el_types{end + 1} = options.interface_el_name;
 end
+
+%for legacy v2 calls, need to embed el_types in mod as well
+mod.el_types = el_types;
 
 %Get interface element index
 interface_el_i = find(strcmp(el_types, options.interface_el_name));

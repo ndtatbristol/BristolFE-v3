@@ -1,0 +1,1 @@
+The examples in this folder are exactly those from BristolFE v2 and include calls to functions that are now deprecated. For back compatibility with v2, versions of the deprecated functions are in the 'deprecated' folder and contain code to call the equivalent new function.

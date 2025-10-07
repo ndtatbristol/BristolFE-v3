@@ -1,4 +1,4 @@
-function dm_mod = fn_create_subdomain(mn_mod, inner_bdry, abs_layer_thick, varargin)
+function dm_mod = fn_create_subdomain(mn_mod, matls, inner_bdry, abs_layer_thick, varargin)
 %New version - based on tidier way of getting layers
 %Needs to return something like this
     %             nds: [11424×2 double]
@@ -14,40 +14,38 @@ function dm_mod = fn_create_subdomain(mn_mod, inner_bdry, abs_layer_thick, varar
 %Last optional argument allows the start of the absorbing region to be
 %specified. If not specified it will be penultimate boundary layer.
 
-%Deal with legacy v2 calls which had args mn_mod, matls, inner_bdry, abs_layer_thick, varargin
-if isstruct(inner_bdry) && isfield(inner_bdry, 'rho')
-    inner_bdry = abs_layer_thick;
-    abs_layer_thick = varargin{1};
-    if numel(varargin) > 1
-        varargin{1} = varargin{2};
-    end
+interface_el_name = 'ASI2D2';
+
+if ~isfield(mn_mod, 'el_typ_i')
+    mn_mod.el_typ_i = {matls(mn_mod.el_mat_i).el_typ};
+    mn_mod.el_typ_i = mn_mod.el_typ_i(:);
 end
 
-%First make a copy of the key parts of the main model
-dm_mod = mn_mod;
-if isfield(dm_mod, 'max_safe_time_step')
-    dm_mod = rmfield(dm_mod, 'max_safe_time_step');
+dm_mod.nds = mn_mod.nds;
+dm_mod.els = mn_mod.els;
+dm_mod.el_mat_i = mn_mod.el_mat_i;
+if isfield(mn_mod, 'el_abs_i')
+    dm_mod.el_abs_i = mn_mod.el_abs_i;
+else
+    dm_mod.el_abs_i = zeros(size(mn_mod.el_mat_i));
 end
-if isfield(dm_mod, 'design_centre_freq')
-    dm_mod = rmfield(dm_mod, 'design_centre_freq');
-end
-if isfield(dm_mod, 'el_types')
-    dm_mod = rmfield(dm_mod, 'el_types');
-end
-
-%Create vector that will hold indices associating nodes with the 4 boundary
-%layers in the subdomain
+dm_mod.el_typ_i = mn_mod.el_typ_i;
 dm_mod.bdry_lyrs = zeros(size(mn_mod.nds, 1), 1);
+dm_mod.el_abs_i = zeros(size(mn_mod.els, 1), 1);
 dm_mod.inner_bndry_pts = inner_bdry;
 
+%       main_nd_i: [11424×1 double]
+% outer_bndry_pts: [882×2 double]
+
 %Get elements in region
+
 el_used = fn_elements_in_region(dm_mod, inner_bdry);
-%dm_mod.main_int_el_i = find(el_used); %the indices of the internal els in the main model for this sub-domain (need to be identifiable when doing validation models)
+dm_mod.main_int_el_i = find(el_used); %the indices of the internal els in the main model for this sub-domain (need to be identifiable when doing validation models)
 
 %Work out and assign bdry nodes to layers
 for i = 1:4
     [el_i, bdry_nds] = fn_find_adjacent_els_to_els(dm_mod.els, el_used, ~el_used);
-    dm_mod.bdry_lyrs(bdry_nds) = i;
+    dm_mod.bdry_lyrs(bdry_nds)= i;
     el_used(el_i) = 1;
 
     if i == 3 %for 3rd one, use boundary as start of absorbing region
@@ -65,11 +63,12 @@ end
 %Delete original interface elements and then regenerate later in this 
 %function - this is to avoid potential instability at edge of domain where 
 %original interface elements copied from main mesh may now be on free edges
-%Update: this doesn't seem to be necessary anymore now that instabilities fixed in general
-% dm_mod = fn_remove_fluid_solid_interface_els(dm_mod);
+els_in_use = ~strcmp(dm_mod.el_typ_i, interface_el_name);
+[~, ~, dm_mod.els, dm_mod.el_mat_i, dm_mod.el_abs_i, dm_mod.el_typ_i, el_used] = fn_remove_unused_elements(els_in_use, dm_mod.els, dm_mod.el_mat_i, dm_mod.el_abs_i, dm_mod.el_typ_i, el_used);
 
 
 %Add the absorbing layers by working out from centre of region
+% [~, cand_els] = fn_elements_in_region2(dm_mod.nds, dm_mod.els, abs_layer_start_bdry);
 cand_els = ~el_used;
 dm_mod.el_abs_i(cand_els) = fn_dist_point_to_bdry_2D(fn_calc_element_centres(dm_mod.nds, dm_mod.els(cand_els, :)), abs_layer_start_bdry) / abs_layer_thick;
 els_in_use = ones(size(dm_mod.els, 1), 1);
@@ -80,14 +79,12 @@ els_in_use(dm_mod.el_abs_i > 1) = 0;
 dm_mod.main_nd_i = old_nds;
 dm_mod.bdry_lyrs = dm_mod.bdry_lyrs(old_nds);
 
-%Reinstate fluid-solid interface elements - no longer needed if they are
-%not deleted at start of process
-% dm_mod = fn_add_fluid_solid_interface_els(dm_mod);
+dm_mod = fn_add_fluid_solid_interface_els(dm_mod, matls);
 
 free_ed = fn_find_free_edges(dm_mod.els);
 
 dm_mod.outer_bndry_pts = [dm_mod.nds(free_ed, 1), dm_mod.nds(free_ed, 2)];
-% dm_mod.int_el_i = fn_elements_in_region(dm_mod, dm_mod.inner_bndry_pts);
+dm_mod.int_el_i = fn_elements_in_region(dm_mod, dm_mod.inner_bndry_pts);
 
 end
 

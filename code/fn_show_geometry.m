@@ -4,6 +4,14 @@ function h_patch = fn_show_geometry(mod, matls, options)
 %   element that can be used as an input argument for subsequent field 
 %   animations if desired.
 
+%Deal with legacy code where materials is structure array rather than cell array
+if isstruct(matls)
+    matls = arrayfun(@(x) x, matls, 'UniformOutput', false);
+end
+if ~isfield(mod, 'el_abs_i')
+     mod.el_abs_i = zeros(size(mod.els, 1), 1);
+end
+
 % addpath(genpath('..'));
 default_options.offset = 0;
 default_options.scale = 1;

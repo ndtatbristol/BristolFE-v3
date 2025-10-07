@@ -35,6 +35,21 @@ default_options.field_output_every_n_frames = inf;
 %Which DoF to include in model, use [] for all
 default_options.dof_to_use = []; 
 
+%deal with various v2 legacy issues
+if isstruct(matls)
+    matls = arrayfun(@(x) x, matls, 'UniformOutput', false);
+end
+if ~isfield(mod, 'el_abs_i')
+     mod.el_abs_i = zeros(size(mod.els, 1), 1);
+end
+%In v2 there were 4 arguments and el_types was embedded in matls
+if nargin == 4
+    %Args used to be: mod, matls, steps, fe_options
+    fe_options = steps;
+    steps = el_types;
+    [mod, el_types] = fn_create_el_types_for_legacy_v2_models(mod, matls);
+end
+
 %--------------------------------------------------------------------------
 fe_options = fn_set_default_fields(fe_options, default_options);
 global COMMENT_INDENT_LEVEL 

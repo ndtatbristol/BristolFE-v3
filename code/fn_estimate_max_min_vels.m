@@ -1,4 +1,9 @@
 function [mx, mn] = fn_estimate_max_min_vels(matls)
+%Deal with legacy v2 code where materials is structure array rather than cell array
+if isstruct(matls)
+    matls = arrayfun(@(x) x, matls, 'UniformOutput', false);
+end
+
 v = [0,0];
 j = 1;
 for i = 1:numel(matls)
