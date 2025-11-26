@@ -4,7 +4,23 @@ restoredefaultpath;
 addpath(genpath('../code'));
 addpath(genpath('../subdoms'));
 
+no_els = 2;
+
+include_fluid_region = 1;
+add_absorbing_boundary = 1;
+
 show_geom_only = 0; %Set to 1 to just show geometry without running model
+
+%Elements per wavelength (higher = more accurate and higher computational cost)
+els_per_wavelength = 10;
+
+%The default option is field_output_every_n_frames = inf, which means there
+%is no field output. Set to a finite value to get a field output. Note that
+%in subdomain models, requesting field output causes the main model to be
+%executed twice for each transducer element, once to generate the transfer
+%functions and once to generate the field output.
+fe_options.field_output_every_n_frames = 10;
+
 
 %--------------------------------------------------------------------------
 %DEFINE THE PROBLEM
@@ -18,28 +34,61 @@ main.matls{steel_matl_i}.D = fn_isotropic_stiffness_matrix(210e9, 0.3);
 main.matls{steel_matl_i}.col = hsv2rgb([2/3,0,0.80]); %Colour for display
 main.matls{steel_matl_i}.name = 'Steel';
 
+%Water
+water_matl_i = 2;
+main.matls{water_matl_i}.rho = 1000;
+%For fluids, stiffness 'matrix' D is just the scalar bulk modulus,
+%calculated here from ultrasonic velocity (1500) and density (1000)
+main.matls{water_matl_i}.D = 1500 ^ 2 * 1000;
+main.matls{water_matl_i}.col = hsv2rgb([0.6,0.5,0.8]);
+main.matls{water_matl_i}.name = 'Water'; 
+
+%Aluminium
+aluminium_matl_i = 3;
+main.matls{aluminium_matl_i}.rho = 2700; %Density
+main.matls{aluminium_matl_i}.D = fn_isotropic_stiffness_matrix(70e9, 0.3); 
+main.matls{aluminium_matl_i}.col = hsv2rgb([0.6,0,0.40]); %Colour for display
+main.matls{aluminium_matl_i}.name = 'Aluminium';
+
 %Element types to use
 el_typ_solid = 'CPE3'; 
-el_typ_fluid = 'AC2D3'; 
+el_typ_fluid = 'AC2D3';
+el_typ_interface = 'ASI2D2';
+
+%Set material and element type of inclusion (0 for a void)
+inclusion_matl_i = aluminium_matl_i;
+inclusion_el_type = el_typ_solid;
+
+% inclusion_matl_i = water_matl_i
+% inclusion_el_type = el_typ_fluid;
+
+%inclusion_matl_i = 0;
 
 %Define shape of model
 model_size = 20e-3;
 bdry_pts = [
-    0, 0
+    0,          0
     model_size, 0
     model_size, model_size
-    0, model_size];
+    0,          model_size];
 
-%Define start of absorbing boundary region and its thickness
+%Define region that will be water (if include_fluid_region == 1)
+water_bdry_pts = [
+    0,          0
+    model_size, 0
+    model_size, 0.4 * model_size
+    0,          0.6 * model_size];
+
+
+%Define start of absorbing boundary region and its thickness (if add_absorbing_boundary == 1)
 abs_bdry_pts = [
-    abs_bdry_thickness, abs_bdry_thickness
-    model_size - abs_bdry_thickness, abs_bdry_thickness
-    model_size - abs_bdry_thickness, model_size
-    abs_bdry_thickness, model_size];
+    abs_bdry_thickness,                 abs_bdry_thickness
+    model_size - abs_bdry_thickness,    abs_bdry_thickness
+    model_size - abs_bdry_thickness,    model_size
+    abs_bdry_thickness,                 model_size];
 
 
 %Define array
-no_els = 3;
 pitch = 0.5e-3;
 array_depth = 2e-3;
 centre = [model_size / 2, array_depth];
@@ -47,21 +96,7 @@ centre = [model_size / 2, array_depth];
 %Details of input signal
 centre_freq = 5e6;
 no_cycles = 4;
-fe_options.time_pts = 1000;
-% fe_options.solver = 'pogo';
-
-%Elements per wavelength (higher = more accurate and higher computational cost)
-els_per_wavelength = 10;
-
-%The default option is field_output_every_n_frames = inf, which means there
-%is no field output. Set to a finite value to get a field output. Note that
-%in subdomain models, requesting field output causes the main model to be
-%executed twice for each transducer element, once to generate the transfer
-%functions and once to generate the field output.
-fe_options.field_output_every_n_frames = inf;
-% fe_options.field_output_every_n_frames = 10;
-
-fe_options.dof_to_use = [1,2];%x, y and pressure
+fe_options.time_pts = 4000;
 %--------------------------------------------------------------------------
 %PREPARE THE MESH
 
@@ -70,16 +105,34 @@ el_size = fn_get_suitable_el_size(main.matls, centre_freq, els_per_wavelength);
 
 %Create the nodes and elements of the mesh
 main.mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
-main.el_types = {el_typ_solid};
+main.el_types = fn_2d_el_types();
 main.mod.el_mat_i(:) = steel_matl_i;
 main.mod.el_typ_i(:) = find(strcmp(main.el_types, el_typ_solid));
+
+if include_fluid_region
+    els_in_water = fn_2d_find_elements_in_region(main.mod, water_bdry_pts);
+    main.mod.el_mat_i(els_in_water) = water_matl_i;
+    main.mod.el_typ_i(els_in_water) = find(strcmp(main.el_types, el_typ_fluid));
+    
+    %Add interface elements - this is crucial otherwise there will be no
+    %coupling between fluid and solid
+    main.mod = fn_add_fluid_solid_interface_els(main.mod, main.el_types);
+    
+    %Set source direction
+    src_dir = 4; %volumetric source if fluid region is used as source will be in fluid
+else
+    %Set source direction
+    src_dir = 2; %forcing in y direction if no fluid is used as source will be on surface of solid
+end
 
 %Timestep
 main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
 main.mod.design_centre_freq = centre_freq;
 
 %Define the absorbing layer
-main.mod = fn_2d_add_absorbing_layer(main.mod, abs_bdry_pts, abs_bdry_thickness);
+if add_absorbing_boundary
+    main.mod = fn_2d_add_absorbing_layer(main.mod, abs_bdry_pts, abs_bdry_thickness);
+end
 
 %Define array
 tc = mean(1:no_els);
@@ -87,7 +140,7 @@ for t = 1:no_els
     el_start = centre + [pitch * (t - tc - 0.5), 0];
     el_end =   centre + [pitch * (t - tc + 0.5), 0];
     [main.trans{t}.nds, s] = fn_find_nodes_nearest_to_line(main.mod.nds, el_start, el_end, el_size / 2);
-    main.trans{t}.dfs = ones(size(main.trans{t}.nds)) * 2; %DF 2 is y direction
+    main.trans{t}.dfs = ones(size(main.trans{t}.nds)) * src_dir; 
 end
 
 %Create a subdomain in the middle with a hole in surface as scatterr
@@ -97,7 +150,10 @@ scatterer_size = model_size / 10 * 0.8;
 inner_bdry = [cos(a), sin(a)] / 2 * subdomain_size + [1, 1] * model_size / 2;
 scat_pts = [cos(a), sin(a)] / 2 * scatterer_size + [1, 1] * model_size / 2;
 main.doms{1}.mod = fn_create_subdomain(main.mod, inner_bdry, abs_bdry_thickness);
-main.doms{1}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.matls, main.el_types, scat_pts, 0);
+inclusion_el_typ_i = find(strcmp(main.el_types, inclusion_el_type));
+main.doms{1}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.el_types, scat_pts, inclusion_matl_i, inclusion_el_typ_i);
+main.doms{1}.mod = fn_add_fluid_solid_interface_els(main.doms{1}.mod, main.el_types);
+
 
 %Show the mesh
 if ~exist('scripts_to_run') && show_geom_only %suppress graphics when running all scripts for testing

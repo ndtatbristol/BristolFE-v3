@@ -1,5 +1,5 @@
 clearvars -except scripts_to_run
-% close all;
+close all;
 restoredefaultpath;
 addpath(genpath('../code'));
 
@@ -9,9 +9,21 @@ addpath(genpath('../code'));
 %   different parts of the model to different materials and add interface
 %   elements
 %   - add optional absorbing boundary on 3 sides to suppress reflections.
+%   - add a crack-like scatterer
+%   - add a voi-like scatterer
 
-include_fluid_region = 1;
+include_fluid_region = 0;
+interface_angle_degs = 5;
 add_absorbing_boundary = 1;
+include_crack = 1;
+include_void = 1;
+
+%Elements per wavelength (higher = more accurate and higher computational cost)
+els_per_wavelength = 10;
+
+%The default option is field_output_every_n_frames = inf, which means there
+%is no field output. Set to a finite value to get a field output.
+fe_options.field_output_every_n_frames = 10;
 
 show_geom_only = 0; %Set to 1 to just show geometry without running model
 
@@ -39,29 +51,30 @@ matls{water_matl_i}.name = 'Water';
 %Element types to use
 el_typ_solid = 'CPE3'; 
 el_typ_fluid = 'AC2D3'; 
+el_typ_interface = 'ASI2D2';
 
 %Define shape of model
 model_size = 10e-3;
 bdry_pts = [
-    0, 0 
+    0,          0 
     model_size, 0 
     model_size, model_size 
-    0, model_size];
+    0,          model_size];
 
 %Define region that will be water
 water_bdry_pts = [
-    0, 0
+    0,          0
     model_size, 0
-    model_size, 0.4 * model_size
-    0, 0.6 * model_size];
+    model_size, (0.5 + tand(interface_angle_degs) / 2) * model_size
+    0,          (0.5 - tand(interface_angle_degs) / 2) * model_size];
 
 %Define start of absorbing boundary region and its thickness
 abs_bdry_thickness = 1e-3;
 abs_bdry_pts = [
-    abs_bdry_thickness, 0
-    model_size - abs_bdry_thickness, 0
-    model_size - abs_bdry_thickness, model_size - abs_bdry_thickness
-    abs_bdry_thickness, model_size - abs_bdry_thickness];
+    abs_bdry_thickness,                 0
+    model_size - abs_bdry_thickness,    0
+    model_size - abs_bdry_thickness,    model_size - abs_bdry_thickness
+    abs_bdry_thickness,                 model_size - abs_bdry_thickness];
 
 %Define a line along which sources will be placed to excite waves
 src_end_pts = [0.3, 0; 0.7, 0] * model_size;
@@ -71,12 +84,6 @@ centre_freq = 5e6;
 no_cycles = 5;
 max_time = 50e-6;
 
-%Elements per wavelength (higher = more accurate and higher computational cost)
-els_per_wavelength = 10;
-
-%The default option is field_output_every_n_frames = inf, which means there
-%is no field output. Set to a finite value to get a field output.
-fe_options.field_output_every_n_frames = 10;
 
 %--------------------------------------------------------------------------
 %PREPARE THE MESH
@@ -86,7 +93,7 @@ el_size = fn_get_suitable_el_size(matls, centre_freq, els_per_wavelength);
 
 %Create the nodes and elements of the mesh
 mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
-el_types = {el_typ_solid, el_typ_fluid};
+el_types = fn_2d_el_types();
 
 %First set material of all elements to steel ...
 mod.el_mat_i(:) = steel_matl_i;
@@ -94,19 +101,40 @@ mod.el_typ_i(:) = find(strcmp(el_types, el_typ_solid));
 
 %... then set elements inside water boundary material to water
 if include_fluid_region
-    els_in_water = fn_elements_in_region(mod, water_bdry_pts);
+    els_in_water = fn_2d_find_elements_in_region(mod, water_bdry_pts);
     mod.el_mat_i(els_in_water) = water_matl_i;
     mod.el_typ_i(els_in_water) = find(strcmp(el_types, el_typ_fluid));
     
     %Add interface elements - this is crucial otherwise there will be no
     %coupling between fluid and solid
-    [mod, el_types] = fn_add_fluid_solid_interface_els(mod, el_types);
+    mod = fn_add_fluid_solid_interface_els(mod, el_types);
     
     %Set source direction
     src_dir = 4; %volumetric source if fluid region is used as source will be in fluid
 else
     %Set source direction
     src_dir = 2; %forcing in y direction if no fluid is used as source will be on surface of solid
+end
+
+if include_crack
+    crack_pts = 10;
+    crack_len = model_size /5;
+    cod = el_size / 10;
+    crack_vtcs = [model_size / 4, 3 * model_size / 4] + fn_2d_random_walk(crack_pts,crack_len/crack_pts, 0, 0, 0.4);
+    mod = fn_2d_add_crack(mod, el_types, crack_vtcs, [], cod);
+end
+
+if include_void
+    min_rad_frac = 0.5;
+    complexity = 3;
+    no_pts = 200;
+    scat_matl_i = water_matl_i;
+    scat_el_typ_i = find(strcmp(el_types, el_typ_fluid));
+    blob_rad = model_size / 10;
+    blob_centre = [3 * model_size / 4, 3 * model_size / 4];
+    pts = fn_2d_create_smooth_random_blob(min_rad_frac, complexity, no_pts) * blob_rad + blob_centre;
+    mod = fn_2d_add_inclusion_or_void(mod, el_types, pts, scat_matl_i, scat_el_typ_i);
+
 end
 
 

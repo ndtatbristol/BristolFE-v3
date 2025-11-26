@@ -93,7 +93,7 @@ mod.els = [
     ];
 
 %Now remove elements outside original boundary
-[in, out] = fn_elements_in_region(mod, bdry_pts);
+[in, out] = fn_2d_find_elements_in_region(mod, bdry_pts);
 mod.els(out, :) = [];
 
 %Tidy up by removing unused nodes

@@ -24,25 +24,27 @@ pts1 = 20;
 len1 = 5;
 pts2 = 10;
 len2 = 2.5;
-%top part
-crack_vtcs1 = [-el_size, 5] + fn_2d_random_walk(pts1, len1/pts1, 0, linspace(0,1,pts1) * pi/8, 0.4);
-%branch start (mid way along top branch)
-crack_vtcs2 = crack_vtcs1(round(pts1 / 2), :) + fn_2d_random_walk(pts2, len2/pts2, 0, -pi/8-linspace(0,1,pts2) * pi/8, 0.4);
+
+min_rad_frac = 0.5;
+complexity = 3;
+no_pts = 200;
+scat_matl_i = 0;
+scat_el_typ_i = 0;
+blob_rad = 3;
+blob_centre = [5,5];
+
 
 %Create the mesh
 mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
-mod.el_types = {el_typ_solid};
-mod.el_typ_i(:) = find(strcmp(el_typ_solid, mod.el_types));
+el_types = {el_typ_solid};
+mod.el_typ_i(:) = find(strcmp(el_typ_solid, el_types));
 mod.el_mat_i(:) = steel_mat_i;
 
-%Add the cracks
-mod = fn_2d_add_crack(mod, crack_vtcs1, [], cod);
-mod = fn_2d_add_crack(mod, crack_vtcs2, [], cod);
+%Add the inclusion
+pts = fn_2d_create_smooth_random_blob(min_rad_frac, complexity, no_pts) * blob_rad + blob_centre;
+mod = fn_2d_add_inclusion_or_void(mod, el_types, pts, scat_matl_i, scat_el_typ_i);
 
 %Plot result
 figure;
 options.draw_elements = 1;
 fn_show_geometry(mod, matls, options);
-hold on;
-plot(crack_vtcs1(:, 1), crack_vtcs1(:, 2), 'r:')
-plot(crack_vtcs2(:, 1), crack_vtcs2(:, 2), 'r:')

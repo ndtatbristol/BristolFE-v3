@@ -1,4 +1,4 @@
-function [in, out] = fn_elements_in_region(mod, region)
+function [in, out] = fn_2d_find_elements_in_region(mod, region)
 %SUMMARY
 %   Returns logical n_els x 1 vectors indicating whether elements in model
 %   are inside or outside the specified region.

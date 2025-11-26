@@ -1,6 +1,6 @@
-function [min_el_size, max_el_size] = fn_get_min_max_element_sizes(mod)
+function [min_el_size, max_el_size] = fn_get_min_max_element_sizes(mod, el_types)
 %USAGE
-%   [min_el_size, max_el_size] = fn_get_min_max_element_sizes(mod)
+%   [min_el_size, max_el_size] = fn_get_min_max_element_sizes(mod, el_types)
 %AUTHOR
 %   Paul Wilcox (2025)
 %SUMMARY
@@ -14,7 +14,7 @@ function [min_el_size, max_el_size] = fn_get_min_max_element_sizes(mod)
 %   max_el_size - maximum element side length found in model
 %--------------------------------------------------------------------------
 
-el_edges = fn_edges_from_els(mod.els, 1:size(mod.els, 1), mod.el_typ_i, mod.el_types);
+el_edges = fn_edges_from_els(mod.els, 1:size(mod.els, 1), mod.el_typ_i, el_types);
 min_el_size = inf;
 max_el_size = 0;
 for i = 1:numel(el_edges)

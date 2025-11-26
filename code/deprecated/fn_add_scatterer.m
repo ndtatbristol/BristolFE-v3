@@ -1,7 +1,7 @@
 function mod = fn_add_scatterer(mod, matls, scat_pts, scat_matl)
 warning('fn_add_scatterer is deprecated function: use fn_2d_add_inclusion_or_void instead');
 [mod, el_types] = fn_create_el_types_for_legacy_v2_models(mod, matls);
-mod = fn_2d_add_inclusion_or_void(mod, matls, el_types, scat_pts, scat_matl);
+mod = fn_2d_add_inclusion_or_void(mod, el_types, scat_pts, scat_matl);
 % %SUMMARY
 % %   Adds scatterer to existing model by turning all elements inside
 % %   scat_pts to either matl(scat_matl) or void if = scat_matl

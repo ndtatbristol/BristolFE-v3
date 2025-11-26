@@ -75,7 +75,7 @@ cent = [0.5, 0.35];
 scat_pts = fn_2d_create_smooth_random_blob(min_rad_frac, complexity, no_pts) * rad + cent;
 scat_matl = 0;
 [mod, el_types] = fn_add_fluid_solid_interface_els(mod, el_types);
-mod = fn_2d_add_inclusion_or_void(mod, matls, el_types, scat_pts, scat_matl);
+mod = fn_2d_add_inclusion_or_void(mod, el_types, scat_pts, scat_matl);
 
 figure;
 options.draw_elements = 0;

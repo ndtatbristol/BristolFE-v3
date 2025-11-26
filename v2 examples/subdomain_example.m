@@ -17,6 +17,7 @@ no_cycles = 5;
 els_per_wavelength = 12;
 fe_options.time_pts = 2000;
 fe_options.field_output_every_n_frames = inf; %use this one to suppress animations
+
 %fe_options.field_output_every_n_frames = 20;
 
 %DEFINE THE GEOMETRY PARAMETRICALLY
@@ -81,7 +82,6 @@ main.mod = fn_isometric_structured_mesh(bdry_pts, el_size);
 %Timestep
 main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
 main.mod.design_centre_freq = centre_freq;
-
 
 %First set material of all elements to steel then set elements inside water
 %boundary material to water

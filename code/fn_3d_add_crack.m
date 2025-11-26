@@ -1,6 +1,6 @@
-function mod = fn_3d_add_crack(mod, crack_vtcs, crack_fcs, varargin)
+function mod = fn_3d_add_crack(mod, el_types, crack_vtcs, crack_fcs, varargin)
 %USAGE
-%   mod = fn_3d_add_crack(mod, crack_vtcs, crack_fcs [, cod])
+%   mod = fn_3d_add_crack(mod, el_types, crack_vtcs, crack_fcs [, cod])
 %SUMMARY
 %   Adds a crack into a 3D model by identifying nearest element
 %   edges/faces and 'splitting' model along them, by duplicating nodes.
@@ -11,6 +11,7 @@ function mod = fn_3d_add_crack(mod, crack_vtcs, crack_fcs, varargin)
 %   mod - structured variable describing model, containing nodal
 %   coordinates, mod.nds, and element nodes, mod.els. Note that ndim =
 %   size(mod.nds, 2)
+%   el_types - cell array of names of elements used in model.
 %   crack_vtcs - n_vtcs x 3 matrix of coordinates describing vertices of
 %   surface made of triangular facets that will define crack
 %   crack_fcs - n_faces x 3 matrix of vertex indices for each triangular
@@ -29,7 +30,7 @@ if size(mod.nds, 2) ~= 3
     error('This function is for 3D models. Use fn_2d_add_crack for 2D models')
 end
 
-mod = fn_add_crack(mod, crack_vtcs, crack_fcs, cod);
+mod = fn_add_crack(mod, el_types, crack_vtcs, crack_fcs, cod);
 
 end
 

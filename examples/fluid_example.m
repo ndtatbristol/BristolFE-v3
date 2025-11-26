@@ -1,9 +1,16 @@
 clearvars -except scripts_to_run
-% close all;
+close all;
 restoredefaultpath;
 addpath(genpath('../code'));
 
 show_geom_only = 0; %Set to 1 to just show geometry without running model
+
+%Elements per wavelength (higher = more accurate and higher computational cost)
+els_per_wavelength = 10;
+
+%The default option is field_output_every_n_frames = inf, which means there
+%is no field output. Set to a finite value to get a field output.
+fe_options.field_output_every_n_frames = 10;
 
 %--------------------------------------------------------------------------
 %DEFINE THE PROBLEM
@@ -39,12 +46,7 @@ centre_freq = 5e6;
 no_cycles = 4;
 max_time = 50e-6;
 
-%Elements per wavelength (higher = more accurate and higher computational cost)
-els_per_wavelength = 10;
 
-%The default option is field_output_every_n_frames = inf, which means there
-%is no field output. Set to a finite value to get a field output.
-fe_options.field_output_every_n_frames = 10;
 
 
 %--------------------------------------------------------------------------
@@ -57,7 +59,7 @@ mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
 
 %Associate elements with materials and element types
 mod.el_mat_i(:) = water_matl_i;
-el_types = {el_typ_fluid};
+el_types = fn_2d_el_types();
 mod.el_typ_i(:) =  find(strcmp(el_types, el_typ_fluid));
 
 

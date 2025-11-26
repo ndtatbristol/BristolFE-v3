@@ -89,7 +89,7 @@ end
 
 ndf = size(K, 1);
 t1 = clock;
-fn_console_output(sprintf(['Explicit time marching v6 (GPU = %i, time steps = %i, DOF = %i, ', solver_precision, ') '], use_gpu, numel(time), ndf), [], 0);
+fn_console_output(sprintf(['Explicit time marching v6 (GPU = %i, time steps = %d, DOF = %d, ', solver_precision, ') '], use_gpu, numel(time), ndf), [], 0);
 dt = time(2) - time(1);
 
 %initialise history and field output variables

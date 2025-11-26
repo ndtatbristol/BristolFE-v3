@@ -52,7 +52,7 @@ if ~isempty(anim_options.mp4_out)
 
     switch video_profile
         case 'MPEG-4'
-            opengl software;
+            %opengl software; - no longer supported by Matlab
             set(gcf, 'Color', [1,1,1]);
             set(gcf,'Renderer','OpenGL');
         otherwise

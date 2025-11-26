@@ -1,6 +1,6 @@
-function mod = fn_2d_add_crack(mod, crack_vtcs, varargin)
+function mod = fn_2d_add_crack(mod, el_types, crack_vtcs, varargin)
 %USAGE
-%   mod = fn_2d_add_crack(mod, crack_vtcs, [crack_fcs, cod])
+%   mod = fn_2d_add_crack(mod, el_types, crack_vtcs, [crack_fcs, cod])
 %AUTHOR
 %   Paul Wilcox (2025)
 %SUMMARY
@@ -12,6 +12,7 @@ function mod = fn_2d_add_crack(mod, crack_vtcs, varargin)
 %INPUTS
 %   mod - structured variable describing model, containing nodal
 %   coordinates, mod.nds, and element nodes, mod.els.
+%   el_types - cell array of names of elements used in model.
 %   crack_vtcs - n_vtcs x 2 matrix of coordinates describing vertices of
 %   surface that will define crack
 %   [crack_fcs - n_faces x 2 matrix of vertex indices for each line facet of
@@ -42,7 +43,7 @@ if isempty(crack_fcs)
     crack_fcs = [1:size(crack_vtcs, 1) - 1; 2:size(crack_vtcs, 1)]';
 end
 
-mod = fn_add_crack(mod, crack_vtcs, crack_fcs, cod);
+mod = fn_add_crack(mod, el_types, crack_vtcs, crack_fcs, cod);
 
 end
 

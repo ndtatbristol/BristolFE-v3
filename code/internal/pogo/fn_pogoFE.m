@@ -75,7 +75,7 @@ end
 t1 = clock;
 fn_console_output('Generating input file ...');
 addpath(genpath(fe_options.pogo_matlab_path));
-pogo_model = fn_convert_to_pogo_model(mod, matls, steps, fe_options);
+pogo_model = fn_convert_to_pogo_model(mod, matls, el_types, steps, fe_options);
 fname = 'pogoPW4';
 dummy_fname = [fname, '.txt'];
 warning('off', 'all');
@@ -148,7 +148,7 @@ fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0)
 end
 
 
-function model = fn_convert_to_pogo_model(mod, matls, steps, fe_options)
+function model = fn_convert_to_pogo_model(mod, matls, el_types, steps, fe_options)
 model.nDims = size(mod.nds, 2);
 model.nDofPerNode = model.nDims;                    %This is not general enough - but how do you get DoF in my code?
 %model.runName = "";                                 %not important (unused at present)
@@ -189,34 +189,36 @@ end
 %one requires a separate material definition)
 if isfield(mod, 'el_abs_i')
     unique_abs_levels = unique(mod.el_abs_i);
-    if fe_options.pogo_number_of_diff_absorbing_matls < numel(unique_abs_levels)
-        pogo_abs_levels = linspace(0, 1, fe_options.pogo_number_of_diff_absorbing_matls + 1); %plus one because first one is zero
-    else
-        pogo_abs_levels = unique_abs_levels;
-    end
-    mod.el_abs_i_pogo = interp1(pogo_abs_levels, 1:numel(pogo_abs_levels) ,mod.el_abs_i, 'nearest');
-    %convert Bristol FE's continuous abs levels to Pogo indices for discrete levels
-    new_mat_ind = numel(matls) + 1; %indices of new materials to be added with damping
-    no_matls_initially = numel(matls);
-    for n = 1:no_matls_initially
-        %pogo_number_of_diff_absorbing_matls
-        if all(mod.el_abs_i(mod.el_mat_i == n) == 0)
-            %no absorbing elements for this material, move onto next one
-            continue
+    if numel(unique_abs_levels) > 1 
+        if fe_options.pogo_number_of_diff_absorbing_matls < numel(unique_abs_levels)
+            pogo_abs_levels = linspace(0, 1, fe_options.pogo_number_of_diff_absorbing_matls + 1); %plus one because first one is zero
+        else
+            pogo_abs_levels = unique_abs_levels;
         end
-        for m = 2:numel(pogo_abs_levels) %start at 2 because 1 is zero absorption case
-            %Figure out the absorbing material parameters
-            if isfield(matls{n}, 'alpha')
-                alpha = matls{n}.alpha;
-            else
-                alpha = 0.0;
-                alpha = alpha + pogo_abs_levels(m) ^ fe_options.damping_power_law *  fe_options.max_damping;
-                D = matls{n}.D * exp(log(fe_options.max_stiffness_reduction) * pogo_abs_levels(m) ^ (fe_options.damping_power_law + 1));
-                %Add new material to Pogo model
-                model.matTypes{new_mat_ind} = fn_pogo_matl(D, matls{n}.rho, alpha, n);
-                %Assign all relevant elements in pogo model to this material
-                model.matTypeRefs((mod.el_mat_i == n) & (mod.el_abs_i_pogo == m)) = new_mat_ind;
-                new_mat_ind = new_mat_ind + 1;
+        mod.el_abs_i_pogo = interp1(pogo_abs_levels, 1:numel(pogo_abs_levels) ,mod.el_abs_i, 'nearest');
+        %convert Bristol FE's continuous abs levels to Pogo indices for discrete levels
+        new_mat_ind = numel(matls) + 1; %indices of new materials to be added with damping
+        no_matls_initially = numel(matls);
+        for n = 1:no_matls_initially
+            %pogo_number_of_diff_absorbing_matls
+            if all(mod.el_abs_i(mod.el_mat_i == n) == 0)
+                %no absorbing elements for this material, move onto next one
+                continue
+            end
+            for m = 2:numel(pogo_abs_levels) %start at 2 because 1 is zero absorption case
+                %Figure out the absorbing material parameters
+                if isfield(matls{n}, 'alpha')
+                    alpha = matls{n}.alpha;
+                else
+                    alpha = 0.0;
+                    alpha = alpha + pogo_abs_levels(m) ^ fe_options.damping_power_law *  fe_options.max_damping;
+                    D = matls{n}.D * exp(log(fe_options.max_stiffness_reduction) * pogo_abs_levels(m) ^ (fe_options.damping_power_law + 1));
+                    %Add new material to Pogo model
+                    model.matTypes{new_mat_ind} = fn_pogo_matl(D, matls{n}.rho, alpha, n);
+                    %Assign all relevant elements in pogo model to this material
+                    model.matTypeRefs((mod.el_mat_i == n) & (mod.el_abs_i_pogo == m)) = new_mat_ind;
+                    new_mat_ind = new_mat_ind + 1;
+                end
             end
         end
     end

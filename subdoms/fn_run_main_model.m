@@ -24,6 +24,11 @@ end
 if isempty(fe_options.max_damping)
     fe_options.max_damping = fe_options.centre_freq * 2 * pi;
 end
+if isempty(fe_options.dof_to_use)
+    %This is needed for sub-domain models because all DoF need to
+    %be considered as possibilities when only main model exists.
+    fe_options.dof_to_use = 1:4;
+end
 if ~isfield(main.mod, 'el_typ_i')
     main.mod.el_typ_i = {main.matls(main.mod.el_mat_i).el_typ};
     main.mod.el_typ_i = main.mod.el_typ_i(:);
@@ -32,6 +37,11 @@ end
 
 
 % fe_options.dof_to_use = fn_find_dof_in_use_and_max_dof_per_el(main.el_types, fe_options.dof_to_use);
+%deal with missing el_types for v2 legacy examples
+if ~isfield(main, 'el_types')
+    main.el_types = main.mod.el_types;
+end
+
 fe_options = fn_FE_entry_point(main.mod, main.matls, main.el_types, [], fe_options);%this call is necessary in order get the actual DoFs available from chosen solver
 
 

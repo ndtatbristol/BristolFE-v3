@@ -1,50 +1,48 @@
-function mod = fn_2d_add_inclusion_or_void(mod, matls, el_types, scat_pts, scat_matl)
+function [mod, old_nds] = fn_2d_add_inclusion_or_void(mod, el_types, scat_pts, scat_matl_i, scat_el_typ_i)
 %USAGE
-%   mod = fn_2d_add_inclusion_or_void(mod, matls, el_types, scat_pts, scat_matl)
+%   mod = fn_2d_add_inclusion_or_void(mod, el_types, scat_pts, scat_matl, scat_el_typ)
 %AUTHOR
 %   Paul Wilcox (2025)
 %SUMMARY
 %   Adds scatterer to existing model by turning all elements inside
 %   scat_pts to either matl(scat_matl) or void if = scat_matl
 %INPUTS
-%   mod - existing model
-%   matls - cell array of materials in model
-%   el_types - cell array of element types in model
+%   mod - structured variable describing model, containing nodal
+%   coordinates, mod.nds, and element nodes, mod.els.
+%   el_types - cell array of element type names to be used in model
 %   scat_pts - n_ptsx2 matrix of points describing a closed boundary around
 %   scatterer or void
-%   scat_matl - material index of material to go inside scatterer region or
+%   scat_matl_i - material index of material to go inside scatterer region or
 %   zero to create a void
+%   scat_el_typ_i - element type index of material inside scatterer region
+%   (ignored if scat_matl == 0)
 %OUTPUT
 %   mod - modified model with scatterer
 %NOTES
-%   This looks like it was written to handle sub-domains (extra variables
-%   involving node numbers are updated) and fluid-solid interfaces. Not
-%   clear if either of these are actually required and it would be neater
-%   if they were not. This should be checked.
-%   7/10/25 - removed lines that remove and then add fluid-solid interface
-%   elements on either side and it still seems ok. For subdoms, it would be
-%   neater to just return old_nds as second parameter than can be used if
-%   needed to update the extra fields needed for subdomain models.
+%   This handles subdomains by checking for existance of other fields in
+%   mod that involve node numbers as these have to be updated if nodes are
+%   removed (i.e. when a void is added; an inclusion does not remove any
+%   nodes or elements, it just changes element material)
 %--------------------------------------------------------------------------
 
-
-interface_el_name = 'ASI2D2';
-
-%Remove interface elements if there are any
-%mod = fn_remove_fluid_solid_interface_els(mod, el_types);
-% els_in_use = ~strcmp(mod.el_typ_i, interface_el_name);
-% [~, ~, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i] = fn_remove_unused_elements(els_in_use, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i);
-
-
-if scat_matl > 0
-    mod = rmfield(mod, 'el_typ_i');
-    mod = fn_set_els_inside_bdry_to_mat(mod, scat_pts, scat_matl);
+els_in_inclusion = fn_2d_find_elements_in_region(mod, scat_pts);
+if scat_matl_i > 0
+    %only change material and type of non-interface elements, otherwise
+    %interface elements cannot be detected and deleted later
+    int_el_typ_i = fn_el_typ_indices_for_class(el_types, 'fluid_solid_interface');
+    for i = 1:numel(int_el_typ_i)
+        els_in_inclusion = els_in_inclusion & (mod.el_typ_i ~= int_el_typ_i(i));
+    end
+    mod.el_mat_i(els_in_inclusion) = scat_matl_i;
+    mod.el_typ_i(els_in_inclusion) = scat_el_typ_i;
+    %Add interface elements (may not be necessary always, but no harm in
+    %calling as they will be necessary if it is a solid inclusion in a
+    %liquid or vice versa
+    mod = fn_add_fluid_solid_interface_els(mod, el_types);
 else
-    % [~, els_in_use] = fn_elements_in_region2(mod.nds, mod.els, scat_pts);
-    [~, els_in_use] = fn_elements_in_region(mod, scat_pts);
-    [~, ~, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i] = fn_remove_unused_elements(els_in_use, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i);
+    [~, ~, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i] = fn_remove_unused_elements(~els_in_inclusion, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i);
     [mod.nds, mod.els, old_nds] = fn_remove_unused_nodes(mod.nds, mod.els);
-    %Following needed for sub-domain models?
+    %Following needed for sub-domain models
     if isfield(mod, 'bdry_lyrs')
         mod.bdry_lyrs = mod.bdry_lyrs(old_nds);
     end
@@ -53,12 +51,10 @@ else
     end
 end
 
-%Add interface elements if needed
-%mod = fn_add_fluid_solid_interface_els(mod, el_types);
-
-if isfield(mod, 'inner_bndry_pts')
-    %Set flag on which elements are within domain
-    mod.int_el_i = fn_elements_in_region(mod, mod.inner_bndry_pts);
-end
+% %Following needed for sub-domain models
+% if isfield(mod, 'inner_bndry_pts')
+%     %Set flag on which elements are within domain
+%     mod.int_el_i = fn_2d_find_elements_in_region(mod, mod.inner_bndry_pts);
+% end
 
 end

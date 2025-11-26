@@ -28,7 +28,7 @@ default_options.dof_to_use = []; %Blank uses all of available ones for all eleme
 %matrix and reducing stiffness matrix to try and preserve acoustic
 %impedance
 default_options.damping_power_law = 3;
-default_options.max_damping = 3.1415e+07;
+default_options.max_damping = 3.1415e+07; %this is the only absolute number in the list - pi * 10e6
 default_options.max_stiffness_reduction = 0.01;
 default_options.interface_damping_factor = 0;
 
@@ -46,7 +46,7 @@ if length(el_abs_i) ~= no_els
     error('Length of element absorbing indices vector must equal number of elements');
 end
 
-fn_console_output(sprintf('Global matrix builder v5 (nodes = %i, elements = %i, ', size(nds, 1), size(els, 1)));
+fn_console_output(sprintf('Global matrix builder v5 (nodes = %d, elements = %d, ', size(nds, 1), size(els, 1)));
 t1 = clock;
 
 %find unique element types, max DoF per element, and actual DoFs in use
@@ -163,6 +163,6 @@ gl_lookup = fn_create_fast_lookup(gl_nds, gl_dofs, no_nds, 0);
 %     C = fn_add_interface_damping(els, el_typ_i, K, C, M, gl_lookup, fe_options.interface_damping_factor);
 % end
 
-fn_console_output(sprintf('DOF = %i) .......... completed in %.2f secs\n', size(K, 1), etime(clock, t1)), [], 0);
+fn_console_output(sprintf('DOF = %d) .......... completed in %.2f secs\n', size(K, 1), etime(clock, t1)), [], 0);
 
 end

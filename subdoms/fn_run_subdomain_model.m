@@ -19,6 +19,11 @@ end
 if isempty(fe_options.doms_to_run)
     fe_options.doms_to_run = 1:numel(main.doms);
 end
+if isempty(fe_options.dof_to_use)
+    %This is needed for sub-domain models because all DoF need to
+    %be considered as possibilities
+    fe_options.dof_to_use = 1:4;
+end
 
 time_step = main.inp.time(2) - main.inp.time(1);
 

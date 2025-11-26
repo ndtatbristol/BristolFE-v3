@@ -31,9 +31,6 @@ end
 if isfield(dm_mod, 'design_centre_freq')
     dm_mod = rmfield(dm_mod, 'design_centre_freq');
 end
-if isfield(dm_mod, 'el_types')
-    dm_mod = rmfield(dm_mod, 'el_types');
-end
 
 %Create vector that will hold indices associating nodes with the 4 boundary
 %layers in the subdomain
@@ -41,8 +38,7 @@ dm_mod.bdry_lyrs = zeros(size(mn_mod.nds, 1), 1);
 dm_mod.inner_bndry_pts = inner_bdry;
 
 %Get elements in region
-el_used = fn_elements_in_region(dm_mod, inner_bdry);
-%dm_mod.main_int_el_i = find(el_used); %the indices of the internal els in the main model for this sub-domain (need to be identifiable when doing validation models)
+el_used = fn_2d_find_elements_in_region(dm_mod, inner_bdry);
 
 %Work out and assign bdry nodes to layers
 for i = 1:4

@@ -1,4 +1,4 @@
-function mod = fn_add_crack(mod, crack_vtcs, crack_fcs, cod)
+function mod = fn_add_crack(mod, el_types, crack_vtcs, crack_fcs, cod)
 %SUMMARY
 %   Adds a crack into a 2D or 3D model by identifying nearest element
 %   edges/faces and 'splitting' model along them, by duplicating nodes.
@@ -9,6 +9,7 @@ function mod = fn_add_crack(mod, crack_vtcs, crack_fcs, cod)
 %   mod - structured variable describing model, containing nodal 
 %   coordinates, mod.nds, and element nodes, mod.els. Note that ndim = 
 %   size(mod.nds, 2)
+%   el_types - cell array of names of elements used in model.
 %   crack_vtcs - ndim x n_vtcs matrix of coordinates describing vertices of
 %   surface that will define crack
 %   crack_fcs - n_faces x 2 or 3 matrix of vertex indices for each face
@@ -31,14 +32,14 @@ el_cents = fn_calc_element_centres(mod.nds, mod.els);
 d = fn_signed_dist_to_bdry(el_cents, crack_vtcs, crack_fcs);
 
 %identify elements on either side of crack and within tol of crack
-[~, max_el_size] = fn_get_min_max_element_sizes(mod);
+[~, max_el_size] = fn_get_min_max_element_sizes(mod, el_types);
 
 e0 = abs(d) < max_el_size * 2; %this is purely for computational efficiency to minimuise number of elements considered
 ep = (sign(d)) >= 0 & e0;
 en = (sign(d)) <  0 & e0;
 
 %Identify the nodes on the crack
-[interface_fcs, ~, ~] = fn_find_interface(mod, ep, en);
+[interface_fcs, ~, ~] = fn_find_interface(mod, ep, en, el_types);
 crack_nd_i = unique(interface_fcs(:));
 crack_nds = mod.nds(crack_nd_i, :);
 

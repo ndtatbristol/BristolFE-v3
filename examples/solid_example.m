@@ -1,10 +1,18 @@
 clearvars -except scripts_to_run
-close all;
+% close all;
 restoredefaultpath;
 addpath(genpath('../code'));
 
-% fe_options.solver = 'pogo'; %You can try using Pogo as the solver instead
-% of BristolFE if you have it installed.
+fe_options.solver = 'BristolFE'; %This is the default, so you don't actually need this line. Included for completeness.
+% fe_options.solver = 'pogo'; %You can try using Pogo as the solver instead of BristolFE if you have it installed.
+fe_options.dof_to_use = [1, 2];
+
+%Elements per wavelength (higher = more accurate and higher computational cost)
+els_per_wavelength = 10;
+
+%The default option is field_output_every_n_frames = inf, which means there
+%is no field output. Set to a finite value to get a field output.
+fe_options.field_output_every_n_frames = inf;5;
 
 show_geom_only = 0; %Set to 1 to just show geometry without running model
 
@@ -14,9 +22,6 @@ show_geom_only = 0; %Set to 1 to just show geometry without running model
 %Material properties
 steel_matl_i = 1;
 matls{steel_matl_i}.rho = 8900; %Density
-%3x3 or 6x6 stiffness matrix of material. Here it is isotropic material and
-%fn_isotropic_plane_strain_stiffness_matrix(E, v) converts Young's modulus
-%and Poisson's ratio into appropriate 3x3 matrix
 matls{steel_matl_i}.D = fn_isotropic_stiffness_matrix(210e9, 0.3); 
 matls{steel_matl_i}.col = hsv2rgb([2/3,0,0.80]); %Colour for display
 matls{steel_matl_i}.name = 'Steel';
@@ -24,9 +29,8 @@ matls{steel_matl_i}.name = 'Steel';
 %Element type to use
 el_typ_solid = 'CPE3'; 
 
-
 %Define shape of model
-model_size = 10e-3;
+model_size = 20e-3;
 bdry_pts = [
     0, 0 
     model_size, 0 
@@ -45,12 +49,9 @@ centre_freq = 5e6;
 no_cycles = 4;
 max_time = 10e-6;
 
-%Elements per wavelength (higher = more accurate and higher computational cost)
-els_per_wavelength = 10;
 
-%The default option is field_output_every_n_frames = inf, which means there
-%is no field output. Set to a finite value to get a field output.
-fe_options.field_output_every_n_frames = 5;
+
+
 
 %--------------------------------------------------------------------------
 %PREPARE THE MESH
@@ -63,7 +64,7 @@ mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
 
 %Associate elements with materials and element types
 mod.el_mat_i(:) = steel_matl_i;
-el_types = {el_typ_solid};
+el_types = fn_2d_el_types();
 mod.el_typ_i(:) = find(strcmp(el_types, el_typ_solid));
 
 
@@ -97,7 +98,7 @@ end
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 
-[res, mats] = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
+res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
 
 %--------------------------------------------------------------------------
 %SHOW THE RESULTS

@@ -1,10 +1,22 @@
-function [mod, el_types] = fn_add_fluid_solid_interface_els(mod, el_types, varargin)
+function mod = fn_add_fluid_solid_interface_els(mod, el_types)
+%USAGE
+%   mod = fn_add_fluid_solid_interface_els(mod, el_types)
+%AUTHOR
+%   Paul Wilcox (2025)
 %SUMMARY
 %   Adds the necessary interface elements between all solid and fluid
 %   elements in a model. Without these there is no coupling between the
-%   solid and fluid domains.
+%   solid and fluid domains. Only needs to be called once for a given model
+%   after all features are added (i.e. it should be the last step)
+%INPUTS
+%   mod - structured variable describing model, containing nodal
+%   coordinates, mod.nds, and element nodes, mod.els.
+%OUTPUT
+%   mod - modified model with additional interface elements
 
-%Deal with legacy v2 calls where args are mod, matls, varargin
+
+%Deal with legacy v2 calls where args are mod, matls, varargin - THIS WILL
+%NO LONGER WORK 26/11/25!!!!
 if isstruct(el_types) && isfield(el_types, 'rho')
     matls = el_types;
     if isstruct(matls)
@@ -13,35 +25,34 @@ if isstruct(el_types) && isfield(el_types, 'rho')
     [mod, el_types] = fn_create_el_types_for_legacy_v2_models(mod, matls);
 end
 
-if numel(varargin) < 1
-    options = [];
-else
-    options = varargin{1};
+solid_el_i = [];
+fluid_el_i = [];
+int_el_typ_i = [];
+for i = 1:numel(el_types)
+    tmp = fn_query_el_type_info(el_types{i});
+    switch tmp.state
+        case 'solid'
+            solid_el_i(end + 1) = i;
+        case 'fluid'
+            fluid_el_i(end + 1) = i;
+        case 'fluid_solid_interface'
+            int_el_typ_i(end + 1) = i;
+    end
 end
-default_options.interface_el_name = 'ASI2D2';
-default_options.fluid_el_names = {'AC2D3'};
-default_options.solid_el_names = {'CPE3'};
-options = fn_set_default_fields(options, default_options);
 
-%Get lists of indices of fluid and solid element types
-solid_el_i = find(ismember(el_types, options.solid_el_names));
-fluid_el_i = find(ismember(el_types, options.fluid_el_names));
-
-if isempty(solid_el_i) || isempty(fluid_el_i)
+% if isempty(solid_el_i) || isempty(fluid_el_i)
+if all(mod.el_typ_i ~= solid_el_i, 'all') && all(mod.el_typ_i ~= fluid_el_i, 'all')
     %model has no solid or no fluid element types 
     return
 end
 
-%Add interface element to list of element types if not already there
-if ~any(strcmp(el_types, options.interface_el_name))
-    el_types{end + 1} = options.interface_el_name;
-end
+%Remove existing interface elements - necessary otherwise new elements will
+%be added on top and will effectively double the coupling between solid and
+%fluid
+mod = fn_remove_fluid_solid_interface_els(mod, int_el_typ_i);
 
 %for legacy v2 calls, need to embed el_types in mod as well
 mod.el_types = el_types;
-
-%Get interface element index
-interface_el_i = find(strcmp(el_types, options.interface_el_name));
 
 %New method using find interface function (should work for 2D and 3D up
 %to and including this function)
@@ -77,7 +88,7 @@ end
 
 %Add the new interface elements to the model
 mod.els = [mod.els; [interface_facets, zeros(no_int_els, size(mod.els, 2) - size(interface_facets, 2))]];
-mod.el_typ_i = [mod.el_typ_i; repmat(interface_el_i, [no_int_els, 1])];
+mod.el_typ_i = [mod.el_typ_i; repmat(int_el_typ_i, [no_int_els, 1])];
 
 %Extend material and absorbing indices to include new elements
 mod.el_mat_i = [mod.el_mat_i; zeros(no_int_els, 1)];

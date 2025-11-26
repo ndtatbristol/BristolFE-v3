@@ -34,7 +34,7 @@ function mod = fn_2d_add_absorbing_layer(mod, abs_bdry_pts, abs_bdry_thickness)
 
 el_ctrs = fn_calc_element_centres(mod.nds, mod.els);
 d = fn_dist_point_to_bdry_2D(el_ctrs, abs_bdry_pts);
-in = fn_elements_in_region(mod, abs_bdry_pts);
+in = fn_2d_find_elements_in_region(mod, abs_bdry_pts);
 
 mod.el_abs_i = d / abs_bdry_thickness;
 mod.el_abs_i(mod.el_abs_i < 0) = 0;
