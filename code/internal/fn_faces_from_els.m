@@ -15,11 +15,17 @@ for i = 1:numel(un_el_typ_i)
     ei = el_types{un_el_typ_i(i)};
 
     switch ei
-        case {'CPE3', 'AC2D3'} %2D triangles
+        case {'CPE3', 'CPS3', 'AC2D3'} %2D triangles
             fc_i = [
                 1,2
                 2,3
                 3,1];
+        case {'CPE4', 'CPE4R', 'CPS4', 'CPS4R', 'AC2D4', 'AC2D4R'} %2d quadrilaterals
+            fc_i = [
+                1,2
+                2,3
+                3,4
+                4,1];
         case 'ASI2D2' %2D interface element
             fc_i = [
                 1,2];

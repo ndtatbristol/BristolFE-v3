@@ -15,16 +15,11 @@ fe_options.field_output_every_n_frames = 10;
 %--------------------------------------------------------------------------
 %DEFINE THE PROBLEM
 
-water_matl_i = 2;
-matls{water_matl_i}.rho = 1000;
-%For fluids, stiffness 'matrix' D is just the scalar bulk modulus,
-%calcualted here from ultrasonic velocity (1500) and density
-matls{water_matl_i}.D = 1500 ^ 2 * matls{water_matl_i}.rho;
-matls{water_matl_i}.col = hsv2rgb([0.6,0.5,0.8]);
-matls{water_matl_i}.name = 'Water';
+matl_i = 2;
+matls{matl_i} = fn_matl_fluid_defined_by_velocity('water', 1500, 1000);
 
 %Element type to use
-el_typ_fluid = 'AC2D3'; 
+el_typ_to_use_for_fluid = 'AC2D3'; 
 
 %Define shape of model - a right angle triangle in this example
 model_size = 10e-3;
@@ -58,9 +53,9 @@ el_size = fn_get_suitable_el_size(matls, centre_freq, els_per_wavelength);
 mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
 
 %Associate elements with materials and element types
-mod.el_mat_i(:) = water_matl_i;
+mod.el_mat_i(:) = matl_i;
 el_types = fn_2d_el_types();
-mod.el_typ_i(:) =  find(strcmp(el_types, el_typ_fluid));
+mod.el_typ_i(:) =  find(strcmp(el_types, el_typ_to_use_for_fluid));
 
 
 %Identify nodes along the source line to say where the loading will be

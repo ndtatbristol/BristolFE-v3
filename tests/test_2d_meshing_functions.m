@@ -1,38 +1,44 @@
 clear
 close all
-%restoredefaultpath
 
 addpath(genpath('../code'));
 
-test_basic_mesh_gen = 0;
+%Materials
+solid_matl_i = 1;
+matls{solid_matl_i} = fn_matl_isotropic_solid_defined_by_velocities('Al', 6300, 3150, 2700);
+solid_matl2_i = 2;
+matls{solid_matl2_i} = fn_matl_isotropic_solid_defined_by_velocities('St', 5900, 3150, 8900);
 
-%Steel
-steel_matl_i = 1;
-matls{steel_matl_i}.rho = 8900; %Density
-matls{steel_matl_i}.D = fn_isotropic_stiffness_matrix(210e9, 0.3);
-matls{steel_matl_i}.col = hsv2rgb([2/3,0,0.80]); %Colour for display
-matls{steel_matl_i}.name = 'Steel';
 
-%Water
-water_matl_i = 2;
-matls{water_matl_i}.rho = 1000;
-%For fluids, stiffness 'matrix' D is just the scalar bulk modulus,
-%calculated here from ultrasonic velocity (1500) and density (1000)
-matls{water_matl_i}.D = 1500 ^ 2 * 1000;
-matls{water_matl_i}.col = hsv2rgb([0.6,0.5,0.8]);
-matls{water_matl_i}.name = 'Water';
+fluid_matl_i = 3;
+matls{fluid_matl_i} = fn_matl_fluid_defined_by_velocity('water', 1500, 1000);
 
 el_typ_solid = 'CPE3';
 el_typ_fluid = 'AC2D3';
-el_types = {el_typ_solid, el_typ_fluid};
-bdry_pts = [0.02,0.01; 0.02, 0.7; 1.03,0.7; 1.03, 0.01];
+el_types = fn_2d_el_types();
+abs_bdry_thickness = 0.05;
+bdry_pts = [
+    0.02, 0.01
+    0.02, 0.7
+    1.03, 0.7
+    1.03, 0.01];
+abs_bdry_pts = [
+    0.02 + abs_bdry_thickness, 0.01 + abs_bdry_thickness
+    0.02 + abs_bdry_thickness, 0.7 - abs_bdry_thickness
+    1.03 - abs_bdry_thickness, 0.7 - abs_bdry_thickness
+    1.03 - abs_bdry_thickness, 0.01 + abs_bdry_thickness];
+
 water_pts = [0.5, 0; 0.6, 1; 2, 1; 2, 0];
+el_size = 0.1;
 options.draw_elements = 1;
+
+test_basic_mesh_gen = 0;
+test_advance_mesh_gen = 1;
 
 %--------------------------------------------------------------------------
 %Basic mesh generation
 if test_basic_mesh_gen
-    el_size = 0.1;
+
 
     figure;
     force_reg_elements = 1;
@@ -44,6 +50,7 @@ if test_basic_mesh_gen
     mod = fn_2d_structured_mesh_rectangular_els(bdry_pts, el_size, force_reg_elements);
     fn_show_geometry(mod, matls, options);
     hold on; fn_plot_line(bdry_pts, 'r', 1)
+
     force_reg_elements = 0;
     subplot(2,2,3);
     mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size, force_reg_elements);
@@ -55,30 +62,55 @@ if test_basic_mesh_gen
     hold on; fn_plot_line(bdry_pts, 'r', 1)
 end
 %--------------------------------------------------------------------------
-%Change some material, add fluid-solid interface, and add voids
-el_size = 0.02;
-force_reg_elements = 0;
-mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size, force_reg_elements);
+if test_advance_mesh_gen
+    rad = 0.1;
+    min_rad_frac = 0.5;
+    complexity = 3;
+    no_pts = 200;
+    cent = [0.5, 0.25];
+    scat_pts1 = fn_2d_create_smooth_random_blob(min_rad_frac, complexity, no_pts) * rad + cent;
+    scat_matl1 = 0;
+    scat_el_typ1 = 0;
 
-%Add water region and deal with element types
-els_in_water = fn_elements_in_region(mod, water_pts);
-mod.el_typ_i = ones(size(mod.els, 1), 1) * find(strcmp(el_types, el_typ_solid));
-mod.el_mat_i(els_in_water) = water_matl_i;
-mod.el_typ_i(els_in_water) = find(strcmp(el_types, el_typ_fluid));
+    cent = [0.6, 0.5];
+    scat_pts2 = fn_2d_create_smooth_random_blob(min_rad_frac, complexity, no_pts) * rad + cent;
+    scat_matl2 = solid_matl2_i;
+    scat_el_typ2 = find(strcmp(el_types, el_typ_solid));
 
 
-rad = 0.2;
-min_rad_frac = 0.5;
-complexity = 3;
-no_pts = 200;
-cent = [0.5, 0.35];
-scat_pts = fn_2d_create_smooth_random_blob(min_rad_frac, complexity, no_pts) * rad + cent;
-scat_matl = 0;
-[mod, el_types] = fn_add_fluid_solid_interface_els(mod, el_types);
-mod = fn_2d_add_inclusion_or_void(mod, el_types, scat_pts, scat_matl);
+    for i = 1:2
+        %Change some material, add fluid-solid interface, and add voids
+        el_size = 0.02;
+        force_reg_elements = 0;
+        switch i
+            case 1
+                mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size, force_reg_elements);
+                el_typ_solid = 'CPE3';
+                el_typ_fluid = 'AC2D3';
+            case 2
+                mod = fn_2d_structured_mesh_rectangular_els(bdry_pts, el_size, force_reg_elements);
+                el_typ_solid = 'CPE4';
+                el_typ_fluid = 'AC2D4';
+        end
 
-figure;
-options.draw_elements = 0;
-fn_show_geometry(mod, matls, options);
-hold on; fn_plot_line(bdry_pts, 'r', 1)
-hold on; fn_plot_line(scat_pts, 'r', 1);
+
+        %Add water region and deal with element types
+        els_in_water = fn_2d_find_elements_in_region(mod, water_pts);
+        mod.el_typ_i = ones(size(mod.els, 1), 1) * find(strcmp(el_types, el_typ_solid));
+        mod.el_mat_i(els_in_water) = fluid_matl_i;
+        mod.el_typ_i(els_in_water) = find(strcmp(el_types, el_typ_fluid));
+
+
+        mod = fn_2d_add_absorbing_layer(mod, abs_bdry_pts, abs_bdry_thickness);
+
+        %Add some scatterers
+        mod = fn_2d_add_inclusion_or_void(mod, el_types, scat_pts1, scat_matl1, scat_el_typ1);
+        mod = fn_2d_add_inclusion_or_void(mod, el_types, scat_pts2, scat_matl2, scat_el_typ2);
+
+        figure;
+        fn_show_geometry(mod, matls, options);
+        hold on; fn_plot_line(bdry_pts, 'r', 1)
+        hold on; fn_plot_line(scat_pts1, 'r', 1);
+        hold on; fn_plot_line(scat_pts2, 'r', 1);
+    end
+end
