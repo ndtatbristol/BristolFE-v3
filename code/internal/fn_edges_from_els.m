@@ -9,22 +9,23 @@ function el_edges = fn_edges_from_els(els, el_i, el_typ_i, el_types)
 %       of el_faces{q}.eds of size [n_els_of_typ_q * n_eds_per_el_of_type_q, 1]
 %For 2D elements this function returns faces (identical to fn_faces_from_els)
 
+el_type_info = fn_el_type_info();
 un_el_typ_i = unique(el_typ_i);
 el_i = el_i(:);
 
 for i = 1:numel(un_el_typ_i)
     ei = el_types{un_el_typ_i(i)};
 
-    switch ei
-        case {'CPE3', 'AC2D3'} %2D triangles - note that for 2D elements this function returns faces (same as fn_faceas_from_els)
+    switch fn_el_shape(el_type_info, ei)
+        case 'triangular' %2D triangular
             fc_i = [
                 1, 2
                 2, 3
                 3, 1];
-        case 'ASI2D2' %2D interface element - note that for 2D elements this function returns faces (same as fn_faceas_from_els)
+        case 'line' %2D line - note that for lines this function returns faces (same as fn_faceas_from_els)
             fc_i = [
                 1, 2];
-        case 4 %3D Tetrahedron
+        case 'tetrahedral' %3D tetrahedral
             fc_i = [
                 1, 2
                 1, 3
@@ -32,7 +33,7 @@ for i = 1:numel(un_el_typ_i)
                 2, 3
                 2, 4
                 3, 4];
-        case 'C3D8R' %3D cubes
+        case 'hexahedral' %3D hexahedral
             fc_i = [
                 1, 2
                 2, 3
@@ -52,8 +53,6 @@ for i = 1:numel(un_el_typ_i)
     j = el_typ_i == un_el_typ_i(i);
 
     el_edges{i}.el_typ_i = ei;
-
-
     el_edges{i}.eds = reshape(els(j, fc_i')', size(fc_i, 2), [])';
     el_edges{i}.el_i = reshape(reshape(el_i(j), 1, []) .* ones(size(fc_i, 1), 1), [], 1);
 end

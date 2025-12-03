@@ -14,6 +14,8 @@ function dm_mod = fn_create_subdomain(mn_mod, matls, inner_bdry, abs_layer_thick
 %Last optional argument allows the start of the absorbing region to be
 %specified. If not specified it will be penultimate boundary layer.
 
+
+
 interface_el_name = 'ASI2D2';
 
 if ~isfield(mn_mod, 'el_typ_i')

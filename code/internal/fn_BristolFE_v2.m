@@ -28,6 +28,7 @@ default_options.dynamic_solver_version = 'v6';
 default_options.solver_mode = 'vel at curent time step';
 %What to output if field output requested
 default_options.field_output_type = 'KE';
+default_options.max_damping = [];
 %--------------------------------------------------------------------------
 fe_options = fn_set_default_fields(fe_options, default_options);
 if isempty(steps)

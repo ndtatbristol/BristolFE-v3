@@ -1,10 +1,18 @@
-clearvars -except scripts_to_run
-% close all;
-restoredefaultpath;
+clear all
+close all;
+
 addpath(genpath('../code'));
 
+%This script runs the same model twice, once in BristolFE and once in Pogo
+%(which must be installed with a valid license) and compares the results
+
+
+solvers = {'BristolFE', 'pogo'};
+
+
+
 fe_options.solver = 'BristolFE'; %This is the default, so you don't actually need this line. Included for completeness.
-% fe_options.solver = 'pogo'; %You can try using Pogo as the solver instead of BristolFE if you have it installed.
+fe_options.solver = 'pogo'; %You can try using Pogo as the solver instead of BristolFE if you have it installed.
 fe_options.dof_to_use = [1, 2];
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
@@ -64,7 +72,7 @@ mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
 
 %Associate elements with materials and element types
 mod.el_mat_i(:) = steel_matl_i;
-el_types = fn_2d_el_types();
+el_types = {el_typ_solid};
 mod.el_typ_i(:) = find(strcmp(el_types, el_typ_solid));
 
 
@@ -98,7 +106,10 @@ end
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 
-res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
+for s = 1:numel(solvers)
+    fe_options.solver = solvers{s};
+    res{s} = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
+end
 
 %--------------------------------------------------------------------------
 %SHOW THE RESULTS

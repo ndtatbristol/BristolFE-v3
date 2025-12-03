@@ -8,20 +8,20 @@ close all;
 
 %PARAMETRIC DESCRIPTION OF MODEL
 
-%What to include
+%What to include in model
 include_fluid_region = 1;
 include_absorbing_boundary = 1;
-include_crack = 1;
-include_scatterer = 1;
+include_crack = 0;
+include_scatterer = 0;
 scatterer_is_void = 1;
 
 %Geometric description of model
 model_size_x = 10e-3;
 model_size_y = 12e-3;
 interface_pos_y = model_size_y / 2;
-interface_angle_degs = 15;
+interface_angle_degs = 0;
 els_per_wavelength = 10;
-abs_bdry_thickness = 1e-3;
+abs_bdry_thickness_in_wavelengths = 1;
 transducer_width = model_size_x / 3;
 crack_centre = [model_size_x * 0.4, model_size_y * 0.75];
 crack_size = model_size_x * 0.1;
@@ -73,7 +73,6 @@ matls{fluid_matl_i} = fn_matl_fluid_defined_by_velocity(fluid_name, fluid_veloci
 %Element types to use
 el_typ_to_use_for_solid = 'CPE3'; 
 el_typ_to_use_for_fluid = 'AC2D3'; 
-% el_typ_interface = 'ASI2D2';
 
 %Define shape of model
 bdry_pts = [
@@ -81,24 +80,6 @@ bdry_pts = [
     model_size_x,   0 
     model_size_x,   model_size_y 
     0,              model_size_y];
-
-%Define region that will be water (this may or may not be used)
-water_bdry_pts = [
-    0,              0
-    model_size_x,   0
-    model_size_x,   (1 + tand(interface_angle_degs)) * interface_pos_y
-    0,              (1 - tand(interface_angle_degs)) * interface_pos_y];
-
-%Define start of absorbing boundary region and its thickness (this may or may not be used)
-abs_bdry_pts = [
-    abs_bdry_thickness,                 abs_bdry_thickness
-    model_size_x - abs_bdry_thickness,  abs_bdry_thickness
-    model_size_x - abs_bdry_thickness,  model_size_y - abs_bdry_thickness
-    abs_bdry_thickness,                 model_size_y - abs_bdry_thickness];
-
-%--------------------------------------------------------------------------
-%THE ACTUAL CODE STARTS HERE
-%--------------------------------------------------------------------------
 
 %SET UP THE MODEL
 
@@ -121,6 +102,14 @@ mod.el_typ_i(:) = find(strcmp(el_types, el_typ_to_use_for_solid));
 
 %... then set elements inside water boundary material to water
 if include_fluid_region
+    %Define boundary of region that will be water
+    water_bdry_pts = [
+        0,              0
+        model_size_x,   0
+        model_size_x,   (1 + tand(interface_angle_degs)) * interface_pos_y
+        0,              (1 - tand(interface_angle_degs)) * interface_pos_y];
+    %Work out which elements are in that region and assign the material and
+    %element type accordingly
     els_in_water = fn_2d_find_elements_in_region(mod, water_bdry_pts);
     mod.el_mat_i(els_in_water) = fluid_matl_i;
     mod.el_typ_i(els_in_water) = find(strcmp(el_types, el_typ_to_use_for_fluid));
@@ -162,7 +151,17 @@ end
 
 %Define the absorbing layer
 if include_absorbing_boundary
+    max_wavelength = fn_estimate_max_min_wavelengths(matls, centre_freq);
+    abs_bdry_thickness = abs_bdry_thickness_in_wavelengths * max_wavelength;
+    %Define start of absorbing boundary region and its thickness (this may or may not be used)
+    abs_bdry_pts = [
+        abs_bdry_thickness,                 abs_bdry_thickness
+        model_size_x - abs_bdry_thickness,  abs_bdry_thickness
+        model_size_x - abs_bdry_thickness,  model_size_y - abs_bdry_thickness
+        abs_bdry_thickness,                 model_size_y - abs_bdry_thickness];
+
     mod = fn_2d_add_absorbing_layer(mod, abs_bdry_pts, abs_bdry_thickness);
+    [fe_options.max_damping, fe_options.damping_power_law , fe_options.max_stiffness_reduction]= fn_optimum_absorbing_bdry_properties(abs_bdry_thickness, matls, centre_freq);
 end
 
 %Identify nodes along the source line to say where the loading will be 
@@ -185,12 +184,12 @@ steps{1}.mon.nds = steps{1}.load.frc_nds;
 steps{1}.mon.dfs = steps{1}.load.frc_dfs;
 
 %Show the mesh
-if ~exist('scripts_to_run') && show_geom_only %suppress graphics when running all scripts for testing
+if show_geom_only %suppress graphics when running all scripts for testing
     figure; 
     display_options.draw_elements = 0;
     display_options.node_sets_to_plot(1).nd = steps{1}.load.frc_nds;
     display_options.node_sets_to_plot(1).col = 'r.';
-    h_patch = fn_show_geometry(mod, matls, display_options);
+    h_patch = fn_show_geometry(mod, matls, el_types, display_options);
     drawnow
     return
 end
@@ -213,7 +212,7 @@ xlabel('Time (s)')
 if ~isinf(fe_options.field_output_every_n_frames)
     figure;
     display_options.draw_elements = 0; %makes it easier to see waves if element edges not drawn
-    h_patch = fn_show_geometry(mod, matls, display_options);
+    h_patch = fn_show_geometry(mod, matls, el_types, display_options);
     anim_options.repeat_n_times = 1;
     fn_run_animation(h_patch, res{1}.fld, anim_options);
 end

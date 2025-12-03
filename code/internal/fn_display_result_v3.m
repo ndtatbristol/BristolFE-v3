@@ -1,4 +1,4 @@
-function h_patch = fn_display_result_v3(mod, display_options)
+function h_patch = fn_display_result_v3(mod, el_types, display_options)
 %SUMMARY
 %   Displays mesh from 2D or 3D model, returning handle to patches for later
 %   animations
@@ -10,6 +10,7 @@ function h_patch = fn_display_result_v3(mod, display_options)
 %   elements - m x n matrix of element nodes. The row number is the element
 %   number; columns 1, 2 and 3 are the node numbers of the nodes for each
 %   element
+%   el_types - cell array of element types
 %   display_options - structured variable allowing optional plotting properties to
 %   be set. See below for defaults. In particular:
 %   default_options.node_sets_to_plot - allows specific nodes to be plotted
@@ -36,10 +37,6 @@ default_options.offset = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 display_options = fn_set_default_fields(display_options, default_options);
-
-% if ~isfield(mod, 'el_abs_i')
-%     mod.el_abs_i = zeros(size(mod.els, 1), 1);
-% end
 
 if isempty(display_options.matl_cols)
     no_matls = numel(unique(mod.el_mat_i));
@@ -105,7 +102,7 @@ else
     if numel(display_options.offset) ~= 3
         display_options.offset = [0,0,0];
     end
-    el_faces = fn_faces_from_els(mod.els, 1:size(mod.els,1), mod.el_typ_i, mod.el_types);
+    el_faces = fn_faces_from_els(mod.els, 1:size(mod.els,1), mod.el_typ_i, el_types);
     for i = 1:numel(el_faces)
         cdata = base_cdata(el_faces{i}.el_i, :, :);
         j = fn_exterior_faces(el_faces{i}.fcs);

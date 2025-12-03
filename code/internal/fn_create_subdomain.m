@@ -1,4 +1,13 @@
-function dm_mod = fn_create_subdomain(mn_mod, inner_bdry, abs_layer_thick, varargin)
+function dm_mod = fn_create_subdomain(mn_mod, inner_bdry_vtcs, inner_bdry_fcs, abs_layer_thick)
+%Core function used for 2D and 3D. Only difference should be in
+%determinining the interior elements.
+%USAGE - 2D
+%   dm_mod = fn_create_subdomain(mn_mod, inner_bdry_vtcs, [], abs_layer_thick)
+%USAGE - 3D
+%   dm_mod = fn_create_subdomain(mn_mod, inner_bdry_vtcs, inner_bdry_fcs, abs_layer_thick)
+
+ndims = size(mn_mod.nds, 2);
+
 %New version - based on tidier way of getting layers
 %Needs to return something like this
     %             nds: [11424×2 double]
@@ -10,18 +19,6 @@ function dm_mod = fn_create_subdomain(mn_mod, inner_bdry, abs_layer_thick, varar
     %       main_nd_i: [11424×1 double]
     % outer_bndry_pts: [882×2 double]
     % inner_bndry_pts: [361×2 double]
-
-%Last optional argument allows the start of the absorbing region to be
-%specified. If not specified it will be penultimate boundary layer.
-
-%Deal with legacy v2 calls which had args mn_mod, matls, inner_bdry, abs_layer_thick, varargin
-if isstruct(inner_bdry) && isfield(inner_bdry, 'rho')
-    inner_bdry = abs_layer_thick;
-    abs_layer_thick = varargin{1};
-    if numel(varargin) > 1
-        varargin{1} = varargin{2};
-    end
-end
 
 %First make a copy of the key parts of the main model
 dm_mod = mn_mod;
@@ -35,10 +32,15 @@ end
 %Create vector that will hold indices associating nodes with the 4 boundary
 %layers in the subdomain
 dm_mod.bdry_lyrs = zeros(size(mn_mod.nds, 1), 1);
-dm_mod.inner_bndry_pts = inner_bdry;
+% dm_mod.inner_bdry_vtcs = inner_bdry_vtcs;
 
 %Get elements in region
-el_used = fn_2d_find_elements_in_region(dm_mod, inner_bdry);
+switch ndims
+    case 2
+        el_used = fn_2d_find_elements_in_region(dm_mod, inner_bdry_vtcs);
+    case 3
+        el_used = fn_3d_find_elements_in_region(dm_mod, inner_bdry_vtcs, inner_bdry_fcs);
+end
 
 %Work out and assign bdry nodes to layers
 for i = 1:4
@@ -47,11 +49,11 @@ for i = 1:4
     el_used(el_i) = 1;
 
     if i == 3 %for 3rd one, use boundary as start of absorbing region
-        if isempty(varargin)
+        % if isempty(varargin)
             abs_layer_start_bdry = dm_mod.nds(bdry_nds, :);
-        else
-            abs_layer_start_bdry = varargin{1};
-        end
+        % else
+        %     abs_layer_start_bdry = varargin{1};
+        % end
     end
 end
 
@@ -80,9 +82,9 @@ dm_mod.bdry_lyrs = dm_mod.bdry_lyrs(old_nds);
 %not deleted at start of process
 % dm_mod = fn_add_fluid_solid_interface_els(dm_mod);
 
-free_ed = fn_find_free_edges(dm_mod.els);
-
-dm_mod.outer_bndry_pts = [dm_mod.nds(free_ed, 1), dm_mod.nds(free_ed, 2)];
+% free_ed = fn_find_free_edges(dm_mod.els);
+% 
+% dm_mod.outer_bndry_pts = [dm_mod.nds(free_ed, 1), dm_mod.nds(free_ed, 2)];
 % dm_mod.int_el_i = fn_elements_in_region(dm_mod, dm_mod.inner_bndry_pts);
 
 end

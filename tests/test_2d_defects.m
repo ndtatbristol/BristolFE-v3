@@ -7,8 +7,6 @@ model_size = 10;
 el_size = 0.2;
 cod = el_size / 10;
 
-
-
 host_matl_i = 1;
 matls{host_matl_i} = fn_matl_isotropic_solid_defined_by_velocities('Al', 6300, 3150, 2700);
 
@@ -70,7 +68,7 @@ mod = fn_2d_add_inclusion_or_void(mod, el_types, scat_vtcs2, scat_matl_i2, scat_
 %Plot result
 figure;
 options.draw_elements = 1;
-fn_show_geometry(mod, matls, options);
+fn_show_geometry(mod, matls, fn_2d_el_types(), options);
 hold on;
 plot(crack_vtcs1(:, 1), crack_vtcs1(:, 2), 'r:')
 plot(crack_vtcs2(:, 1), crack_vtcs2(:, 2), 'r:')

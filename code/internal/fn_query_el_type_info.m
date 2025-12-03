@@ -14,8 +14,8 @@ end
 if nargin == 1
     name = varargin{1};
     for i = 1:numel(el_type_info)
-        if isequal(el_type_info(i).name, name)
-            res = el_type_info(i);
+        if isequal(el_type_info{i}.name, name)
+            res = el_type_info{i};
             return
         end
     end
@@ -28,8 +28,8 @@ if nargin == 2
     %Return cell array of element names that match el_type_info.(query) == value
     res = {};
     for i = 1:numel(el_type_info)
-        if isequal(el_type_info(i).(query), value)
-            res{end+1} = el_type_info(i).name;
+        if isequal(el_type_info{i}.(query), value)
+            res{end+1} = el_type_info{i}.name;
         end
     end
 else

@@ -8,8 +8,6 @@ solid_matl_i = 1;
 matls{solid_matl_i} = fn_matl_isotropic_solid_defined_by_velocities('Al', 6300, 3150, 2700);
 solid_matl2_i = 2;
 matls{solid_matl2_i} = fn_matl_isotropic_solid_defined_by_velocities('St', 5900, 3150, 8900);
-
-
 fluid_matl_i = 3;
 matls{fluid_matl_i} = fn_matl_fluid_defined_by_velocity('water', 1500, 1000);
 
@@ -70,15 +68,14 @@ if test_advance_mesh_gen
     cent = [0.5, 0.25];
     scat_pts1 = fn_2d_create_smooth_random_blob(min_rad_frac, complexity, no_pts) * rad + cent;
     scat_matl1 = 0;
-    scat_el_typ1 = 0;
 
     cent = [0.6, 0.5];
     scat_pts2 = fn_2d_create_smooth_random_blob(min_rad_frac, complexity, no_pts) * rad + cent;
     scat_matl2 = solid_matl2_i;
-    scat_el_typ2 = find(strcmp(el_types, el_typ_solid));
 
 
     for i = 1:2
+
         %Change some material, add fluid-solid interface, and add voids
         el_size = 0.02;
         force_reg_elements = 0;
@@ -103,8 +100,11 @@ if test_advance_mesh_gen
 
         mod = fn_2d_add_absorbing_layer(mod, abs_bdry_pts, abs_bdry_thickness);
 
-        %Add some scatterers
+        %Add some scatterers (NB the add fluid-solid interface is called
+        %automatically in these)
+        scat_el_typ1 = 0;
         mod = fn_2d_add_inclusion_or_void(mod, el_types, scat_pts1, scat_matl1, scat_el_typ1);
+        scat_el_typ2 = find(strcmp(el_types, el_typ_solid));
         mod = fn_2d_add_inclusion_or_void(mod, el_types, scat_pts2, scat_matl2, scat_el_typ2);
 
         figure;

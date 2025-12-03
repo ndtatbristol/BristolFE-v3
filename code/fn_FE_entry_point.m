@@ -1,6 +1,8 @@
 function varargout = fn_FE_entry_point(mod, matls, el_types, steps, fe_options)
 %SUMMARY
 %   Common entry point for different FE solvers.
+%AUTHOR
+%   Paul Wilcox (2025)
 %USAGE
 %   res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options)
 %   [res, mats] = fn_FE_entry_point(mod, matls, el_types, steps, fe_options)
@@ -26,7 +28,7 @@ default_options.solver = 'BristolFE';
 %distance into absorbing layer in range 0 to 1 into modifications to
 %elements stiffness and damping matrices
 default_options.damping_power_law = 3;
-default_options.max_damping = 3.1415e+07;
+default_options.max_damping = [];
 default_options.max_stiffness_reduction = 0.01;
 %Solver precision
 default_options.solver_precision = 'double';
@@ -52,6 +54,16 @@ end
 
 %--------------------------------------------------------------------------
 fe_options = fn_set_default_fields(fe_options, default_options);
+
+if isempty(fe_options.max_damping)
+    if iscell(steps) && isfield(steps{1}, 'load') && isfield(steps{1}.load, 'time') && (numel(steps{1}.load.time) > 1)
+        fe_options.max_damping = 1 / (steps{1}.load.time(2) - steps{1}.load.time(1));
+    else
+        fe_options.max_damping = 3.1415e+07;
+    end
+end
+
+
 global COMMENT_INDENT_LEVEL 
 
 %Set the solver

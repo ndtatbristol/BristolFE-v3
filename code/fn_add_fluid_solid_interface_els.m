@@ -41,7 +41,7 @@ for i = 1:numel(el_types)
 end
 
 % if isempty(solid_el_i) || isempty(fluid_el_i)
-if all(mod.el_typ_i ~= solid_el_i, 'all') && all(mod.el_typ_i ~= fluid_el_i, 'all')
+if ~(any(mod.el_typ_i == solid_el_i, 'all') && any(mod.el_typ_i == fluid_el_i, 'all'))
     %model has no solid or no fluid element types 
     return
 end
@@ -52,7 +52,7 @@ end
 mod = fn_remove_fluid_solid_interface_els(mod, int_el_typ_i);
 
 %for legacy v2 calls, need to embed el_types in mod as well
-mod.el_types = el_types;
+% mod.el_types = el_types;
 
 %New method using find interface function (should work for 2D and 3D up
 %to and including this function)

@@ -20,7 +20,7 @@ step = [(max_dom_size(1) + sep), (max_dom_size(2) + sep)] * scale;
 p = 1;
 display_options.scale = 1;
 display_options.offset = -min(main.mod.nds);
-h_patches{p} = fn_show_geometry(main.mod, main.matls, display_options);
+h_patches{p} = fn_show_geometry(main.mod, main.matls, main.el_types, display_options);
 display_options.node_sets_to_plot = [];
 hold on;
 offset = [0, 0];
@@ -30,7 +30,7 @@ for d = 1:no_doms
     offset(2) = -sep;
     display_options.scale = scale;
     display_options.offset = offset - [min(main.doms{d}.mod.nds(:,1)), max(main.doms{d}.mod.nds(:,2))] * scale;
-    h_patches{p} = fn_show_geometry(main.doms{d}.mod, main.matls, display_options);
+    h_patches{p} = fn_show_geometry(main.doms{d}.mod, main.matls, main.el_types, display_options);
     col = display_options.dom_cols(rem(d - 1, numel(display_options.dom_cols)) + 1);
     tmp = main.doms{d}.mod.inner_bndry_pts;
     tmp = [tmp; tmp(1,:)];

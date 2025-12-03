@@ -1,6 +1,6 @@
 function el_ctrs = fn_calc_element_centres(nds, els)
 %SUMMARY
-%   Returns n_els x 2 matrix of the coordinates of all element centres in a
+%   Returns n_els x ndims matrix of the coordinates of all element centres in a
 %   model.
 
 el_ctrs = 0;

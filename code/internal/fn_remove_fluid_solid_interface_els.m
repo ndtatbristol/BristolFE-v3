@@ -5,7 +5,7 @@ function mod = fn_remove_fluid_solid_interface_els(mod, int_el_typ_i)
 %   to remove any existing interface elements before adding new ones (otherwise
 %   existing ones will be doubled up, which probably doubles coupling).
 
-if all(mod.el_typ_i ~= int_el_typ_i, 'all') 
+if ~any(mod.el_typ_i == int_el_typ_i, 'all') 
     %No interface elements defined, so none to remove!
     return
 end

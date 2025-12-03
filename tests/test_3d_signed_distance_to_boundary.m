@@ -19,6 +19,9 @@ bdry_fcs = [
     1,2,4
     4,1,3];
 
+[bdry_nds, bdry_fcs] = fn_3d_spherical_surface(3);
+bdry_nds = bdry_nds * 8;
+
 interior_pt = [0,0,0];
 
 tic

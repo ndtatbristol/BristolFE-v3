@@ -32,13 +32,20 @@ crack_vtcs1 = [
 crack_fcs1 = [
     1, 2, 3
     1, 2, 4];
+el_types = fn_3d_el_types();
+mod = fn_3d_add_crack(mod, el_types, crack_vtcs1, crack_fcs1, cod);
 
-mod = fn_3d_add_crack(mod, crack_vtcs1, crack_fcs1, cod);
+scat_cent = [9, 9, 9];
+scat_size = 4;
+[scat_vtcs, scat_fcs] =  fn_3d_spherical_surface(scat_cent, scat_size /2);
+scat_matl_i = 0;
+scat_el_typ_i = [];
+mod = fn_3d_add_inclusion_or_void(mod, el_types, scat_vtcs, scat_fcs, scat_matl_i, scat_el_typ_i);
 
 figure;
 display_options.transparency = 0.5;
 display_options.draw_elements = 0;
-h_patch = fn_show_geometry(mod, matls, display_options);
+h_patch = fn_show_geometry(mod, matls, el_types, display_options);
 patch('Faces', crack_fcs1, 'Vertices', crack_vtcs1,'FaceColor', 'r', 'FaceAlpha', 0.5);
 
 axis on;

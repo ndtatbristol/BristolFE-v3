@@ -8,34 +8,36 @@ function el_faces = fn_faces_from_els(els, el_i, el_typ_i, el_types)
 %   el_faces{q}.el_i = vector of element numbers associated with each row
 %       of el_faces{q}.fcs of size [n_els_of_typ_q * n_fcs_per_el_of_type_q, 1]
 
+el_type_info = fn_el_type_info();
+
 un_el_typ_i = unique(el_typ_i);
 el_i = el_i(:);
 
 for i = 1:numel(un_el_typ_i)
     ei = el_types{un_el_typ_i(i)};
 
-    switch ei
-        case {'CPE3', 'CPS3', 'AC2D3'} %2D triangles
+    switch fn_el_shape(el_type_info, ei)
+        case 'triangular' %2D triangular
             fc_i = [
                 1,2
                 2,3
                 3,1];
-        case {'CPE4', 'CPE4R', 'CPS4', 'CPS4R', 'AC2D4', 'AC2D4R'} %2d quadrilaterals
+        case 'quadrilateral' %2d quadrilaterals
             fc_i = [
                 1,2
                 2,3
                 3,4
                 4,1];
-        case 'ASI2D2' %2D interface element
+        case 'line' %2D line
             fc_i = [
                 1,2];
-        case 4 %3D Tetrahedron
+        case 'tetrahedral' %3D tetrahedral
             fc_i = [
                 1,2,3
                 1,2,4
                 2,3,4
                 1,3,4];
-        case 'C3D8R' %3D cubes
+        case 'hexahedral' %3D hexahedral
             fc_i = [
                 1,2,3,4
                 1,2,6,5

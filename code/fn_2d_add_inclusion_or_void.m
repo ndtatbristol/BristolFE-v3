@@ -1,4 +1,4 @@
-function [mod, old_nds] = fn_2d_add_inclusion_or_void(mod, el_types, scat_pts, scat_matl_i, scat_el_typ_i)
+function mod = fn_2d_add_inclusion_or_void(mod, el_types, scat_pts, scat_matl_i, scat_el_typ_i)
 %USAGE
 %   mod = fn_2d_add_inclusion_or_void(mod, el_types, scat_pts, scat_matl, scat_el_typ)
 %AUTHOR
@@ -25,31 +25,34 @@ function [mod, old_nds] = fn_2d_add_inclusion_or_void(mod, el_types, scat_pts, s
 %   nodes or elements, it just changes element material)
 %--------------------------------------------------------------------------
 
-els_in_inclusion = fn_2d_find_elements_in_region(mod, scat_pts);
-if scat_matl_i > 0
-    %only change material and type of non-interface elements, otherwise
-    %interface elements cannot be detected and deleted later
-    int_el_typ_i = fn_el_typ_indices_for_class(el_types, 'fluid_solid_interface');
-    for i = 1:numel(int_el_typ_i)
-        els_in_inclusion = els_in_inclusion & (mod.el_typ_i ~= int_el_typ_i(i));
-    end
-    mod.el_mat_i(els_in_inclusion) = scat_matl_i;
-    mod.el_typ_i(els_in_inclusion) = scat_el_typ_i;
-    %Add interface elements (may not be necessary always, but no harm in
-    %calling as they will be necessary if it is a solid inclusion in a
-    %liquid or vice versa
-    mod = fn_add_fluid_solid_interface_els(mod, el_types);
-else
-    [~, ~, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i] = fn_remove_unused_elements(~els_in_inclusion, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i);
-    [mod.nds, mod.els, old_nds] = fn_remove_unused_nodes(mod.nds, mod.els);
-    %Following needed for sub-domain models
-    if isfield(mod, 'bdry_lyrs')
-        mod.bdry_lyrs = mod.bdry_lyrs(old_nds);
-    end
-    if isfield(mod, 'main_nd_i')
-        mod.main_nd_i = mod.main_nd_i(old_nds);
-    end
-end
+mod = fn_add_inclusion_or_void(mod, el_types, scat_pts, [], scat_matl_i, scat_el_typ_i, []);
+
+
+% els_in_inclusion = fn_2d_find_elements_in_region(mod, scat_pts);
+% if scat_matl_i > 0
+%     %only change material and type of non-interface elements, otherwise
+%     %interface elements cannot be detected and deleted later
+%     int_el_typ_i = fn_el_typ_indices_for_class(el_types, 'fluid_solid_interface');
+%     for i = 1:numel(int_el_typ_i)
+%         els_in_inclusion = els_in_inclusion & (mod.el_typ_i ~= int_el_typ_i(i));
+%     end
+%     mod.el_mat_i(els_in_inclusion) = scat_matl_i;
+%     mod.el_typ_i(els_in_inclusion) = scat_el_typ_i;
+%     %Add interface elements (may not be necessary always, but no harm in
+%     %calling as they will be necessary if it is a solid inclusion in a
+%     %liquid or vice versa
+%     mod = fn_add_fluid_solid_interface_els(mod, el_types);
+% else
+%     [~, ~, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i] = fn_remove_unused_elements(~els_in_inclusion, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i);
+%     [mod.nds, mod.els, old_nds] = fn_remove_unused_nodes(mod.nds, mod.els);
+%     %Following needed for sub-domain models
+%     if isfield(mod, 'bdry_lyrs')
+%         mod.bdry_lyrs = mod.bdry_lyrs(old_nds);
+%     end
+%     if isfield(mod, 'main_nd_i')
+%         mod.main_nd_i = mod.main_nd_i(old_nds);
+%     end
+% end
 
 % %Following needed for sub-domain models
 % if isfield(mod, 'inner_bndry_pts')
