@@ -2,6 +2,7 @@ clear all
 close all
 
 addpath(genpath('..\code'));
+addpath(genpath('..\subdoms'));
 
 fe_options.pogo_path = 'C:\Program Files\Pogo\windows\new version';
 fe_options.pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
@@ -43,13 +44,14 @@ src_dir = 3; %direction of forces applied: 1 = x, 2 = y, 3 = z (for solids), 4 =
 
 %Details of input signal
 centre_freq = 5e6;
-no_cycles = 4;
+fe_options.number_of_cycles = 5;
 max_time = 10e-6;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
-els_per_wavelength = 8;
+els_per_wavelength = 2;8;
 
 fe_options.solver = 'pogo';
+fe_options.dof_to_use = [1,2,3];
 %--------------------------------------------------------------------------
 %PREPARE THE MESH
 
@@ -58,7 +60,10 @@ el_size = fn_get_suitable_el_size(main.matls, centre_freq, els_per_wavelength);
 
 %Create the nodes and elements of the mesh
 main.mod = fn_3d_structured_mesh_hexahedral_els(crnr_pts, el_size);
-main.el_types = fn_3d_el_types()
+main.mod.design_centre_freq = centre_freq;
+main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
+
+main.el_types = {solid_element_type};
 main.mod.el_typ_i = ones(size(main.mod.el_typ_i)) * find(strcmp(main.el_types, solid_element_type));
 main.mod.el_mat_i = ones(size(main.mod.el_typ_i)) * solid_matl_i;
 
@@ -88,7 +93,7 @@ main.trans{1}.dfs = ones(size(main.trans{1}.nds)) * src_dir;
 %Create the subdomain
 
 [inner_bndry_vtcs, inner_bndry_fcs] = fn_3d_spherical_surface(subdom_centre, subdom_rad);
-main.doms{1}.mod = fn_3d_create_subdomain(main.mod, inner_bndry_vtcs, inner_bndry_fcs, abs_bdry_thickness);
+main.doms{1}.mod = fn_3d_create_subdomain(main.mod, main.el_types, inner_bndry_vtcs, inner_bndry_fcs, abs_bdry_thickness);
 
 % main.doms{1}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.el_types, scat_pts, 0);
 
@@ -96,7 +101,6 @@ main.doms{1}.mod = fn_3d_create_subdomain(main.mod, inner_bndry_vtcs, inner_bndr
 % %Also provide the time signal for the loading (if this is a vector, it will
 % %be applied at all frc_nds/frc_dfs simultaneously; alternatively it can be a matrix
 % %of different time signals for each frc_nds/frc_dfs
-% time_step = fn_get_suitable_time_step(matls, el_size);
 % steps{1}.load.time = 0: time_step:  max_time;
 % steps{1}.load.frcs = fn_gaussian_pulse(steps{1}.load.time, centre_freq, no_cycles);
 % 
@@ -106,23 +110,30 @@ main.doms{1}.mod = fn_3d_create_subdomain(main.mod, inner_bndry_vtcs, inner_bndr
 % steps{1}.mon.dfs = steps{1}.load.frc_dfs;
 
 %Show the mesh
-if show_geom_only %suppress graphics when running all scripts for testing
-    figure;
-    display_options.draw_elements = 0;
-    display_options.node_sets_to_plot(1).nd = main.trans{1}.nds;
-    display_options.node_sets_to_plot(1).col = 'r.';
-    h_patch = fn_show_geometry_with_subdomains(main, display_options);
-    drawnow
-    % figure;
-    % display_options.transparency = 0.5;
-    % display_options.draw_elements = 0;
-    % display_options.node_sets_to_plot(1).nd = steps{1}.load.frc_nds;
-    % display_options.node_sets_to_plot(1).col = 'r.';
-    % h_patch = fn_show_geometry(mod, matls, display_options);
-    return
-end
+% if show_geom_only %suppress graphics when running all scripts for testing
+%     figure;
+%     display_options.draw_elements = 0;
+%     display_options.node_sets_to_plot(1).nd = main.trans{1}.nds;
+%     display_options.node_sets_to_plot(1).col = 'r.';
+%     h_patch = fn_show_geometry_with_subdomains(main, display_options);
+%     drawnow
+%     % figure;
+%     % display_options.transparency = 0.5;
+%     % display_options.draw_elements = 0;
+%     % display_options.node_sets_to_plot(1).nd = steps{1}.load.frc_nds;
+%     % display_options.node_sets_to_plot(1).col = 'r.';
+%     % h_patch = fn_show_geometry(mod, matls, display_options);
+%     return
+% end
 %--------------------------------------------------------------------------
 %RUN THE MODEL
+%Run main model
+main = fn_run_main_model(main, fe_options);
+
+%Run sub-domain model
+main = fn_run_subdomain_model(main, fe_options);
+
+return
 
 % [res, mats] = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
 res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);

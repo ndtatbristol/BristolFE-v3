@@ -1,4 +1,4 @@
-function dm_mod = fn_3d_create_subdomain(mn_mod, inner_bndry_vtcs, inner_bndry_fcs, abs_layer_thick)
+function dm_mod = fn_3d_create_subdomain(mn_mod, el_types, inner_bndry_vtcs, inner_bndry_fcs, abs_layer_thick)
 %USAGE
 %   dm_mod = fn_3d_create_subdomain(mn_mod, inner_bndry_vtcs, inner_bndry_fcs, abs_layer_thick)
 %AUTHOR
@@ -37,7 +37,7 @@ function dm_mod = fn_3d_create_subdomain(mn_mod, inner_bndry_vtcs, inner_bndry_f
 %--------------------------------------------------------------------------
 
 
-dm_mod = fn_create_subdomain(mn_mod, inner_bndry_vtcs, inner_bndry_fcs, abs_layer_thick);
+dm_mod = fn_create_subdomain(mn_mod, el_types, inner_bndry_vtcs, inner_bndry_fcs, abs_layer_thick);
 dm_mod.inner_bndry_pts = inner_bndry_vtcs;
 dm_mod.inner_bndry_fcs = inner_bndry_fcs;
 end

@@ -31,7 +31,7 @@ n_dims = 3;
 n_fcs_per_facet = 3;
 
 %Get node ordering for each facet consistent
-[bdry_fcs, all_eds, all_ed_fcs] = fn_consistent_facet_nodes(bdry_fcs);
+[bdry_fcs, all_eds, all_ed_fcs] = fn_3d_consistent_facet_nodes(bdry_fcs);
 
 %Stick exterior point on end of list of test points (it will be removed at end of function)
 exterior_pt = max(bdry_nds) + 1; %a point that is guaranteed to be exterior

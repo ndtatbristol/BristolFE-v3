@@ -6,7 +6,7 @@ display_options = fn_set_default_fields(display_options, default_options);
 
 
 no_doms = numel(main.doms);
-max_dom_size = [0, 0];
+max_dom_size = 0;
 for d = 1:no_doms
         max_dom_size = max(max_dom_size, max(main.doms{d}.mod.nds) - min(main.doms{d}.mod.nds));
 end

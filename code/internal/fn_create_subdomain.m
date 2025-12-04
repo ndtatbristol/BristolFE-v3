@@ -46,6 +46,11 @@ end
 for i = 1:4
     if i == 3 %for 3rd one, use boundary as start of absorbing region
         [el_i, common_nds, common_fcs] = fn_find_adjacent_els_to_els(dm_mod.els, mn_mod.el_typ_i, el_types, el_used, ~el_used);
+        if size(common_fcs, 2) > 3
+            %need to convert 2D faces that have more than 3 sides to
+            %triangles as this is how 2D surfaces are described
+            common_fcs = fn_polygons_to_triangles(common_fcs);
+        end
         abs_layer_start_bdry_nds = dm_mod.nds(common_nds, :);
         abs_layer_start_bdry_fcs = common_fcs;
     else
@@ -72,7 +77,7 @@ switch ndims
         % dm_mod.el_abs_i(cand_els) = fn_dist_point_to_bdry_2D(fn_calc_element_centres(dm_mod.nds, dm_mod.els(cand_els, :)), abs_layer_start_bdry) / abs_layer_thick;
         dm_mod.el_abs_i(cand_els) = fn_2d_signed_dist_to_bdry(fn_calc_element_centres(dm_mod.nds, dm_mod.els(cand_els, :)), abs_layer_start_bdry_nds, abs_layer_start_bdry_fcs) / abs_layer_thick;
     case 3
-        dm_mod.el_abs_i(cand_els) = fn_dist_point_to_bdry_3D(fn_calc_element_centres(dm_mod.nds, dm_mod.els(cand_els, :)), abs_layer_start_bdry_nds, abs_layer_start_bdry_fcs) / abs_layer_thick;
+        dm_mod.el_abs_i(cand_els) = fn_3d_signed_dist_to_bdry(fn_calc_element_centres(dm_mod.nds, dm_mod.els(cand_els, :)), abs_layer_start_bdry_nds, abs_layer_start_bdry_fcs) / abs_layer_thick;
 end
 els_in_use = ones(size(dm_mod.els, 1), 1);
 els_in_use(dm_mod.el_abs_i > 1) = 0;
@@ -141,9 +146,7 @@ for i = 1:numel(el_faces)
     k = k + nnz(j);
 end
 common_fcs(k:end, :) = [];
-common_fcs = sort(common_fcs, 2);
-common_fcs = unique(common_fcs, 'rows');
-
+common_fcs = fn_unique_fcs(common_fcs)
 
 [tf, idx] = ismember(common_fcs(:), common_nds);   % idx are positions in v for each element of m (linearized)
 assert(all(tf), 'Some entries of m are not present in v.');

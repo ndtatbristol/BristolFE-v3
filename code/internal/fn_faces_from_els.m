@@ -33,17 +33,17 @@ for i = 1:numel(un_el_typ_i)
                 1,2];
         case 'tetrahedral' %3D tetrahedral
             fc_i = [
-                1,2,3
+                1,3,2
                 1,2,4
                 2,3,4
-                1,3,4];
+                1,4,3];
         case 'hexahedral' %3D hexahedral
             fc_i = [
-                1,2,3,4
+                1,4,3,2
                 1,2,6,5
                 2,3,7,6
                 3,4,8,7
-                4,1,5,8
+                1,5,8,4
                 5,6,7,8
                 ];
 
