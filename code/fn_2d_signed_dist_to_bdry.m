@@ -45,24 +45,7 @@ else
     %they are at least consistently inwards (or outwards)
     %After procedure complete, sign is flipped to get exterior_pt at
     %positive distance from surface
-    if any(accumarray(bdry_edges(:), 1) > 2)
-        error('A vertex is associated with more than two edges')
-    end
-
-    %if vertex appears twice, node order for one of the edges it appears in
-    %should be reversed
-    unique_nds = unique(bdry_edges(:));
-    for k = 1:numel(unique_nds)
-        [i, j] = find(bdry_edges == unique_nds(k));
-        if numel(i) > 1
-            if i(1) == i(2)
-                error('Same vertex is used at both ends of an edge')
-            end
-            if j(1) == j(2)
-                bdry_edges(i(2), :) = fliplr(bdry_edges(i(2), :));
-            end
-        end
-    end
+    bdry_edges = fn_2d_consistent_facet_nodes(bdry_edges);
 end
 
 n_fcs = size(bdry_edges, 1);

@@ -1,6 +1,6 @@
 clear all;
 close all;
-
+rng(1);
 %ABOUT THIS EXAMPLE
 %This example is designed to show how to use the subdomain method where a
 %main model without scatterers is created and executed and then a subdomain
@@ -22,7 +22,7 @@ close all;
 model_size = 10e-3;
 fluid_thickness = 3e-3;
 abs_bdry_thickness = 1e-3;
-els_per_wavelength = 3;8;%%%%%%%%%%%%%%%%%%%%%%%
+els_per_wavelength = 8;
 
 %Subdomain and scatterer geometry
 scatterer_size = 1e-3;
@@ -57,7 +57,7 @@ src_dir = 4;
 %bit
 max_time = 1.1 * 2 * (fluid_thickness / fluid_velocity + (model_size - fluid_thickness) / solid_matl_longitudinal_velocity);
 
-show_geom_only = 1; %Set to 1 to just show geometry without running model
+show_geom_only = 0; %Set to 1 to just show geometry without running model
 fe_options.field_output_every_n_frames = 20; %set to inf to suppress animations
 
 

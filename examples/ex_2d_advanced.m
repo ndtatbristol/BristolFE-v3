@@ -26,7 +26,7 @@ transducer_width = model_size_x / 3;
 crack_centre = [model_size_x * 0.4, model_size_y * 0.75];
 crack_size = model_size_x * 0.1;
 
-void_centre = [model_size_x * 0.6, model_size_y * 0.75];
+void_centre = [model_size_x * 0.6, model_size_y * 0.65];
 void_size = model_size_x * 0.1;
 
 

@@ -17,7 +17,6 @@ bdry_fcs = [
     2, 3
     4, 3
     1, 4];
-interior_pt = [2, 2];
 
 tic
 if no_pts_per_side > 10

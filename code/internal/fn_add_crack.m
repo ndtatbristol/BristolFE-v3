@@ -30,7 +30,7 @@ end
 %Get signed distance of each element from crack
 el_cents = fn_calc_element_centres(mod.nds, mod.els);
 %d = fn_signed_dist_to_bdry(el_cents, crack_vtcs, crack_fcs);
-switch ndmin
+switch ndim
     case 2
         d = fn_2d_signed_dist_to_bdry(el_cents, crack_vtcs, crack_fcs);
     case 3

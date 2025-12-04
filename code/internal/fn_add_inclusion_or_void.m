@@ -39,10 +39,6 @@ if scat_matl_i > 0
     end
     mod.el_mat_i(els_in_inclusion) = scat_matl_i;
     mod.el_typ_i(els_in_inclusion) = scat_el_typ_i;
-    %Add interface elements (may not be necessary always, but no harm in
-    %calling as they will be necessary if it is a solid inclusion in a
-    %liquid or vice versa
-    mod = fn_add_fluid_solid_interface_els(mod, el_types);
 else
     [~, ~, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i] = fn_remove_unused_elements(~els_in_inclusion, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i);
     [mod.nds, mod.els, old_nds] = fn_remove_unused_nodes(mod.nds, mod.els);
@@ -54,6 +50,12 @@ else
         mod.main_nd_i = mod.main_nd_i(old_nds);
     end
 end
+%Add interface elements (may not be necessary always, but no harm in
+%calling as they will be necessary if it is a solid inclusion in a
+%liquid or vice versa. Also needed for voids to deal with case of
+%void at fluid-solid boundary where there is possibility of a left over
+%interface element that has void on one side - which is massively unstable!!
+mod = fn_add_fluid_solid_interface_els(mod, el_types);
 
 % %Following needed for sub-domain models
 % if isfield(mod, 'inner_bndry_pts')
