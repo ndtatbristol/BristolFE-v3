@@ -21,9 +21,9 @@ interior_pt = [2, 2];
 
 tic
 if no_pts_per_side > 10
-    d1 = fn_signed_dist_to_bdry([x(:), y(:)], bdry_vtcs);
+    d1 = fn_2d_signed_dist_to_bdry([x(:), y(:)], bdry_vtcs);
 else
-    [d1, nearest_pts, norm_vecs] = fn_signed_dist_to_bdry([x(:), y(:)], bdry_vtcs, bdry_fcs, interior_pt);
+    [d1, nearest_pts, norm_vecs] = fn_2d_signed_dist_to_bdry([x(:), y(:)], bdry_vtcs, bdry_fcs);
 end
 toc
 

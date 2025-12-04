@@ -1,33 +1,27 @@
-function [d, nearest_pts, norm_vecs, type_of_nearest_entity, nearest_entity, bdry_edges] = fn_dist_point_to_bdry_2D_v2(pts, bndry_nds, bdry_edges, interior_pt)
+function [d, nearest_pts, norm_vecs, type_of_nearest_entity, nearest_entity, bdry_edges] = fn_2d_signed_dist_to_bdry(pts, bndry_nds, bdry_edges)
 %SUMMARY
-%   Returns signed (positive exterior) shortest distance of point(s) to 
+%   Returns signed (positive exterior) shortest distance of point(s) to
 %   boundary surface described by vertices of triangular facets
 %USAGE
-%   d = fn_dist_point_to_bdry_2D_v2(pts, bdry_nds, bdry_edges, interior_pt)
-%   [d, nearest_pts] = fn_dist_point_to_bdry_2D_v2(pts, bdry_nds, bdry_edges, interior_pt)
-%   [d, nearest_pts, norm_vecs] = fn_dist_point_to_bdry_2D_v2(pts, bdry_nds, bdry_edges, interior_pt)
+%   [d, nearest_pts, norm_vecs, type_of_nearest_entity, nearest_entity, bdry_edges] = fn_2d_signed_dist_to_bdry(pts, bdry_nds, bdry_edges)
 %AUTHOR
 %   Paul Wilcox (2025)
 %INPUTS
 %   pts - n_pts x 2 list of query point coordiantes
 %   bdry_nds - n_nds x 2 list of boundary vertex coordinates
 %   bdry_vtcs - [] or n_fcs x 2 list of vertex indices for each edge
-%   interior_pt - [] or 1 x 2 coordinates of point inside boundary surface,
-%   which is used to determine correct overall sign of d. If empty,
-%   it is assumed that edge specified by vertices [A, B] has exterior on 
-%   RHS of vector AB. If interior_pt is specified, the vertex ordering 
-%   doesn't matter (this function will make them self-consistent and the 
-%   position of the interior point will be used to determine the overall 
-%   sign of the result (interior = negative)
 %OUTPUTS
-%   d - n_pts x 1 signed distance of each point to nearest point on 
+%   d - n_pts x 1 signed distance of each point to nearest point on
 %   boundary where sign is negative (interior) or positive (exterior).
 %   nearest_pts - n_pts x 2 matrix of coordinates of nearest point on
 %   boundary associated with each point
-%   norm_vecs - n_pts x 2 matrix of unit vectors of boundary surface 
+%   norm_vecs - n_pts x 2 matrix of unit vectors of boundary surface
 %   normal at each nearest_pt
 %   nearest_entity - n_pts x 1 matrix describing what part of boundary is
 %   nearest to each point (1 = vertex, 2 = edge)
+%   bdry_edges - [n_pts x 2] matrix of vertex indices describing boundary.
+%   This will be a pass-through if specified as input but with some node
+%   orders reversed so that directions are consistent.
 %NOTES
 %   Formulated to be efficient for checking large numbers of points (i.e.
 %   n_pts is large) rather than a large number of facets
@@ -37,38 +31,41 @@ n_pts = size(pts, 1);
 n_nds = size(bndry_nds, 1);
 n_dims = 2;
 
-if isempty(bdry_edges)
-    bdry_edges = [1:n_nds; [2:n_nds, 1]]';
-end
-n_fcs = size(bdry_edges, 1);
+exterior_pt = max(bndry_nds) + 1; %a point that is guaranteed to be exterior
+pts = [pts; exterior_pt];
+n_pts = n_pts + 1;
 
-if ~isempty(interior_pt)
-    %In this case, no assumptions are made about order of nodes on each
+if ~exist('bdry_edges', 'var') || isempty(bdry_edges)
+    %In this case, pts are assumed to be listed in order that is continuous
+    %around the boundary so the edges can be defined like this
+    bdry_edges = [1:n_nds; [2:n_nds, 1]]';
+else
+    %If bdry edges are defined, no assumptions are made about order of nodes on each
     %edge defining outward surface normal and they are first shuffled so that
     %they are at least consistently inwards (or outwards)
-    %After procedure complete, sign is flipped to get interior_pt at
-    %negative distance from surface
+    %After procedure complete, sign is flipped to get exterior_pt at
+    %positive distance from surface
     if any(accumarray(bdry_edges(:), 1) > 2)
         error('A vertex is associated with more than two edges')
     end
 
     %if vertex appears twice, node order for one of the edges it appears in
     %should be reversed
-    for k = 1:n_nds
-        [i, j] = find(bdry_edges == k);
-        if i(1) == i(2)
-            error('Same vertex is used at both ends of an edge')
-        end
-        if j(1) == j(2)
-            bdry_edges(i(2), :) = fliplr(bdry_edges(i(2), :));
+    unique_nds = unique(bdry_edges(:));
+    for k = 1:numel(unique_nds)
+        [i, j] = find(bdry_edges == unique_nds(k));
+        if numel(i) > 1
+            if i(1) == i(2)
+                error('Same vertex is used at both ends of an edge')
+            end
+            if j(1) == j(2)
+                bdry_edges(i(2), :) = fliplr(bdry_edges(i(2), :));
+            end
         end
     end
-
-    %stick the interior point at the end of pts to be tested (it will be
-    %removed later
-    pts = [pts; interior_pt];
-    n_pts = n_pts + 1;
 end
+
+n_fcs = size(bdry_edges, 1);
 
 %First get the unit normal vector for each face and the internal
 %angle of each vertex
@@ -113,7 +110,7 @@ for i = 1:n_nds
     dps = sign(sum(vec .* nd_normals(i,:), 2));
     dps(dps == 0) = 1; %Force sign to be +/1 1, never zero
     r_nds = fn_dist_point_to_point(pts, nds(i, :)) .* dps;
-    
+
     j = abs(r_nds) < abs(d);
     d(j) = r_nds(j);
     for k = 1:n_dims
@@ -146,16 +143,18 @@ for i = 1:n_fcs
     end
     type_of_nearest_entity(j) = 2;
     nearest_entity(j) = i;
-    
+
     d = min(d, r_fcs, 'ComparisonMethod', 'abs');
 end
 
-if ~isempty(interior_pt)
-    if d(end) > 0
-        d = -d;
-    end
-    d = d(1:end - 1);
+if d(end) < 0
+    d = -d;
 end
+d = d(1:end - 1);
+nearest_pts = nearest_pts(1:end-1,:);
+norm_vecs = norm_vecs(1:end-1,:);
+type_of_nearest_entity = type_of_nearest_entity(1:end-1,:);
+nearest_entity = nearest_entity(1:end-1,:);
 
 end
 %------------------

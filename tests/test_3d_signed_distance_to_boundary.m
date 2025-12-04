@@ -19,16 +19,13 @@ bdry_fcs = [
     1,2,4
     4,1,3];
 
-[bdry_nds, bdry_fcs] = fn_3d_spherical_surface(3);
-bdry_nds = bdry_nds * 8;
-
-interior_pt = [0,0,0];
+[bdry_nds, bdry_fcs] = fn_3d_spherical_surface([0,0,0], 5);
 
 tic
 if numel(a) > 10;
-    d = fn_signed_dist_to_bdry([x(:), y(:), z(:)], bdry_nds, bdry_fcs, interior_pt);
+    d = fn_3d_signed_dist_to_bdry([x(:), y(:), z(:)], bdry_nds, bdry_fcs);
 else
-    [d, nearest_pts, norm_vecs]  = fn_signed_dist_to_bdry([x(:), y(:), z(:)], bdry_nds, bdry_fcs, interior_pt);
+    [d, nearest_pts, norm_vecs] = fn_3d_signed_dist_to_bdry([x(:), y(:), z(:)], bdry_nds, bdry_fcs);
 end
 toc
 

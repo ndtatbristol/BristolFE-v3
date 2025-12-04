@@ -1,4 +1,4 @@
-function dm_mod = fn_create_subdomain(mn_mod, inner_bdry_vtcs, inner_bdry_fcs, abs_layer_thick)
+function dm_mod = fn_create_subdomain(mn_mod, el_types, inner_bdry_vtcs, inner_bdry_fcs, abs_layer_thick)
 %Core function used for 2D and 3D. Only difference should be in
 %determinining the interior elements.
 %USAGE - 2D
@@ -44,20 +44,18 @@ end
 
 %Work out and assign bdry nodes to layers
 for i = 1:4
-    [el_i, bdry_nds] = fn_find_adjacent_els_to_els(dm_mod.els, el_used, ~el_used);
-    dm_mod.bdry_lyrs(bdry_nds) = i;
-    el_used(el_i) = 1;
-
     if i == 3 %for 3rd one, use boundary as start of absorbing region
-        % if isempty(varargin)
-            abs_layer_start_bdry = dm_mod.nds(bdry_nds, :);
-        % else
-        %     abs_layer_start_bdry = varargin{1};
-        % end
+        [el_i, common_nds, common_fcs] = fn_find_adjacent_els_to_els(dm_mod.els, mn_mod.el_typ_i, el_types, el_used, ~el_used);
+        abs_layer_start_bdry_nds = dm_mod.nds(common_nds, :);
+        abs_layer_start_bdry_fcs = common_fcs;
+    else
+        [el_i, common_nds] = fn_find_adjacent_els_to_els(dm_mod.els, mn_mod.el_typ_i, el_types, el_used, ~el_used);
     end
+    dm_mod.bdry_lyrs(common_nds) = i;
+    el_used(el_i) = 1;
 end
 
-% figure;c = 'rgbm'; h = fn_show_geometry(dm_mod, matls, []);for i = 1:4; fn_plot_line(dm_mod.nds(dm_mod.bdry_lyrs == i,:), [c(i), '.']); end
+% figure;c = 'rgbm'; h = fn_show_geometry(dm_mod, [], el_types, []);for i = 1:4; fn_plot_line(dm_mod.nds(dm_mod.bdry_lyrs == i,:), [c(i), '.']); end
 
 
 %Delete original interface elements and then regenerate later in this 
@@ -69,7 +67,13 @@ end
 
 %Add the absorbing layers by working out from centre of region
 cand_els = ~el_used;
-dm_mod.el_abs_i(cand_els) = fn_dist_point_to_bdry_2D(fn_calc_element_centres(dm_mod.nds, dm_mod.els(cand_els, :)), abs_layer_start_bdry) / abs_layer_thick;
+switch ndims
+    case 2
+        % dm_mod.el_abs_i(cand_els) = fn_dist_point_to_bdry_2D(fn_calc_element_centres(dm_mod.nds, dm_mod.els(cand_els, :)), abs_layer_start_bdry) / abs_layer_thick;
+        dm_mod.el_abs_i(cand_els) = fn_2d_signed_dist_to_bdry(fn_calc_element_centres(dm_mod.nds, dm_mod.els(cand_els, :)), abs_layer_start_bdry_nds, abs_layer_start_bdry_fcs) / abs_layer_thick;
+    case 3
+        dm_mod.el_abs_i(cand_els) = fn_dist_point_to_bdry_3D(fn_calc_element_centres(dm_mod.nds, dm_mod.els(cand_els, :)), abs_layer_start_bdry_nds, abs_layer_start_bdry_fcs) / abs_layer_thick;
+end
 els_in_use = ones(size(dm_mod.els, 1), 1);
 els_in_use(dm_mod.el_abs_i > 1) = 0;
 
@@ -91,22 +95,60 @@ end
 
 %--------------------------------------------------------------------------
 
-function [adj_els, common_nds] = fn_find_adjacent_els_to_els(els, els_to_consider, els_to_choose_from)
+function [adj_els, common_nds, common_fcs] = fn_find_adjacent_els_to_els(els, el_typ_i, el_types, els_to_consider, els_to_choose_from)
 %returns logical array [size(els,1)x1] of elements in
-%els(els_to_choose_from,:) that share common nodes with
+%els(els_to_choose_from,:) that share common_nds with
 %els(els_to_consider,:)
 
-%unique nodes in els
-tmp = els(els_to_consider,:);
-un_nds = unique(tmp(:));
-un_nds(un_nds == 0) = [];
+%unique nodes in els_to_consider
+un_nds_to_consider = unique(els(els_to_consider,:));
+un_nds_to_consider(un_nds_to_consider == 0) = [];
 
-%find rows in els_to_choose_from that contain un_nds
-% nds_to_choose_from = els(els_to_choose_from, :);
-tmp = ismember(els, un_nds);
-tmp(~els_to_choose_from, :) = 0;
+%unique nodes in els_to_choose_from
+un_nds_to_choose_from = unique(els(els_to_choose_from,:));
+un_nds_to_choose_from(un_nds_to_choose_from == 0) = [];
 
-common_nds = els(tmp);
-adj_els = sum(tmp, 2) > 0;
+%nodes defining the boundary are those in both sets
+common_nds = intersect(un_nds_to_consider, un_nds_to_choose_from);
+
+%find which of the els_to_choose_from these are in
+els_with_common_nodes = ismember(els, common_nds);
+els_with_common_nodes(~els_to_choose_from, :) = 0;
+adj_els = sum(els_with_common_nodes, 2) > 0;
+
+if nargout < 3
+    %return here if boundary faces are not required to save time
+    return
+end
+
+%find list of unique faces that ONLY involve bdry nodes as these will
+%describe boundary (in 2D and 3D)
+el_i = (1:size(els, 1))';
+el_faces = fn_faces_from_els(els, el_i, el_typ_i, el_types);
+%first pass just to get max size of matrix to store results
+max_nds_per_face = 0;
+max_faces = 0;
+for i = 1:numel(el_faces)
+    max_nds_per_face = max(max_nds_per_face, size(el_faces{i}.fcs,2));
+    max_faces = max_faces + size(el_faces{i}.fcs,1);
+end
+common_fcs = zeros(max_faces, max_nds_per_face);
+%second pass - extract faces which only contain common nodes
+k = 1;
+for i = 1:numel(el_faces)
+    j = all(ismember(el_faces{i}.fcs, common_nds), 2);
+    common_fcs(k:k + nnz(j) - 1, 1:size(el_faces{i}.fcs, 2)) = el_faces{i}.fcs(j,:);
+    k = k + nnz(j);
+end
+common_fcs(k:end, :) = [];
+common_fcs = sort(common_fcs, 2);
+common_fcs = unique(common_fcs, 'rows');
+
+
+[tf, idx] = ismember(common_fcs(:), common_nds);   % idx are positions in v for each element of m (linearized)
+assert(all(tf), 'Some entries of m are not present in v.');
+
+common_fcs = reshape(idx, size(common_fcs));   % same size as m, with indices into v
+
 
 end

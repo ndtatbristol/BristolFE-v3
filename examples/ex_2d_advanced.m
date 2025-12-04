@@ -11,8 +11,8 @@ close all;
 %What to include in model
 include_fluid_region = 1;
 include_absorbing_boundary = 1;
-include_crack = 0;
-include_scatterer = 0;
+include_crack = 1;
+include_scatterer = 1;
 scatterer_is_void = 1;
 
 %Geometric description of model

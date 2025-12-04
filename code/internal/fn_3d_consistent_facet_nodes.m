@@ -1,4 +1,4 @@
-function [facet_nds, eds, ed_fcs] = fn_consistent_facet_nodes(facet_nds)
+function [facet_nds, eds, ed_fcs] = fn_3d_consistent_facet_nodes(facet_nds)
 
 %gets matrix of facet nodes into consistent ordering (say clockwise) around
 %each facet, so surface normals of adjacent facets are in same direction

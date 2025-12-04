@@ -1,4 +1,4 @@
-function dm_mod = fn_2d_create_subdomain(mn_mod, inner_bndry_pts, abs_layer_thick)
+function dm_mod = fn_2d_create_subdomain(mn_mod, el_types, inner_bndry_pts, abs_layer_thick)
 %USAGE
 %   dm_mod = fn_2d_create_subdomain(mn_mod, inner_bdry_vtcs, abs_layer_thick)
 %AUTHOR
@@ -12,6 +12,7 @@ function dm_mod = fn_2d_create_subdomain(mn_mod, inner_bndry_pts, abs_layer_thic
 %   mn_mod - structure describing the main model which must include the
 %   following fields:
 %       TODO
+%   el_types - cell array of element types used in mn_mod
 %   inner_bndry_pts - [n_inner_bndry_pts  x 2] matrix of points
 %   describing inner boundary of subdomain
 %   abs_layer_thick - thickness of the absorbing layer around the subdomain
@@ -34,7 +35,7 @@ function dm_mod = fn_2d_create_subdomain(mn_mod, inner_bndry_pts, abs_layer_thic
 %--------------------------------------------------------------------------
 
 
-dm_mod = fn_create_subdomain(mn_mod, inner_bndry_pts, [], abs_layer_thick);
+dm_mod = fn_create_subdomain(mn_mod, el_types, inner_bndry_pts, [], abs_layer_thick);
 dm_mod.inner_bndry_pts = inner_bndry_pts;
 
 end

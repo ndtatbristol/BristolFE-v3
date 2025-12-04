@@ -24,12 +24,18 @@ function mod = fn_add_crack(mod, el_types, crack_vtcs, crack_fcs, cod)
 ndim = size(mod.nds, 2);
 
 if ndim == 3
-    [crack_fcs, crack_eds, ~] = fn_consistent_facet_nodes(crack_fcs);
+    [crack_fcs, crack_eds, ~] = fn_3d_consistent_facet_nodes(crack_fcs);
 end
 
 %Get signed distance of each element from crack
 el_cents = fn_calc_element_centres(mod.nds, mod.els);
-d = fn_signed_dist_to_bdry(el_cents, crack_vtcs, crack_fcs);
+%d = fn_signed_dist_to_bdry(el_cents, crack_vtcs, crack_fcs);
+switch ndmin
+    case 2
+        d = fn_2d_signed_dist_to_bdry(el_cents, crack_vtcs, crack_fcs);
+    case 3
+        d = fn_3d_signed_dist_to_bdry(el_cents, crack_vtcs, crack_fcs);
+end
 
 %identify elements on either side of crack and within tol of crack
 [~, max_el_size] = fn_get_min_max_element_sizes(mod, el_types);
@@ -44,10 +50,9 @@ crack_nd_i = unique(interface_fcs(:));
 crack_nds = mod.nds(crack_nd_i, :);
 
 %Get details about each crack_nd relative to crack surface
-[~, ~, norm_vecs, type_of_nearest_entity, nearest_entity, bdry_edges] = fn_signed_dist_to_bdry(crack_nds, crack_vtcs, crack_fcs);
-
 switch ndim
     case 2
+        [~, ~, norm_vecs, type_of_nearest_entity, nearest_entity, bdry_edges] = fn_2d_signed_dist_to_bdry(crack_nds, crack_vtcs, crack_fcs);
         %Identify end vertices (ones that only appear once in list of edges)
         tmp = accumarray(bdry_edges(:), 1);
         end_vtcs = find(tmp == 1);
@@ -55,6 +60,7 @@ switch ndim
         %other vertices or crack facet
         nodes_to_drop = type_of_nearest_entity == 1 & ismember(nearest_entity, end_vtcs);
     case 3
+        [~, ~, norm_vecs, type_of_nearest_entity, nearest_entity, bdry_edges] = fn_3d_signed_dist_to_bdry(crack_nds, crack_vtcs, crack_fcs);
         %Identify edge of crack surface by edges that only appear once in original
         %list
         [tmp, ~, ic] = unique(sort(crack_eds, 2), 'rows');

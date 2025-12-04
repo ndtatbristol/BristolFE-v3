@@ -22,12 +22,12 @@ close all;
 model_size = 10e-3;
 fluid_thickness = 3e-3;
 abs_bdry_thickness = 1e-3;
-els_per_wavelength = 8;
+els_per_wavelength = 3;8;%%%%%%%%%%%%%%%%%%%%%%%
 
 %Subdomain and scatterer geometry
 scatterer_size = 1e-3;
 subdomain_size = scatterer_size + 0.1e-3;
-scatterer_depth = 4e-3;
+scatterer_depth = 0e-3;
 
 %Solid material properties
 solid_matl_name = 'steel';
@@ -57,7 +57,7 @@ src_dir = 4;
 %bit
 max_time = 1.1 * 2 * (fluid_thickness / fluid_velocity + (model_size - fluid_thickness) / solid_matl_longitudinal_velocity);
 
-show_geom_only = 0; %Set to 1 to just show geometry without running model
+show_geom_only = 1; %Set to 1 to just show geometry without running model
 fe_options.field_output_every_n_frames = 20; %set to inf to suppress animations
 
 
@@ -139,7 +139,7 @@ scatterer_centre = [model_size / 2, fluid_thickness + scatterer_depth];
 inner_bdry = [-1,-1;-1,1;1,1;1,-1] / 2 * subdomain_size + scatterer_centre;
 scat_pts =   fn_2d_create_smooth_random_blob(0.4, 3, 360) * scatterer_size / 2 + scatterer_centre;
 
-main.doms{1}.mod = fn_2d_create_subdomain(main.mod, inner_bdry, abs_bdry_thickness);
+main.doms{1}.mod = fn_2d_create_subdomain(main.mod, main.el_types, inner_bdry, abs_bdry_thickness);
 main.doms{1}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.el_types, scat_pts, 0, 0);
 
 %Show the mesh

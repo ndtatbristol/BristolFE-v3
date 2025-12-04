@@ -75,7 +75,7 @@ switch n_dims
         if ~isempty(bdry_fcs) && size(bdry_fcs, 2) ~= 2
             error('If specified, bdry_fcs mus be n_fcs x 2 for 2D problems')
         end
-            [d, nearest_pts, norm_vecs, type_of_nearest_entity, nearest_entity, bndry_edges] = fn_dist_point_to_bdry_2D_v2(pts, bdry_vtcs, bdry_fcs, interior_pt);
+            [d, nearest_pts, norm_vecs, type_of_nearest_entity, nearest_entity, bndry_edges] = fn_2d_signed_dist_to_bdry(pts, bdry_vtcs, bdry_fcs);
     case 3
         if isempty(bdry_fcs)
             error('3D problems require bdry_fcs to be specified')
@@ -83,7 +83,7 @@ switch n_dims
         if size(bdry_fcs) ~= 3
             error('bdry_fcs must be n_fcs x 3 for 3D problems')
         end
-        [d, nearest_pts, norm_vecs, type_of_nearest_entity, nearest_entity, bndry_edges] = fn_dist_point_to_bdry_3D(pts, bdry_vtcs, bdry_fcs, interior_pt);
+        [d, nearest_pts, norm_vecs, type_of_nearest_entity, nearest_entity, bndry_edges] = fn_3d_signed_dist_to_bdry(pts, bdry_vtcs, bdry_fcs, interior_pt);
 end
 
 end

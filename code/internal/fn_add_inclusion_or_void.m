@@ -1,6 +1,6 @@
-function mod = fn_add_inclusion_or_void(mod, el_types, scat_vtcs, scat_fcs, scat_matl_i, scat_el_typ_i, scat_interior_pt)
+function mod = fn_add_inclusion_or_void(mod, el_types, scat_vtcs, scat_fcs, scat_matl_i, scat_el_typ_i)
 %USAGE
-%   mod = fn_add_inclusion_or_void(mod, el_types, scat_vtcs, scat_fcs, scat_matl, scat_el_typ, scat_interior_pt)
+%   mod = fn_add_inclusion_or_void(mod, el_types, scat_vtcs, scat_fcs, scat_matl, scat_el_typ)
 %AUTHOR
 %   Paul Wilcox (2025)
 %SUMMARY
@@ -16,8 +16,6 @@ function mod = fn_add_inclusion_or_void(mod, el_types, scat_vtcs, scat_fcs, scat
 %   zero to create a void
 %   scat_el_typ_i - element type index of material inside scatterer region
 %   (ignored if scat_matl == 0)
-%   scat_interior_pt - a point inside the scatterer to define the interior
-%   which is only used for 3D scatterers.
 %OUTPUT
 %   mod - modified model with scatterer
 %NOTES
@@ -30,7 +28,7 @@ ndims = size(mod.nds, 2);
 if ndims == 2
     els_in_inclusion = fn_2d_find_elements_in_region(mod, scat_vtcs);
 else
-    els_in_inclusion = fn_3d_find_elements_in_region(mod, scat_vtcs, scat_fcs, scat_interior_pt);
+    els_in_inclusion = fn_3d_find_elements_in_region(mod, scat_vtcs, scat_fcs);
 end
 if scat_matl_i > 0
     %only change material and type of non-interface elements, otherwise

@@ -25,7 +25,7 @@ function mod = fn_2d_add_inclusion_or_void(mod, el_types, scat_pts, scat_matl_i,
 %   nodes or elements, it just changes element material)
 %--------------------------------------------------------------------------
 
-mod = fn_add_inclusion_or_void(mod, el_types, scat_pts, [], scat_matl_i, scat_el_typ_i, []);
+mod = fn_add_inclusion_or_void(mod, el_types, scat_pts, [], scat_matl_i, scat_el_typ_i);
 
 
 % els_in_inclusion = fn_2d_find_elements_in_region(mod, scat_pts);
