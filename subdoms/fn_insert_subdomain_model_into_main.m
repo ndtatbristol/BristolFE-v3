@@ -1,15 +1,15 @@
 function mod = fn_insert_subdomain_model_into_main(mn_mod, dm_mod)
 
-if isfield(mn_mod, 'el_abs_i')
-    mn_mod.el_abs_i = mn_mod.el_abs_i;
-else
-    mn_mod.el_abs_i = zeros(size(mn_mod.el_mat_i));
-end
-
 mod = mn_mod;
+ndim = size(mod.nds, 2);
 
 %Remove the elements from main model that are inside region
-els_in_use = ~fn_2d_find_elements_in_region(mod, dm_mod.inner_bndry_pts);
+switch ndim
+    case 2
+        els_in_use = ~fn_2d_find_elements_in_region(mod, dm_mod.inner_bndry_pts);
+    case 3
+        els_in_use = ~fn_3d_find_elements_in_region(mod, dm_mod.inner_bndry_pts, dm_mod.inner_bndry_fcs);
+end
 [~, ~, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i] = fn_remove_unused_elements(els_in_use, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i);
 
 %Stick the subdomain nodes at the end of the main model nodes and remember
@@ -19,7 +19,13 @@ mod.nds = [mod.nds; dm_mod.nds];
 
 %remove elements in subdomain that are outside region
 % els_in_use = fn_elements_in_region(dm_mod, dm_mod.inner_bndry_pts);
-els_in_use = fn_2d_find_elements_in_region(dm_mod, dm_mod.inner_bndry_pts);
+% els_in_use = fn_2d_find_elements_in_region(dm_mod, dm_mod.inner_bndry_pts);
+switch ndim
+    case 2
+        els_in_use = fn_2d_find_elements_in_region(dm_mod, dm_mod.inner_bndry_pts);
+    case 3
+        els_in_use = fn_3d_find_elements_in_region(dm_mod, dm_mod.inner_bndry_pts, dm_mod.inner_bndry_fcs);
+end
 [~, ~, dm_mod.els, dm_mod.el_mat_i, dm_mod.el_abs_i, dm_mod.el_typ_i] = fn_remove_unused_elements(els_in_use, dm_mod.els, dm_mod.el_mat_i, dm_mod.el_abs_i, dm_mod.el_typ_i);
 
 %Change boundary node references in sub-domain model to main node

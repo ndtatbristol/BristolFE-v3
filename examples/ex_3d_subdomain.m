@@ -16,7 +16,7 @@ abs_bdry_thickness = 1e-3;
 
 %Material properties
 solid_matl_i = 1;
-main.matls(solid_matl_i) = fn_matl_isotropic_solid_defined_by_stiffness('Steel', 210e9, 0.3, 8900);
+main.matls{solid_matl_i} = fn_matl_isotropic_solid_defined_by_stiffness('Steel', 210e9, 0.3, 8900);
 
 % main.el_types = fn_3d_el_types(); %C3D8 8 noded brick
 solid_element_type = 'C3D8';
@@ -98,33 +98,26 @@ main.doms{1}.mod = fn_3d_create_subdomain(main.mod, main.el_types, inner_bndry_v
 % main.doms{1}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.el_types, scat_pts, 0);
 
 
-% %Also provide the time signal for the loading (if this is a vector, it will
-% %be applied at all frc_nds/frc_dfs simultaneously; alternatively it can be a matrix
-% %of different time signals for each frc_nds/frc_dfs
-% steps{1}.load.time = 0: time_step:  max_time;
-% steps{1}.load.frcs = fn_gaussian_pulse(steps{1}.load.time, centre_freq, no_cycles);
-% 
-% %Also record displacement history at same points (NB there is no reason why
-% %these have to be same as forcing points)
-% steps{1}.mon.nds = steps{1}.load.frc_nds;
-% steps{1}.mon.dfs = steps{1}.load.frc_dfs;
-
 %Show the mesh
-% if show_geom_only %suppress graphics when running all scripts for testing
-%     figure;
-%     display_options.draw_elements = 0;
-%     display_options.node_sets_to_plot(1).nd = main.trans{1}.nds;
-%     display_options.node_sets_to_plot(1).col = 'r.';
-%     h_patch = fn_show_geometry_with_subdomains(main, display_options);
-%     drawnow
-%     % figure;
-%     % display_options.transparency = 0.5;
-%     % display_options.draw_elements = 0;
-%     % display_options.node_sets_to_plot(1).nd = steps{1}.load.frc_nds;
-%     % display_options.node_sets_to_plot(1).col = 'r.';
-%     % h_patch = fn_show_geometry(mod, matls, display_options);
-%     return
-% end
+if show_geom_only %suppress graphics when running all scripts for testing
+    figure;
+    subplot(1,2,1);
+    display_options.transparency = 0.5;
+    display_options.draw_elements = 0;
+    display_options.node_sets_to_plot(1).nd = main.trans{1}.nds;
+    display_options.node_sets_to_plot(1).col = 'r.';
+    h_patch = fn_show_geometry(main.mod, main.matls, main.el_types, display_options);
+    title('Main')
+    subplot(1,2,2);
+    display_options = [];
+    display_options.transparency = 0.5;
+    display_options.draw_elements = 0;
+    % display_options.node_sets_to_plot(1).nd = main.trans{1}.nds;
+    % display_options.node_sets_to_plot(1).col = 'r.';
+    h_patch = fn_show_geometry(main.doms{1}.mod, main.matls, main.el_types, display_options);
+    title('Subdomain')
+    return
+end
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 %Run main model
@@ -133,17 +126,20 @@ main = fn_run_main_model(main, fe_options);
 %Run sub-domain model
 main = fn_run_subdomain_model(main, fe_options);
 
-return
+%Run validation model
+fe_options.validation_mode = 1;
+main = fn_run_main_model(main, fe_options);
 
-% [res, mats] = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
-res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
-
-%--------------------------------------------------------------------------
-%SHOW THE RESULTS
-
-%Show the history output as a function of time - here we just sum over all 
-%the nodes where displacments were recorded
 figure;
-plot(steps{1}.load.time, sum(res{1}.dsps, 1));
-xlabel('Time (s)')
+i = max(find(abs(main.inp.sig) > max(abs(main.inp.sig)) / 1000));
+mv = max(abs(sum(main.doms{1}.res.fmc.time_data(i:end,: ), 2)));
+plot(main.doms{1}.res.fmc.time, real(sum(main.doms{1}.res.fmc.time_data, 2)) / mv, 'k', 'LineWidth', 2);
+hold on;
+plot(main.doms{1}.val.fmc.time, real(sum(main.doms{1}.val.fmc.time_data, 2)) / mv, 'g:', 'LineWidth', 2);
+plot(main.res.fmc.time, real(sum(main.res.fmc.time_data, 2)) / mv, 'b');
+ylim([-1,1]);
+yyaxis right
+plot(main.doms{1}.res.fmc.time, 20 * log10(abs(sum(main.doms{1}.res.fmc.time_data, 2) - sum(main.doms{1}.val.fmc.time_data, 2)) / mv));
+ylim([-60, 0]);
+legend('Sub-domain method', 'Validation', 'Pristine', 'Difference (dB)');
 

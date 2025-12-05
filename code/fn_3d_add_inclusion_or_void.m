@@ -1,6 +1,6 @@
-function mod = fn_3d_add_inclusion_or_void(mod, el_types, scat_vtcs, scat_fcs, scat_matl_i, scat_el_typ_i, varargin)
+function mod = fn_3d_add_inclusion_or_void(mod, el_types, scat_vtcs, scat_fcs, scat_matl_i, scat_el_typ_i)
 %USAGE
-%   mod = fn_3d_add_inclusion_or_void(mod, el_types, scat_pts, scat_matl, scat_el_typ[, scat_interior_pt])
+%   mod = fn_3d_add_inclusion_or_void(mod, el_types, scat_pts, scat_matl, scat_el_typ)
 %AUTHOR
 %   Paul Wilcox (2025)
 %SUMMARY
@@ -17,10 +17,6 @@ function mod = fn_3d_add_inclusion_or_void(mod, el_types, scat_vtcs, scat_fcs, s
 %   zero to create a void
 %   scat_el_typ_i - element type index of material inside scatterer region
 %   (ignored if scat_matl == 0)
-%   [scat_interior_pt - a point inside the scatterer to define the interior
-%   of 3D scatterers. If not specified, the mean scatterer coordinate will 
-%   be assumed to be inside ... but this may not be the case for all
-%   scatterer shapes, e.g. donuts!]
 %OUTPUT
 %   mod - modified model with scatterer
 %NOTES
@@ -29,13 +25,8 @@ function mod = fn_3d_add_inclusion_or_void(mod, el_types, scat_vtcs, scat_fcs, s
 %   removed (i.e. when a void is added; an inclusion does not remove any
 %   nodes or elements, it just changes element material)
 %--------------------------------------------------------------------------
-if numel(varargin) >= 1
-    scat_interior_pt = varargin{1};
-else
-    scat_interior_pt = mean(mod.nds);
-end
 
-mod = fn_add_inclusion_or_void(mod, el_types, scat_vtcs, scat_fcs, scat_matl_i, scat_el_typ_i, scat_interior_pt);
+mod = fn_add_inclusion_or_void(mod, el_types, scat_vtcs, scat_fcs, scat_matl_i, scat_el_typ_i);
 
 
 end

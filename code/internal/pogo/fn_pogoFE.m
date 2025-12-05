@@ -151,6 +151,10 @@ end
 
 
 function model = fn_convert_to_pogo_model(mod, matls, el_types, steps, fe_options)
+%Following is list of supported element types in Pogo - if mod includes
+%anything not in this list there will be an error!
+pogo_el_types = {'CPE3', 'CPE4', 'CPE4R', 'CPS3', 'CPS4', 'CPS4R', ...
+                 'C3D4', 'C3D8', 'C3D8R', 'C3D6', 'C3D6R'};
 model.nDims = size(mod.nds, 2);
 model.nDofPerNode = model.nDims;                    %This is not general enough - but how do you get DoF in my code?
 %model.runName = "";                                 %not important (unused at present)
@@ -168,16 +172,36 @@ model.elNodes = mod.els';                           %nodes for each element; siz
 %In bristol FE elements are identified with material and element type is
 %specified in material definition. There is no concept of material orientation in
 %BristolFE (different orientations require different materials)
-model.elTypeRefs = mod.el_typ_i';                   %- which of the element types each element refers to, length nEls
 model.matTypeRefs = mod.el_mat_i';                  % - which of the material types each element refers to, length nEls
 model.orientRefs = zeros(size(model.matTypeRefs));                   %- which of the orientations each element refers to, length nEls
 
+old_vals = unique(mod.el_typ_i);
+new_vals = zeros(size(old_vals));
+k = 1;
 for n = 1:numel(el_types)
-    model.elTypes{n}.name = el_types{n};       % - element name (matching Abaqus library typically)
-    model.elTypes{n}.paramsType = 0;                %This will need changing for damping - parameters associated with the element type - usually just 0
+    if any(mod.el_typ_i == n)
+        %element type is used in model
+        if any(strcmp(el_types{n}, pogo_el_types))
+            %element type is supported by Pogo - good add it to the pogo
+            %model
+            model.elTypes{k}.name = el_types{n};       % - element name (matching Abaqus library typically)
+            model.elTypes{k}.paramsType = 0;                %This will need changing for damping - parameters associated with the element type - usually just 0
+            %record the index used here because it won't necessarily be
+            %same as BristolFE one, so the el_typ_i has to be remapped
+            new_vals(k) = k;
+            k = k + 1;
+        else
+            error(['Model contains elements of type ', el_types{n}, ' that are not supported by Pogo']);
+        end
+    end
 end
 
+%remap el_typ_i
+[tf, idx] = ismember(mod.el_typ_i, old_vals);
+assert(all(tf(:)), 'Unmapped values present.');
+mod.el_typ_i = reshape(new_vals(idx), size(mod.el_typ_i));       % overwrite only where mapped
 
+model.elTypeRefs = mod.el_typ_i';                   %- which of the element types each element refers to, length nEls
 for n = 1:numel(matls)
     if isfield(matls{n}, 'alpha')
         model.matTypes{n} = fn_pogo_matl(matls{n}.D, matls{n}.rho, matls{n}.alpha, 0);

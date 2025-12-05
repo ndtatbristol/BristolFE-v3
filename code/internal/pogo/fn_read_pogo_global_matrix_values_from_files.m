@@ -26,7 +26,11 @@ end
 function M = fn_file_to_matrix(fname, sz)
 M_tmp=readmatrix(fname);
 if isempty(M_tmp)
-    M = [];
+    if sz
+        M = sparse(sz, sz);
+    else
+        M = [];
+    end
     return
 end
 if sz == 0

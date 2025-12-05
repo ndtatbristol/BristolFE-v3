@@ -146,7 +146,7 @@ for i = 1:numel(el_faces)
     k = k + nnz(j);
 end
 common_fcs(k:end, :) = [];
-common_fcs = fn_unique_fcs(common_fcs)
+common_fcs = fn_unique_fcs(common_fcs);
 
 [tf, idx] = ismember(common_fcs(:), common_nds);   % idx are positions in v for each element of m (linearized)
 assert(all(tf), 'Some entries of m are not present in v.');

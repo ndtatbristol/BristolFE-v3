@@ -85,7 +85,7 @@ mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
 %(same idea as the cell array of materials that contains all materials used 
 %in the model). The function below produces a list of all available 2d
 %elements, which is fine (it doesn't matter that some won't be used)
-el_types = {el_typ_to_use_for_solid}; 
+el_types = fn_2d_el_types();%{el_typ_to_use_for_solid}; 
 
 %Associate each element with a material index and element type index
 mod.el_mat_i(:) = matl_i;

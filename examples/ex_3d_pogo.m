@@ -16,9 +16,8 @@ solid_mat_i = 1;
 solid_c_L = 6300;
 solid_c_T = 3150;
 solid_density = 2700;
-matls(solid_mat_i) = fn_matl_isotropic_solid_defined_by_velocities('Aluminium', solid_c_L, solid_c_T, solid_density);
+matls{solid_mat_i} = fn_matl_isotropic_solid_defined_by_velocities('Aluminium', solid_c_L, solid_c_T, solid_density);
 
-el_types = fn_3d_el_types(); 
 solid_element_type = 'C3D8'; %C3D8 is an 8-noded brick
 
 %Define shape of model
@@ -26,6 +25,11 @@ model_size_x = 10e-3;
 model_size_y = 11e-3;
 model_size_z = 12e-3;
 
+%Spherical void in the middle
+scat_cent = [model_size_x, model_size_y, model_size_z] / 2;
+scat_size = model_size_x / 10;
+
+%Source is a circular disk of excitation in centre of top (max z) surface
 src_radius = 3e-3;
 
 abs_layer_thickness = 1e-3;
@@ -47,7 +51,7 @@ no_cycles = 4;
 max_time = 1.2 * (2 * model_size_z) / solid_c_L;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
-els_per_wavelength = 7;
+els_per_wavelength = 5;
 
 fe_options.solver = 'pogo';
 
@@ -59,9 +63,17 @@ el_size = fn_get_suitable_el_size(matls, centre_freq, els_per_wavelength);
 
 %Create the nodes and elements of the mesh
 mod = fn_3d_structured_mesh_hexahedral_els(crnr_pts, el_size);
-mod.el_types = el_types;
+% mod.el_types = el_types;
+el_types = fn_3d_el_types(); 
+
 mod.el_typ_i = ones(size(mod.el_typ_i)) * find(strcmp(el_types, solid_element_type));
 mod.el_mat_i = ones(size(mod.el_typ_i)) * solid_mat_i;
+
+[scat_vtcs, scat_fcs] =  fn_3d_spherical_surface(scat_cent, scat_size /2);
+scat_matl_i = 0;
+scat_el_typ_i = [];
+mod = fn_3d_add_inclusion_or_void(mod, el_types, scat_vtcs, scat_fcs, scat_matl_i, scat_el_typ_i);
+
 
 % %Quick test of absorbing layers
 % el_ctrs = fn_calc_element_centres(mod.nds, mod.els);

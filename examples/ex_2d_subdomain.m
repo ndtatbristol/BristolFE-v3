@@ -27,7 +27,7 @@ els_per_wavelength = 8;
 %Subdomain and scatterer geometry
 scatterer_size = 1e-3;
 subdomain_size = scatterer_size + 0.1e-3;
-scatterer_depth = 0e-3;
+scatterer_depth = 3e-3;
 
 %Solid material properties
 solid_matl_name = 'steel';
@@ -57,7 +57,7 @@ src_dir = 4;
 %bit
 max_time = 1.1 * 2 * (fluid_thickness / fluid_velocity + (model_size - fluid_thickness) / solid_matl_longitudinal_velocity);
 
-show_geom_only = 1; %Set to 1 to just show geometry without running model
+show_geom_only = 0; %Set to 1 to just show geometry without running model
 fe_options.field_output_every_n_frames = 20; %set to inf to suppress animations
 
 
