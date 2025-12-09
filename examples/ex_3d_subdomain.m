@@ -10,13 +10,13 @@ fe_options.pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
 %--------------------------------------------------------------------------
 %DEFINE THE PROBLEM
 
-show_geom_only = 1;
+show_geom_only = 0;
 
 abs_bdry_thickness = 1e-3;
 
 %Material properties
 solid_matl_i = 1;
-main.matls{solid_matl_i} = fn_matl_isotropic_solid_defined_by_stiffness('Steel', 210e9, 0.3, 8900);
+main.matls{solid_matl_i} = fn_matl_isotropic_solid_defined_by_velocities('Aluminium', 6300, 3150, 2700);
 
 % main.el_types = fn_3d_el_types(); %C3D8 8 noded brick
 solid_element_type = 'C3D8';
@@ -28,7 +28,6 @@ model_size_z = 12e-3;
 
 src_radius = 3e-3;
 
-abs_layer_thickness = 1e-3;
 %corner bts
 crnr_pts = [
     0, 0, 0
@@ -45,10 +44,10 @@ src_dir = 3; %direction of forces applied: 1 = x, 2 = y, 3 = z (for solids), 4 =
 %Details of input signal
 centre_freq = 5e6;
 fe_options.number_of_cycles = 5;
-max_time = 10e-6;
+max_time = 1.1 * 2 * model_size_z / 6300;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
-els_per_wavelength = 2;8;
+els_per_wavelength = 5;
 
 fe_options.solver = 'pogo';
 fe_options.dof_to_use = [1,2,3];
@@ -63,7 +62,7 @@ main.mod = fn_3d_structured_mesh_hexahedral_els(crnr_pts, el_size);
 main.mod.design_centre_freq = centre_freq;
 main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
 
-main.el_types = {solid_element_type};
+main.el_types = fn_3d_el_types();
 main.mod.el_typ_i = ones(size(main.mod.el_typ_i)) * find(strcmp(main.el_types, solid_element_type));
 main.mod.el_mat_i = ones(size(main.mod.el_typ_i)) * solid_matl_i;
 

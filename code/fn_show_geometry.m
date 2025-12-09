@@ -31,6 +31,22 @@ else
     end
 end
 
+%fix in case el_types not specified (nesc if called for debugging from functions where actual el_types is not available)
+if isempty(el_types)
+    switch size(mod.nds, 2)
+        case 2
+            %Dummy list of 2D elements indexed by number of 2, 3 and 4 nodes
+            el_types = {'', 'ASI2D2', 'CPE3', 'CPE4'};
+            nds_per_el = sum(mod.els > 0, 2);
+            mod.el_typ_i = nds_per_el;
+        case 3
+            %Dummy list of 2D elements indexed by number of 2, 3 and 4 nodes
+            el_types = {'', '', '', 'C3D4', '', '', '', 'C3D8'}; %this isn't going to work with 2D inteface els which also have 4 nodes and cannot be distinguished from tets!
+            nds_per_el = sum(mod.els > 0, 2);
+            mod.el_typ_i = nds_per_el;
+    end
+end
+
 % addpath(genpath('..'));
 default_options.offset = 0;
 default_options.scale = 1;

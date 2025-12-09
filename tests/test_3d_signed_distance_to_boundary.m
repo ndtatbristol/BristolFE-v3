@@ -21,6 +21,13 @@ bdry_fcs = [
 
 [bdry_nds, bdry_fcs] = fn_3d_spherical_surface([0,0,0], 5);
 
+%randomly reverse node order on some rows to test if consistent facet
+%function works
+k = randi(size(bdry_fcs, 1), round(size(bdry_fcs, 1) / 2), 1);
+flipped_in = zeros(size(bdry_fcs, 1), 1);
+bdry_fcs(k, :) = fliplr(bdry_fcs(k, :));
+flipped_in(k) = 1;
+
 tic
 if numel(a) > 10;
     d = fn_3d_signed_dist_to_bdry([x(:), y(:), z(:)], bdry_nds, bdry_fcs);
@@ -35,8 +42,8 @@ xslice = 0;
 yslice = 0;
 zslice = 0;
 h = slice(x,y,z,d,xslice,yslice,zslice);
-for i = 1 :numel(h)
-    set(h(i), 'EdgeColor', 'None')
+for k = 1 :numel(h)
+    set(h(k), 'EdgeColor', 'None')
 end
 hold on;
 patch('Faces', bdry_fcs, 'Vertices', bdry_nds,'FaceColor', 'r', 'FaceAlpha', 0.5);

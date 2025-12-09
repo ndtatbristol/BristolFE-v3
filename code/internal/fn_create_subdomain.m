@@ -62,16 +62,15 @@ end
 
 % figure;c = 'rgbm'; h = fn_show_geometry(dm_mod, [], el_types, []);for i = 1:4; fn_plot_line(dm_mod.nds(dm_mod.bdry_lyrs == i,:), [c(i), '.']); end
 
-
-%Delete original interface elements and then regenerate later in this 
-%function - this is to avoid potential instability at edge of domain where 
-%original interface elements copied from main mesh may now be on free edges
-%Update: this doesn't seem to be necessary anymore now that instabilities fixed in general
-% dm_mod = fn_remove_fluid_solid_interface_els(dm_mod);
-
+%Exclude elements that are further away than abs_layer_thick from bounding
+%box of abs_layer_start_bdry_nds
+el_centres = fn_calc_element_centres(dm_mod.nds, dm_mod.els);
+% cand_els = ~el_used;
+cand_els = ~el_used & ...
+    (all((el_centres < (max(abs_layer_start_bdry_nds) + abs_layer_thick)) & ...
+    (el_centres > (min(abs_layer_start_bdry_nds) - abs_layer_thick)), 2));
 
 %Add the absorbing layers by working out from centre of region
-cand_els = ~el_used;
 switch ndims
     case 2
         % dm_mod.el_abs_i(cand_els) = fn_dist_point_to_bdry_2D(fn_calc_element_centres(dm_mod.nds, dm_mod.els(cand_els, :)), abs_layer_start_bdry) / abs_layer_thick;
@@ -87,14 +86,6 @@ els_in_use(dm_mod.el_abs_i > 1) = 0;
 dm_mod.main_nd_i = old_nds;
 dm_mod.bdry_lyrs = dm_mod.bdry_lyrs(old_nds);
 
-%Reinstate fluid-solid interface elements - no longer needed if they are
-%not deleted at start of process
-% dm_mod = fn_add_fluid_solid_interface_els(dm_mod);
-
-% free_ed = fn_find_free_edges(dm_mod.els);
-% 
-% dm_mod.outer_bndry_pts = [dm_mod.nds(free_ed, 1), dm_mod.nds(free_ed, 2)];
-% dm_mod.int_el_i = fn_elements_in_region(dm_mod, dm_mod.inner_bndry_pts);
 
 end
 
