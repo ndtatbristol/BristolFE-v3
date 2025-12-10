@@ -150,8 +150,7 @@ for m = 1:numel(main_modes)
                 [main.doms{d}.val_mod, old_nds, new_nds] = fn_insert_subdomain_model_into_main(main.mod, main.doms{d}.mod);%, main.matls);
 
                 %remap nodes in steps as the node numbers will be changed
-                %(and pogo won't accept unconnected nodes)
-                % new_nds = (1:size(main.doms{d}.val_mod.nds, 1))';
+                %old_nd ---> new_nds(old_nd)
                 for s = 1: numel(steps)
                     if isfield(steps{s}.load, 'frc_nds')
                         steps{s}.load.frc_nds = fn_remap_matrix(steps{s}.load.frc_nds, new_nds);
@@ -165,6 +164,7 @@ for m = 1:numel(main_modes)
                 fe_res = fn_FE_entry_point(main.doms{d}.val_mod, main.matls, main.el_types, steps, fe_options);
 
                 %remap nodes back to original node numbers
+                %new_nd ---> old_nds(new_nd)
                 for s = 1: numel(steps)
                     if isfield(steps{s}.load, 'frc_nds')
                         steps{s}.load.frc_nds = fn_remap_matrix(steps{s}.load.frc_nds, old_nds);

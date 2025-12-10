@@ -78,7 +78,7 @@ switch ndims
     case 3
         dm_mod.el_abs_i(cand_els) = fn_3d_signed_dist_to_bdry(fn_calc_element_centres(dm_mod.nds, dm_mod.els(cand_els, :)), abs_layer_start_bdry_nds, abs_layer_start_bdry_fcs) / abs_layer_thick;
 end
-els_in_use = ones(size(dm_mod.els, 1), 1);
+els_in_use = el_used | cand_els;
 els_in_use(dm_mod.el_abs_i > 1) = 0;
 
 [~, ~, dm_mod.els, dm_mod.el_mat_i, dm_mod.el_abs_i, dm_mod.el_typ_i] = fn_remove_unused_elements(els_in_use, dm_mod.els, dm_mod.el_mat_i, dm_mod.el_abs_i, dm_mod.el_typ_i);

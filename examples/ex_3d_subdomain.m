@@ -36,6 +36,9 @@ crnr_pts = [
 subdom_centre = [model_size_x, model_size_y, model_size_z] / 2;
 subdom_rad = 1e-3;
 
+scat_cent = subdom_centre;
+scat_rad = subdom_rad / 2;
+
 %Define a line along which sources will be placed to excite waves
 src_centre = [0.5 * model_size_x, 0.5 * model_size_y, model_size_z];
 
@@ -44,7 +47,7 @@ src_dir = 3; %direction of forces applied: 1 = x, 2 = y, 3 = z (for solids), 4 =
 %Details of input signal
 centre_freq = 5e6;
 fe_options.number_of_cycles = 5;
-max_time = 1.1 * 2 * model_size_z / 6300;
+fe_options.max_time = 1.5 * 2 * model_size_z / 6300;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
 els_per_wavelength = 5;
@@ -94,7 +97,10 @@ main.trans{1}.dfs = ones(size(main.trans{1}.nds)) * src_dir;
 [inner_bndry_vtcs, inner_bndry_fcs] = fn_3d_spherical_surface(subdom_centre, subdom_rad);
 main.doms{1}.mod = fn_3d_create_subdomain(main.mod, main.el_types, inner_bndry_vtcs, inner_bndry_fcs, abs_bdry_thickness);
 
-% main.doms{1}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.el_types, scat_pts, 0);
+[scat_vtcs, scat_fcs] =  fn_3d_spherical_surface(scat_cent, scat_rad);
+scat_matl_i = 0;
+scat_el_typ_i = [];
+main.doms{1}.mod = fn_3d_add_inclusion_or_void(main.doms{1}.mod, main.el_types, scat_vtcs, scat_fcs, scat_matl_i, scat_el_typ_i);
 
 
 %Show the mesh
@@ -106,6 +112,7 @@ if show_geom_only %suppress graphics when running all scripts for testing
     display_options.node_sets_to_plot(1).nd = main.trans{1}.nds;
     display_options.node_sets_to_plot(1).col = 'r.';
     h_patch = fn_show_geometry(main.mod, main.matls, main.el_types, display_options);
+    aa = axis;
     title('Main')
     subplot(1,2,2);
     display_options = [];
@@ -115,6 +122,7 @@ if show_geom_only %suppress graphics when running all scripts for testing
     % display_options.node_sets_to_plot(1).col = 'r.';
     h_patch = fn_show_geometry(main.doms{1}.mod, main.matls, main.el_types, display_options);
     title('Subdomain')
+    axis(aa);
     return
 end
 %--------------------------------------------------------------------------

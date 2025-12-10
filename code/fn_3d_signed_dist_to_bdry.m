@@ -157,7 +157,7 @@ end
 %signs of all d. Remove exterior point and associated info from all
 %outputs.
 if d(end) < 0
-    d = -d
+    d = -d;
 end
 d = d(1:end - 1);
 nearest_pts = nearest_pts(1:end-1,:);
