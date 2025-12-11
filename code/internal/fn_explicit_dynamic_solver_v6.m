@@ -88,8 +88,13 @@ if size(M,1) ~= size(M, 2)
 end
 
 ndf = size(K, 1);
+nz = nnz(K);
 t1 = clock;
-fn_console_output(sprintf(['Explicit time marching v6 (GPU = %i, time steps = %d, DOF = %d, ', solver_precision, ') '], use_gpu, numel(time), ndf), [], 0);
+if nz > 1e6
+    fn_console_output(sprintf(['Explicit time marching v6 (GPU = %i, time steps = %d, DoFs = %.3fM, NNZ = %.3fM, ', solver_precision, ') '], use_gpu, numel(time), ndf / 1e6, nz / 1e6), [], 0);
+else
+    fn_console_output(sprintf(['Explicit time marching v6 (GPU = %i, time steps = %d, DoFs = %.3fk, NNZ = %.3fk, ', solver_precision, ') '], use_gpu, numel(time), ndf / 1e3, nz / 1e3), [], 0);
+end
 dt = time(2) - time(1);
 
 %initialise history and field output variables

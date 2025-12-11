@@ -93,11 +93,22 @@ end
 %Drop the unused nodes and update elements
 [val_mod_nds1, val_mod_els1, old_nds1, new_nds1] = fn_remove_unused_nodes(val_mod_nds, val_mod_els);
 
-%Sort nodes
-[val_mod_nds2, tmp] = sortrows(val_mod_nds1, (size(val_mod_nds1,2):-1:1));
-new_nds2 = fn_inverse_map(tmp);
-%Update elements
-val_mod_els2 = fn_remap_matrix(val_mod_els1, new_nds2);
+% %Sort nodes
+% [val_mod_nds2, tmp] = sortrows(val_mod_nds1, (size(val_mod_nds1,2):-1:1));
+% new_nds2 = fn_inverse_map(tmp);
+% %Update elements
+% val_mod_els2 = fn_remap_matrix(val_mod_els1, new_nds2);
+% %Check elements
+% check_els2 = [val_mod_els2', val_mod_nds2(val_mod_els2, :)];
+
+% %Work out the old_nds and new_nds return values
+% j = new_nds1 == 0;
+% new_nds1(j) = 1;
+% new_nds = new_nds2(new_nds1);
+% old_nds = fn_inverse_map(new_nds);
+% new_nds(j) = 0;
+
+[val_mod_nds2, val_mod_els2, old_nds2, new_nds2] = fn_sort_nds(val_mod_nds1, val_mod_els1);
 %Check elements
 check_els2 = [val_mod_els2', val_mod_nds2(val_mod_els2, :)];
 
@@ -107,6 +118,7 @@ new_nds1(j) = 1;
 new_nds = new_nds2(new_nds1);
 old_nds = fn_inverse_map(new_nds);
 new_nds(j) = 0;
+
 
 fprintf('Element node references to val model after node drop and sorting: %i\n',isequal(check_els2(:,2:end), true_els(:,2:end)));
 

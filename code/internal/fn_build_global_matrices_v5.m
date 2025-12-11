@@ -157,6 +157,12 @@ gl_dofs = tmp(:);
 %global matrix index associated with node and DOF).
 gl_lookup = fn_create_fast_lookup(gl_nds, gl_dofs, no_nds, 0);
 
-fn_console_output(sprintf('DOF = %d) .......... completed in %.2f secs\n', size(K, 1), etime(clock, t1)), [], 0);
+ndf = size(K, 1);
+tt = etime(clock, t1);
+if ndf > 1e6
+    fn_console_output(sprintf('DoFs = %.3fM) .......... completed in %.2f secs\n', ndf / 1e6, tt), [], 0);
+else
+    fn_console_output(sprintf('DoFs = %.3fk) .......... completed in %.2f secs\n', ndf / 1e3, tt), [], 0);
+end
 
 end

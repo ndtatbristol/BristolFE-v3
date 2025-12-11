@@ -87,7 +87,7 @@ fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0)
 
 %Request global matrices if two output arguments
 if nargout > 1
-    solver_flags = [solver_flags, ' --outputAllStiffToMatrix'];
+   solver_flags = [solver_flags, ' --outputAllStiffToMatrix'];
 end
 
 %Blocking
@@ -113,7 +113,12 @@ fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0)
 
 %Solving
 t1 = clock;
-fn_console_output(sprintf('Solving (%i DoFs) ...', size(pogo_model.nodePos, 2) * pogo_model.nDofPerNode));
+ndf = size(pogo_model.nodePos, 2) * pogo_model.nDofPerNode;
+if ndf > 1e6
+    fn_console_output(sprintf('Solving (%.3fM DoFs) ...', ndf / 1e6));
+else
+    fn_console_output(sprintf('Solving (%.3fk DoFs) ...', ndf / 1e3));
+end
 system(['"', fe_options.pogo_path, filesep, pogo_solver, '" ',fname, solver_flags, verb_flag]);
 fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0);
 

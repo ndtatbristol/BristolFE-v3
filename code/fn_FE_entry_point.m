@@ -36,6 +36,8 @@ default_options.solver_precision = 'double';
 default_options.field_output_every_n_frames = inf;
 %Which DoF to include in model, use [] for all
 default_options.dof_to_use = []; 
+default_options.sort_nds = 0;
+default_options.nd_sort_cols = [];
 
 %deal with various v2 legacy issues
 if isstruct(matls)
@@ -63,6 +65,11 @@ if isempty(fe_options.max_damping)
     end
 end
 
+if fe_options.sort_nds
+    [mod.nds, mod.els, ~, new_nds] = fn_sort_nds(mod.nds, mod.els, fe_options.nd_sort_cols);
+    steps = fn_remap_nds_in_steps(steps, new_nds);
+end
+
 
 global COMMENT_INDENT_LEVEL 
 
@@ -88,6 +95,12 @@ elseif nargout == 2
     [varargout{1}, varargout{2}] = fn_solver(mod, matls, el_types, steps, fe_options);
 end
 fn_decrement_indent_level;
+
+if fe_options.sort_nds
+    %restore original nodes
+    steps = fn_unmap_nds_in_steps(steps);
+end
+
 fn_console_output(sprintf(['FE solver (', fe_options.solver, ') completed in %.2f secs\n'], etime(clock, t1)));
 end
 

@@ -6,6 +6,7 @@ addpath(genpath('..\subdoms'));
 
 fe_options.pogo_path = 'C:\Program Files\Pogo\windows\new version';
 fe_options.pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
+fe_options.sort_nds = 1;
 
 %--------------------------------------------------------------------------
 %DEFINE THE PROBLEM
@@ -50,7 +51,7 @@ fe_options.number_of_cycles = 5;
 fe_options.max_time = 1.5 * 2 * model_size_z / 6300;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
-els_per_wavelength = 5;
+els_per_wavelength = 3;
 
 fe_options.solver = 'pogo';
 fe_options.dof_to_use = [1,2,3];

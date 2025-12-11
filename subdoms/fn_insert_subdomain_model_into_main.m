@@ -64,16 +64,10 @@ val_mod.el_typ_i = [val_mod.el_typ_i; dm_mod.el_typ_i];
 %Drop the unused nodes and update elements
 [val_mod.nds, val_mod.els, ~, new_nds1] = fn_remove_unused_nodes(val_mod.nds, val_mod.els);
 
-%Sort nodes and update elements
-[val_mod.nds, tmp] = sortrows(val_mod.nds, (size(val_mod.nds,2):-1:1));
-new_nds2 = fn_inverse_map(tmp);
-val_mod.els = fn_remap_matrix(val_mod.els, new_nds2);
-
-%Work out the old_nds and new_nds return values
 j = new_nds1 == 0;
 new_nds1(j) = 1;
-new_nds = new_nds2(new_nds1);
-old_nds = fn_inverse_map(new_nds);
+old_nds = fn_inverse_map(new_nds1);
+new_nds = new_nds1;
 new_nds(j) = 0;
 end
 
