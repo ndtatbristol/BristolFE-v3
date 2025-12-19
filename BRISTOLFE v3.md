@@ -32,7 +32,7 @@ The entry point function for solving a model is `res = fn_FE_entry_point(mod, ma
 
 When this function is called, a complete mesh must have been specified (in the structure `mod`), the materials used must have been defined (in the cell array `matls`), the element types used must have been defined (in the cell array `el_types`) and one or more loading steps and the required outputs must have been defined (in the cell array `steps`).
 
-### The model description (`mod`)
+### Model description (`mod`)
 This describes the model geometry and must contain the following fields:
 - `mod.nds' - an `n_nds x n_dims` matrix of coordinates of all nodes in the model (`n_nds` is number of nodes; `n_dims` is number of dimensions, i.e. 2 or 3)
 - `mod.els` - an `n_els x max_nds_per_el` matrix of the nodes associated with each element in the model (`n_els` is number of elements; `max_nds_per_el` is the maximum number of nodes used by an element in the model, which is typically 3 for a 2D model of triangular elements but can be as many as 8 for a 3D model with hexahedral elements)
@@ -43,15 +43,36 @@ This describes the model geometry and must contain the following fields:
 *Note that node and element numbers are implicitly defined by the associated row number of the relevant matrix, where the first row represents node or element 1 (not 0).*
  
  ### Material descriptions (`matls`)
- Materials are defined in the `matls` cell array, with the cell index being the identifier references by `mod.el_mat_i`. The requried fields are:
+ The materials to be used in a model are defined in a `matls` cell array, with the cell index being the identifier references by `mod.el_mat_i`. The requried fields are:
  - `matls{i}.name` - a string giving the name
  - `matls{i}.rho` - the density
  - `matls{i}.D` - either:
-   - (i) for solids a `6 x 6` stiffness matrix (in a 2D model the necessary reduction to a `3 x 3` stiffness matrix takes place when plane stress or plane straing elements are formed) or
-   - (ii) for fluids a `1 x 1` matrix containing the bulk modulus
+   - solids - a `6 x 6` stiffness matrix (in a 2D model the necessary reduction to a `3 x 3` stiffness matrix takes place when plane stress or plane straing elements are formed)
+   - fluids - a `1 x 1` matrix containing the bulk modulus
  - `matls{i}.col` - an `1 x 3` vector of RBG values
+Typically functions such as the following deal can convert engineering data into the necessary values for some common cases:
+- `matls{i} = fn_matl_isotropic_solid_defined_by_velocities(name, longitudinal_velocity, shear_velocity, density)`
+- `matls{i} = fn_matl_fluid_defined_by_velocity(name, velocity, density)`
 
+### Element types (`el_types`)
 
+The element types to be used in a model are defined in the `el_types` cell array of strings. The names follow the Abaqus naming convention. Typically, it is easiest to just give a list of all possible element types for the dimensionality of model and then pick the indices of the ones you want to use for each element, e.g.
+`el_types = fn_2d_el_types();
+el_typ_to_use_for_solid = 'CPE3'; 
+mod.el_typ_i(solid_el_indices) = find(strcmp(el_types, el_typ_to_use_for_solid))`
+where `solid_el_indices` is a list of the indices of the elements to which you want to assign `CPE3` elements (which are 3-noded plane strain triangular elements).
+
+### Loading steps (`steps`)
+
+The loads that will be applied to a model are defined in the cell array `steps`. Each `step` describes a loading history, in `step{s}.load`, that starts from the original model in its quiescent state - they steps are *not* applied sequentially despite what the name suggests. Each step also defines, in `step{s}.mon`, what will be output ('mon' = monitored) from the solver during that loading.
+
+Typical contents of `step{s}.load`:
+- `step{s}.load.time` - `1 x n_time_pts` vector of time steps at which the model will be executed in this loading step
+- `step{s}.load.frc_nds` - `n_frc_nds x 1` vector of node indices where loads will be applied (`n_frc_nds` is the number of nodes at which forcing will be applied)
+- `step{s}.load.frc_dfs` - `n_frc_nds x 1` vector of the associated Degree of Freedom (DoF) where loads will be applied
+- `step{s}.load.frcs` - `1 x n_time_pts` or `n_frc_nds x n_time_pts` matrix or vector of the forcing histories to be applied. If it is a vector, then same forcing history is applied at all nodes/DoFs.
+- `steps{1}.load.wts` - `n_frc_nds x 1` optional vector of weightings to be applied to forces at each node/DoF
+- 
 The requested results for the corresponding loading step are returned in the cell array `res`. Typical outputs are one or both of: 
 - History outputs - complete time histories of the displacement (or pressure in fluids) at one or mode nodes, typically plotted as time-domain signals.
 - Field output - snapshots of the complete wavefield (its local kinetic energy) at intervals in time, typically displayed as a movie and used as a visualisation tool.
