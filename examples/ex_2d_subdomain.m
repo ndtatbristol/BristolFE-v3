@@ -2,16 +2,17 @@ clear all;
 close all;
 rng(1);
 %ABOUT THIS EXAMPLE
-%This example is designed to show how to use the subdomain method where a
-%main model without scatterers is created and executed and then a subdomain
-%model(s) containing a scatterer(s) of interest can be executed. In this example
-%script, a validation is also performed by running the full model with the 
+%This example is designed to show how to use the subdomain method. Here a
+%main model without scatterers is created and executed and then subdomain
+%models for each scatterer of interest can be executed. In this example
+%script, a validation is also performed by running the full model with a
 %scatterer in included directly. Note that generating field output for
 %animations in sub-domain models requires an extra execution of the
 %pristine model (because it needs to be executed with an impulse to get the
-%transfer functions required for sub-domain modelling, with the output 
+%transfer functions required for sub-domain modelling, with the output
 %convolved with the desired toneburst, but the animation is
-%better if a toneburst input is used directly).
+%better if a toneburst input is used directly). The true speed  up is best
+%seen by turning animations off.
 
 %PARAMETRIC DESCRIPTION OF MODEL
 %The model is described in terms of a small number of parameters
@@ -21,13 +22,14 @@ rng(1);
 %Overall model geometry
 model_size = 10e-3;
 fluid_thickness = 3e-3;
-abs_bdry_thickness = 1e-3;
-els_per_wavelength = 8;
+abs_bdry_thickness_in_wavelengths = 1;
+els_per_wavelength = 16;
 
 %Subdomain and scatterer geometry
 scatterer_size = 1e-3;
 subdomain_size = scatterer_size + 0.1e-3;
 scatterer_depth = 3e-3;
+no_scatterers = 1; %do multiple random scatterers
 
 %Solid material properties
 solid_matl_name = 'steel';
@@ -41,8 +43,8 @@ fluid_velocity = 1500;
 fluid_density = 1000;
 
 %Element types to use
-el_typ_to_use_for_solid = 'CPE3'; 
-el_typ_to_use_for_fluid = 'AC2D3'; 
+el_typ_to_use_for_solid = 'CPE3';
+el_typ_to_use_for_fluid = 'AC2D3';
 
 %Details of input signal
 centre_freq = 5e6;
@@ -58,9 +60,11 @@ src_dir = 4;
 max_time = 1.1 * 2 * (fluid_thickness / fluid_velocity + (model_size - fluid_thickness) / solid_matl_longitudinal_velocity);
 
 show_geom_only = 0; %Set to 1 to just show geometry without running model
+run_validation_models = 0;
 fe_options.field_output_every_n_frames = inf;20; %set to inf to suppress animations
 
-fe_options.sort_nds = 1;
+fe_options.sort_nds = 0;
+% fe_options.solver_mode = 'vel at last half time step';
 % fe_options.nd_sort_cols = [2,1];
 %--------------------------------------------------------------------------
 %THE ACTUAL CODE STARTS HERE
@@ -71,6 +75,12 @@ addpath(genpath('../code'));
 addpath(genpath('../subdoms'));
 rmpath(genpath('../code/deprecated'));
 
+%Define the materials
+%A cell array with an entry for each material used in the model is required.
+solid_matl_i = 1;
+main.matls{solid_matl_i} = fn_matl_isotropic_solid_defined_by_velocities(solid_matl_name, solid_matl_longitudinal_velocity, solid_matl_shear_velocity, solid_matl_density);
+fluid_matl_i = 2;
+main.matls{fluid_matl_i} = fn_matl_fluid_defined_by_velocity(fluid_name, fluid_velocity, fluid_density);
 
 %Define shape of model
 bdry_pts = [
@@ -86,19 +96,15 @@ fluid_bdry_pts = [
     model_size, fluid_thickness
     0,          fluid_thickness];
 
-%Define start of absorbing boundary region and its thickness
+%Define thickness and start of absorbing boundary region
+max_wavelength = fn_estimate_max_min_wavelengths(main.matls, centre_freq);
+abs_bdry_thickness = abs_bdry_thickness_in_wavelengths * max_wavelength;
+
 abs_bdry_pts = [
     abs_bdry_thickness,                 abs_bdry_thickness
     model_size - abs_bdry_thickness,    abs_bdry_thickness
     model_size - abs_bdry_thickness,    model_size
     abs_bdry_thickness,                 model_size];
-
-%Define the materials
-%A cell array with an entry for each material used in the model is required.
-solid_matl_i = 1;
-main.matls{solid_matl_i} = fn_matl_isotropic_solid_defined_by_velocities(solid_matl_name, solid_matl_longitudinal_velocity, solid_matl_shear_velocity, solid_matl_density);
-fluid_matl_i = 2;
-main.matls{fluid_matl_i} = fn_matl_fluid_defined_by_velocity(fluid_name, fluid_velocity, fluid_density);
 
 %Other stuff
 fe_options.dof_to_use = [1,2,4];%x, y and pressure
@@ -131,17 +137,16 @@ main.mod = fn_2d_add_absorbing_layer(main.mod, abs_bdry_pts, abs_bdry_thickness)
 
 %Define transducer
 src_end_pts = [ model_size / 2 - src_size / 2, abs_bdry_thickness
-                model_size / 2 + src_size / 2, abs_bdry_thickness];
+    model_size / 2 + src_size / 2, abs_bdry_thickness];
 [main.trans{1}.nds, s] = fn_find_nodes_nearest_to_line(main.mod.nds, src_end_pts(1, :), src_end_pts(2, :), el_size / 2);
 main.trans{1}.dfs = ones(size(main.trans{1}.nds)) * src_dir;
 
 %Create a subdomain in the middle with a hole in surface as scatterer
 scatterer_centre = [model_size / 2, fluid_thickness + scatterer_depth];
 inner_bdry = [-1,-1;-1,1;1,1;1,-1] / 2 * subdomain_size + scatterer_centre;
-scat_pts =   fn_2d_create_smooth_random_blob(0.4, 3, 360) * scatterer_size / 2 + scatterer_centre;
 
-main.doms{1}.mod = fn_2d_create_subdomain(main.mod, main.el_types, inner_bdry, abs_bdry_thickness);
-main.doms{1}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.el_types, scat_pts, 0, 0);
+empty_subdomain = fn_2d_create_subdomain(main.mod, main.el_types, inner_bdry, abs_bdry_thickness);
+main.doms{1}.mod = empty_subdomain;
 
 %Show the mesh
 if show_geom_only %suppress graphics when running all scripts for testing
@@ -158,8 +163,17 @@ end
 %Run main model
 main = fn_run_main_model(main, fe_options);
 
-%Run sub-domain model
-main = fn_run_subdomain_model(main, fe_options);
+%Demonstration of how sub-domain model can be run for multiple random scatterers
+results = zeros(numel(main.inp.time), no_scatterers);
+for s = 1:no_scatterers
+    scat_pts =   fn_2d_create_smooth_random_blob(0.4, 3, 360) * scatterer_size / 2 + scatterer_centre;
+    main.doms{1}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.el_types, scat_pts, 0, 0);
+    main = fn_run_subdomain_model(main, fe_options);
+    results(:,s) = sum(main.doms{1}.res.fmc.time_data, 2);
+end
+
+figure;
+plot(main.inp.time, real(results));
 
 %Animate results if requested
 if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
@@ -173,33 +187,35 @@ if ~exist('scripts_to_run') %suppress graphics when running all scripts for test
     end
 end
 
-%Run validation model
-fe_options.validation_mode = 1;
-main = fn_run_main_model(main, fe_options);
+%Run validation model if requested (just does it for last scatterer)
+if run_validation_models
+    fe_options.validation_mode = 1;
+    main = fn_run_main_model(main, fe_options);
 
-%Animate validation results if requested
-if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
-    %View the time domain data and compare wih validation
-    figure;
-    i = max(find(abs(main.inp.sig) > max(abs(main.inp.sig)) / 1000));
-    mv = max(abs(sum(main.doms{1}.res.fmc.time_data(i:end,: ), 2)));
-    plot(main.doms{1}.res.fmc.time, real(sum(main.doms{1}.res.fmc.time_data, 2)) / mv, 'k', 'LineWidth', 2);
-    hold on;
-    plot(main.doms{1}.val.fmc.time, real(sum(main.doms{1}.val.fmc.time_data, 2)) / mv, 'g:', 'LineWidth', 2);
-    plot(main.res.fmc.time, real(sum(main.res.fmc.time_data, 2)) / mv, 'b');
-    ylim([-1,1]);
-    yyaxis right
-    plot(main.doms{1}.res.fmc.time, 20 * log10(abs(sum(main.doms{1}.res.fmc.time_data, 2) - sum(main.doms{1}.val.fmc.time_data, 2)) / mv));
-    ylim([-60, 0]);
-    legend('Sub-domain method', 'Validation', 'Pristine', 'Difference (dB)');
-
-    if ~isinf(fe_options.field_output_every_n_frames)
-        %Animate result
+    %Animate validation results if requested
+    if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
+        %View the time domain data and compare wih validation
         figure;
-        anim_options.repeat_n_times = 1;
-        anim_options.db_range = [-40, 0];
-        anim_options.pause_value = 0.001;
-        h_patches = fn_show_geometry(main.doms{1}.val_mod, main.matls, main.el_types, anim_options);
-        fn_run_animation(h_patches, main.doms{1}.val.trans{1}.fld, anim_options);
+        i = max(find(abs(main.inp.sig) > max(abs(main.inp.sig)) / 1000));
+        mv = max(abs(sum(main.doms{1}.res.fmc.time_data(i:end,: ), 2)));
+        plot(main.doms{1}.res.fmc.time, real(sum(main.doms{1}.res.fmc.time_data, 2)) / mv, 'k', 'LineWidth', 2);
+        hold on;
+        plot(main.doms{1}.val.fmc.time, real(sum(main.doms{1}.val.fmc.time_data, 2)) / mv, 'g:', 'LineWidth', 2);
+        plot(main.res.fmc.time, real(sum(main.res.fmc.time_data, 2)) / mv, 'b');
+        ylim([-1,1]);
+        yyaxis right
+        plot(main.doms{1}.res.fmc.time, 20 * log10(abs(sum(main.doms{1}.res.fmc.time_data, 2) - sum(main.doms{1}.val.fmc.time_data, 2)) / mv));
+        ylim([-60, 0]);
+        legend('Sub-domain method', 'Validation', 'Pristine', 'Difference (dB)');
+
+        if ~isinf(fe_options.field_output_every_n_frames)
+            %Animate result
+            figure;
+            anim_options.repeat_n_times = 1;
+            anim_options.db_range = [-40, 0];
+            anim_options.pause_value = 0.001;
+            h_patches = fn_show_geometry(main.doms{1}.val_mod, main.matls, main.el_types, anim_options);
+            fn_run_animation(h_patches, main.doms{1}.val.trans{1}.fld, anim_options);
+        end
     end
 end
