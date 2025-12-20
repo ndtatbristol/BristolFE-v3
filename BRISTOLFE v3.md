@@ -49,9 +49,9 @@ This describes the model geometry and must contain the following fields:
  - `matls{i}.D` - either:
    - solids - a `6 x 6` stiffness matrix (in a 2D model the necessary reduction to a `3 x 3` stiffness matrix takes place when plane stress or plane straing elements are formed)
    - fluids - a `1 x 1` matrix containing the bulk modulus
- - `matls{i}.col` - an `1 x 3` vector of RBG values
+ - `matls{i}.col` - an `1 x 3` vector of RBG values used to determine the colour used for plotting. 
 
-Typically functions such as the following deal can convert engineering data into the necessary values for some common cases:
+Functions such as the following are provided that convert engineering data into the necessary material property values for some common cases:
 - `matls{i} = fn_matl_isotropic_solid_defined_by_velocities(name, longitudinal_velocity, shear_velocity, density)`
 - `matls{i} = fn_matl_fluid_defined_by_velocity(name, velocity, density)`
 
@@ -65,7 +65,7 @@ where `solid_el_indices` is a list of the indices of the elements to which you w
 
 ### Loading steps (`steps`)
 
-The loads that will be applied to a model are defined in the cell array `steps`. Each `step` describes a loading history, in `step{s}.load`, that starts from the original model in its quiescent state - they steps are *not* applied sequentially despite what the name suggests. Each step also defines, in `step{s}.mon`, what will be output ('mon' = monitored) from the solver during that loading. Loads are applied at specified nodes in one or more DoFs
+The loads that will be applied to a model are defined in the cell array `steps`. Each `step` describes a loading history, in `step{s}.load`, that starts from the original model in its quiescent state - they steps are *not* applied sequentially despite what the name suggests. Each step also defines, in `step{s}.mon`, what will be output ('mon' = monitored) from the solver during that loading. Loads are applied at specified nodes in one or more DoFs.
 
 Typical contents of `step{s}.load`:
 - `step{s}.load.time` - `1 x n_time_pts` vector of time steps at which the model will be executed in this loading step
@@ -73,6 +73,10 @@ Typical contents of `step{s}.load`:
 - `step{s}.load.frc_dfs` - `n_frc_nds x 1` vector of the associated Degree of Freedom (DoF) where loads will be applied
 - `step{s}.load.frcs` - `1 x n_time_pts` or `n_frc_nds x n_time_pts` matrix or vector of the forcing histories to be applied. If it is a vector, then same forcing history is applied at all nodes/DoFs.
 - `steps{1}.load.wts` - `n_frc_nds x 1` optional vector of weightings to be applied to forces at each node/DoF. This provides an efficient way of applying a single load that is not aligned to a single DoF direction at each node while still only requiring a vector for `steps{s}.load.frcs`
+
+
+
+
 - 
 The requested results for the corresponding loading step are returned in the cell array `res`. Typical outputs are one or both of: 
 - History outputs - complete time histories of the displacement (or pressure in fluids) at one or mode nodes, typically plotted as time-domain signals.
