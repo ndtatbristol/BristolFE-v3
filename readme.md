@@ -65,23 +65,39 @@ where `solid_el_indices` is a list of the indices of the elements to which you w
 
 ### Loading steps (`steps`)
 
-The loads that will be applied to a model are defined in the cell array `steps`. Each `step` describes a loading history, in `step{s}.load`, that starts from the original model in its quiescent state - they steps are *not* applied sequentially despite what the name suggests. Each step also defines, in `step{s}.mon`, what will be output ('mon' = monitored) from the solver during that loading. Loads are applied at specified nodes in one or more DoFs.
+The loads that will be applied to a model are defined in the cell array `steps`. Each `step` describes a loading history, in `step{s}.load`, that starts from the original model in its quiescent state - they steps are *not* applied sequentially despite what the name suggests. Each step also defines, in `step{s}.mon` ('mon' = monitored), what history values will be recorded from the solver during that loading. Each loading and history monitoring point is defined by a node/Degree-of-Freedom (DoFs) pair. At this point, it is necessary to introduce the DoFs used in BristolFE, which are:
+1. force or displacement in the x-direction in solids
+2. force or displacement in the y-direction in solids
+3. force or displacement in the z-direction in solids
+4. volumetric expansion or pressure in fluids
+
+In the above list, the first term for each DoF is the type of load that can be applied to the DoF and the second term is the type of output that can be recorded for that DoF. (Internally, the latter are the field quantities that the FE solver solves for at every node-DoF pair throughout the model at every time point.)  
 
 Typical contents of `step{s}.load`:
 - `step{s}.load.time` - `1 x n_time_pts` vector of time steps at which the model will be executed in this loading step
 - `step{s}.load.frc_nds` - `n_frc_nds x 1` vector of node indices where loads will be applied (`n_frc_nds` is the number of nodes at which forcing will be applied)
-- `step{s}.load.frc_dfs` - `n_frc_nds x 1` vector of the associated Degree of Freedom (DoF) where loads will be applied
+- `step{s}.load.frc_dfs` - `n_frc_nds x 1` vector of the associated DoFs where loads will be applied
 - `step{s}.load.frcs` - `1 x n_time_pts` or `n_frc_nds x n_time_pts` matrix or vector of the forcing histories to be applied. If it is a vector, then same forcing history is applied at all nodes/DoFs.
-- `steps{1}.load.wts` - `n_frc_nds x 1` optional vector of weightings to be applied to forces at each node/DoF. This provides an efficient way of applying a single load that is not aligned to a single DoF direction at each node while still only requiring a vector for `steps{s}.load.frcs`
+- `steps{s}.load.wts` - `n_frc_nds x 1` optional vector of weightings to be applied to forces at each node/DoF. This provides an efficient way of applying a single load that is not aligned to a single DoF direction at each node while still only requiring a vector for `steps{s}.load.frcs`
 
+Typical contents of `step{s}.mon`:
+- `step{s}.mon.nds` - `n_mon_nds x 1` vector of node indices where history values will be recorded (`n_mon_nds` is the number of nodes at which history outputs are requested)
+- `step{s}.mon.dfs` - `n_mon_nds x 1` vector of the associated DoFs for which history values will be recorded
 
+### Requesting field output
 
+To record field outputs (snapshots of the field values at all nodes in the model), set `fe_options.field_output_every_n_frames` to a small integer. For example, if set to 10, a snapshot will be recorded every 10 time-steps. Obviously, a smaller number will result in more data, but around something in the 5-20 range is usually fine. If you don't want field ouptuts, use `fe_options.field_output_every_n_frames = inf` which is the default if not specified. Typically, field outputs are used for visualisation using code like:
 
-- 
-The requested results for the corresponding loading step are returned in the cell array `res`. Typical outputs are one or both of: 
-- History outputs - complete time histories of the displacement (or pressure in fluids) at one or mode nodes, typically plotted as time-domain signals.
-- Field output - snapshots of the complete wavefield (its local kinetic energy) at intervals in time, typically displayed as a movie and used as a visualisation tool.
+`figure;
+display_options.draw_elements = 0;
+h_patch = fn_show_geometry(mod, matls, display_options);
+anim_options.repeat_n_times = 1;
+fn_run_animation(h_patch, res{1}.fld, anim_options);`
 
-Most of the code in the example scripts is concerned with preparing mod, matls, and steps before fn_FE_entry_point is called and then displaying the outputs.
+### Model results (`res`)
 
-
+The output from a model is stored in the cell array `res`, in which each cell corresponds to the associated loading step. Typical contents of a `res{s}`:
+- `res{s}.dsps` - `n_frc_nds x n_time_pts` matrix of the requested history outputs
+- `res{s}.valid_mon_dsps` - `n_frc_nds x 1` logical vector with 1 wherever a requested history output is valid (which should be all of them)
+- `res{s}.fld` - `n_total_dofs x n_fld_time_pts` matrix of field outputs if requested (`n_total_dofs` is the total number of DoFs in the entire model, `n_fld_time_pts` are the number of field outputs (determined by value of `fe_options.field_output_every_n_frames`)
+- `res{s}.fld_time`  - `1 x n_fld_time_pts` vector of times associated with each field output
