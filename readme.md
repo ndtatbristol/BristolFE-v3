@@ -1,65 +1,87 @@
-## BRISTOLFE v3 - Paul Wilcox
-==========================
+# BristolFE v3
+### Paul Wilcox
+This repository contains a number of Matlab functions and example scripts for performing explicit time-marching Finite Element (FE) simulations for elastodynamic wave propagation. Simulations can be performed using the built-in solver that exploit's Matlab's native sparse-matrix and GPU processing capabilities or an alternative commercial solver such as [Pogo](www.pogo.software). Support for Abaqus may be added in the future.
+## Installation
+To use, clone (or download and unzip) the repository and either permanently add the `BristolFE-v3/code` folder to the Matlab path or include the line
 
-This repository contains a number of Matlab functions and example scripts for performing basic Finite Element (FE) simulations, in particular explicit ones for elastodynamic wave propagation. Simulations can be performed using the built-in solver or a Pogo solver if installed (NB Pogo does not currently support a pressure formulation for fluids, hence its use is limited to solid-only simulations). An interface to Abaqus may be added at some point. The built-in solver is currently limited to 2D models are and the following types of element: CPE3 3-noded triangular elements for elastic solids, AC2D3 3-noded triangular elements for fluids, ASI2D2 2-noded elements for fluid-solid interface elements.
+`addpath(genpath('RELEVANT_PATH/BristolFE-v3/code'));`
 
-To use, clone (or download and unzip) the repository and add the 'BristolFE-v3/code' folder to the Matlab path.
-
-The entry-point for FE analysis is the function 'fn_FE_entry_point' in the 'BristolFE-v3/code' folder. The 'BristolFE-v2/code' folder also contains numerous helper functions for creating meshes, adding defects, and displaying results.
-
-The core FE code is in various functions in the 'BristolFE-v2/code/internal' folder, which are not expected to be called directly by the user. 
-
-Special wrapper functions for sub-domain modelling are in the 'BristolFE-v3/subdoms' folder. See the two example files for examples of how to use.
-
-Make sure that the code and code/internal folders are on the Matlab path, e.g. by having:
-addpath(genpath('RELEVANT_PATH/BristolFE-v2/code'));
-at the top of any scripts that use the functions, where RELEVANT_PATH is set according to wherever you put the folder.
-
-Some example scripts are provided in the 'BristolFE-v3/examples'. Most likely you will start with a copy of one of these and modify it according to your requirements.
-
-SUMMARY OF CHANGES SINCE v2
-===========================
-
+at the start of any scripts that use the BristolFE functions.
+## Getting started
+The user interacts with BristolFE via the suite of documented Matlab functions in the folder `BristolFE-v3/code`. These provide tools for the creation, execution, and visualisation of models. They are intended to be called from user-written Matlab script files and a number of example scripts are provided in `BristolFE-v3/examples`. Most likely you will start with a copy of one of these and modify it according to your requirements.
+## Examples
+In BristolFE-v3/examples you will find the following scripts which provide simple examples how to set up different features in models:
+- ex_2d_basic.m - script demonstrates a model with the minimum complexity
+- ex_2d_advanced.m - script shows how to use more advanced features (e.g. fluid-solid coupling; absorbing layers; irregular inclusions; zero-volume cracks)
+- ex_2d_subdomain.m - script demonstrates how to use 2D subdomains for more efficient modelling of localised scatterers
+- ex_2d_pogo.m - script runs a simple simulation twice, once with the built-in solved and once with Pogo and then overlays the results (requires Pogo to be installed)
+- ex_3d_pogo.m - script demonstrates 3D model creation tools and uses the Pogo solver (requires Pogo to be installed)
+- ex_3d_subdomain.m - script demonstrates how to use 3D subdomains for more efficient modelling of localised scatterers (requires Pogo to be installed)
+## Summary of changes since v2
 The v2 to v3 changes are designed to make the code more consistent and future-proof for expansion to 3D. The main changes are:
+- The built-in solver has been made more efficient and the previous issue of instability when using fluid-solid interface elements has been resolved by reformulating the solver to use velocity at the current time step rather than at the previous half-step
+- Names of functions have been rationalised: functions exclusively for use in 2D models are prefixed `fn_2d_`; functions exclusively for use in 3D models are prefixed by `fn_2d_`; functions without these prefixes can be used in 2D or 3D models with the same arguments
+- The entry point for all solvers is now `fn_FE_entry_point` (not `fn_BristolVE_v2`), with the solver being selected as an option (the default is `fe_options.solver = 'BristolFE'`).
+- A cell array, `matls`, is now used to describe materials rather than a structure array. Each element in the model (except for interface elements) remains associated with a material via the `n_els x 1` vector, `mod.el_mat_i`, which contains integers referencing the corresponding cell in `matls`
+- `el_types` is a new cell array of strings, one for each type of element used in the model
+- `mod.el_typ_i` is no longer a cell array of strings describing element types, but instead `n_els x 1` vector of integer indices that reference the corresponding cell in `el_types`.
+- `mod.el_abs_i` is still an`n_els x 1` vector of relative absorption of elements in the range 0 (no absorption) to 1 (maximum absorption) but is now mandatory in the `mod` structure, not optional
 
-- The entry point for all solvers is now 'fn_FE_entry_point' (not 'fn_BristolVE_v2'), with the solver being selected as an option.
-- 'matls' is now a cell array rather than a structure array. Each element in the model (except for interface elements) remains associated with a material via the n_elsx1 vector, 'mod.el_mat_i', which contains integers referencing the corresponding cell in 'matls'.
-- 'el_types' is a new cell array of strings, one for each type of element used in the model. The element index vector, , that associates each element with an element type is now a vector of integer references
-- 'mod.el_typ_i' is no longer a cell array of strings describing element types, but instead n_elsx1 vector of integer indices that reference the corresponding cell in 'el_types'.
-- 'mod.el_abs_i' is still an n_elsx1 vector of relative absorption of elements in the range 0 to 1 but is now mandatory in the mod structure, not optional
-- Names and locations of functions in 'BristolFE-v3/code' are being rationalised, and are in the process of having consistent help comments added. All functions not intended for direct use in the 'BristolFE-v3/code/internal folder'. Functions exclusively for use in 2D models are prefixed 'fn_2d_'; functions exclusively for use in 3D models are prefixed by 'fn_2d_'. Functions without these prefixes can be used in 2D or 3D models with the same arguments.
+## Overview
+The entry point function for solving a model is `res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options)`. 
 
-To facilitate transition to v3, modified versions of deprecated v2 functions that take the v2 input and output arguments are included in 'BristolFE-v3/code/deprecated'; if called, these issue a warning, internally modify the input parameters if necessary, call the appropriate v3 function, modify that function's output if necessary, and return the same output as the original v2 function. This means that v2 scripts should still run without modification and for this reason the v2 examples in their original form are included in 'BristolFE-v3/v2 examples'. A new set of equivalent examples are now provided in 'BristolFE-v2/examples' that call the appropriate v3 functions directly and should be used as the basis for future scripts.
+When this function is called, a complete mesh must have been specified (in the structure `mod`), the materials used must have been defined (in the cell array `matls`), the element types used must have been defined (in the cell array `el_types`) and one or more loading steps and the required outputs must have been defined (in the cell array `steps`).
 
-OVERVIEW
-========
+### Model description (`mod`)
+This describes the model geometry and must contain the following fields:
+- `mod.nds' - an `n_nds x n_dims` matrix of coordinates of all nodes in the model (`n_nds` is number of nodes; `n_dims` is number of dimensions, i.e. 2 or 3)
+- `mod.els` - an `n_els x max_nds_per_el` matrix of the nodes associated with each element in the model (`n_els` is number of elements; `max_nds_per_el` is the maximum number of nodes used by an element in the model, which is typically 3 for a 2D model of triangular elements but can be as many as 8 for a 3D model with hexahedral elements)
+- `mod.el_mat_i` - an `n_els x 1` vector of indices that describe the material associated with each element
+- `mod.el_typ_i` - an `n_els x 1` vector of indices that describe the element type associated with each element
+- `mod.el_abs_i` - an `n_els x 1` vector of numbers in the range 0 to 1 that describe the relative damping of each element (damping can be specified directly as a material property, but the relative damping controls how the elements damping and stiffness behaviour is modified when it is part of an absorbing layer)
 
-The entry point function is res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options). 
+*Note that node and element numbers are implicitly defined by the associated row number of the relevant matrix, where the first row represents node or element 1 (not 0).*
+ 
+ ### Material descriptions (`matls`)
+ The materials to be used in a model are defined in a `matls` cell array, with the cell index being the identifier references by `mod.el_mat_i`. The requried fields are:
+ - `matls{i}.name` - a string giving the name
+ - `matls{i}.rho` - the density
+ - `matls{i}.D` - either:
+   - solids - a `6 x 6` stiffness matrix (in a 2D model the necessary reduction to a `3 x 3` stiffness matrix takes place when plane stress or plane straing elements are formed)
+   - fluids - a `1 x 1` matrix containing the bulk modulus
+ - `matls{i}.col` - an `1 x 3` vector of RBG values used to determine the colour used for plotting. 
 
-When this function is called, a complete mesh must be specified (in mod), the materials used must be defined (in matls), the element types used must be defined (el_types) and one or more loading steps and the required outputs defined (in the cell array steps).
+Functions such as the following are provided that convert engineering data into the necessary material property values for some common cases:
+- `matls{i} = fn_matl_isotropic_solid_defined_by_velocities(name, longitudinal_velocity, shear_velocity, density)`
+- `matls{i} = fn_matl_fluid_defined_by_velocity(name, velocity, density)`
 
-The requested results for the corresponding loading step are returned in the cell array res. Typical outputs are one or both of: 
-    1. History outputs - complete time histories of the displacement (or pressure in fluids) at one or mode nodes, typically plotted as time-domain signals.
-    2. Field output - snapshots of the complete wavefield (its local kinetic energy) at intervals in time, typically displayed as a movie and used as a visualisation tool.
+### Element types (`el_types`)
+
+The element types to be used in a model are defined in the `el_types` cell array of strings. The names follow the Abaqus naming convention. Typically, it is easiest to just give a list of all possible element types for the dimensionality of model and then pick the indices of the ones you want to use for each element, e.g.
+`el_types = fn_2d_el_types();
+el_typ_to_use_for_solid = 'CPE3'; 
+mod.el_typ_i(solid_el_indices) = find(strcmp(el_types, el_typ_to_use_for_solid))`
+where `solid_el_indices` is a list of the indices of the elements to which you want to assign `CPE3` elements (which are 3-noded plane strain triangular elements).
+
+### Loading steps (`steps`)
+
+The loads that will be applied to a model are defined in the cell array `steps`. Each `step` describes a loading history, in `step{s}.load`, that starts from the original model in its quiescent state - they steps are *not* applied sequentially despite what the name suggests. Each step also defines, in `step{s}.mon`, what will be output ('mon' = monitored) from the solver during that loading. Loads are applied at specified nodes in one or more DoFs.
+
+Typical contents of `step{s}.load`:
+- `step{s}.load.time` - `1 x n_time_pts` vector of time steps at which the model will be executed in this loading step
+- `step{s}.load.frc_nds` - `n_frc_nds x 1` vector of node indices where loads will be applied (`n_frc_nds` is the number of nodes at which forcing will be applied)
+- `step{s}.load.frc_dfs` - `n_frc_nds x 1` vector of the associated Degree of Freedom (DoF) where loads will be applied
+- `step{s}.load.frcs` - `1 x n_time_pts` or `n_frc_nds x n_time_pts` matrix or vector of the forcing histories to be applied. If it is a vector, then same forcing history is applied at all nodes/DoFs.
+- `steps{1}.load.wts` - `n_frc_nds x 1` optional vector of weightings to be applied to forces at each node/DoF. This provides an efficient way of applying a single load that is not aligned to a single DoF direction at each node while still only requiring a vector for `steps{s}.load.frcs`
+
+
+
+
+- 
+The requested results for the corresponding loading step are returned in the cell array `res`. Typical outputs are one or both of: 
+- History outputs - complete time histories of the displacement (or pressure in fluids) at one or mode nodes, typically plotted as time-domain signals.
+- Field output - snapshots of the complete wavefield (its local kinetic energy) at intervals in time, typically displayed as a movie and used as a visualisation tool.
 
 Most of the code in the example scripts is concerned with preparing mod, matls, and steps before fn_FE_entry_point is called and then displaying the outputs.
-
-EXAMPLES
-========
-
-In BristolFE-v3/examples you will find the following scripts which provide simple examples how to set up different features in models:
-    1. fluid_example.m - simulate pressure waves in a fluid domain
-    2. solid_example.m - simulate longitudinal and shear waves in a solid domain
-    3. coupled_solid_fluid_example.m - simulate waves in a fluid domain coupled to a solid one, showing mode conversions at the interface
-    4. absorbing_layer_example.m - same as 3 but this time with an absorbing layer on 3 sides of the domain to prevent reflections
-    5. subdomain_example.m - simulate waves in a pristine domain, add a scatterer to a subdomain and combine results to obtain overall response
-    6. subdomain_array_example.m - same as 5 but simulating FMC data from an array transducer
-    7. solid_example_angled_excitation - same as 2 but with normal or shear forcing applied on angled edge of model to illustrate how to apply force at an angle
-
-
-UPDATES SINCE PREVIOUS RELEASE
-==============================
-
-The main time-marching solver has been made more efficient. The previous issue of instability when using fluid-solid interface elements has been resolved by reformulating the solver to use velocity at the current time step rather than at the previous half-step. This is slightly less efficient per time step, but the lost in efficiency is more than compensated for by the unconditional stability, which enables time steps up to the CFL limit to be used without problems.
 
 
