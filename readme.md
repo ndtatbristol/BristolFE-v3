@@ -34,7 +34,7 @@ When this function is called, a complete mesh must have been specified (in the s
 
 ### Model description (`mod`)
 This describes the model geometry and must contain the following fields:
-- `mod.nds' - an `n_nds x n_dims` matrix of coordinates of all nodes in the model (`n_nds` is number of nodes; `n_dims` is number of dimensions, i.e. 2 or 3)
+- `mod.nds` - an `n_nds x n_dims` matrix of coordinates of all nodes in the model (`n_nds` is number of nodes; `n_dims` is number of dimensions, i.e. 2 or 3)
 - `mod.els` - an `n_els x max_nds_per_el` matrix of the nodes associated with each element in the model (`n_els` is number of elements; `max_nds_per_el` is the maximum number of nodes used by an element in the model, which is typically 3 for a 2D model of triangular elements but can be as many as 8 for a 3D model with hexahedral elements)
 - `mod.el_mat_i` - an `n_els x 1` vector of indices that describe the material associated with each element
 - `mod.el_typ_i` - an `n_els x 1` vector of indices that describe the element type associated with each element
