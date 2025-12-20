@@ -69,7 +69,7 @@ The loads that will be applied to a model are defined in the cell array `steps`.
 1. force or displacement in the x-direction in solids
 2. force or displacement in the y-direction in solids
 3. force or displacement in the z-direction in solids
-4. volumetric expansion or pressure in fluids
+4. volumetric expansion rate or time-integral of pressure (proportional to velocity potential) in fluids
 
 In the above list, the first term for each DoF is the type of load that can be applied to the DoF and the second term is the type of output that can be recorded for that DoF. (Internally, the latter are the field quantities that the FE solver solves for at every node-DoF pair throughout the model at every time point.)  
 
