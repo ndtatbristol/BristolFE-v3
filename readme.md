@@ -4,7 +4,9 @@ This repository contains a number of Matlab functions and example scripts for pe
 ## Installation
 To use, clone (or download and unzip) the repository and either permanently add the `BristolFE-v3/code` folder to the Matlab path or include the line
 
-`addpath(genpath('RELEVANT_PATH/BristolFE-v3/code'));`
+```
+addpath(genpath('RELEVANT_PATH/BristolFE-v3/code'));
+```
 
 at the start of any scripts that use the BristolFE functions.
 ## Getting started
@@ -28,9 +30,31 @@ The v2 to v3 changes are designed to make the code more consistent and future-pr
 - `mod.el_abs_i` is still an`n_els x 1` vector of relative absorption of elements in the range 0 (no absorption) to 1 (maximum absorption) but is now mandatory in the `mod` structure, not optional
 
 ## Overview
-The entry point function for solving a model is `res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options)`. 
+The entry point function for solving a model is the function `fn_FE_entry_point`, which typically appears in a script like this:
 
-When this function is called, a complete mesh must have been specified (in the structure `mod`), the materials used must have been defined (in the cell array `matls`), the element types used must have been defined (in the cell array `el_types`) and one or more loading steps and the required outputs must have been defined (in the cell array `steps`).
+```
+%Code to prepare the model before this point
+
+%Execute the model
+res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
+
+%Code to process the results from the model after this point
+``` 
+
+When `fn_FE_entry_point` is called, a complete mesh must have been specified (in the structure `mod`), the materials used must have been defined (in the cell array `matls`), the element types used must have been defined (in the cell array `el_types`) and one or more loading steps and the required outputs must have been defined (in the cell array `steps`). 
+
+### Execution options (`fe_options`)
+
+The parameter `fe_options` is a structure that can contain the following fields (if a field is not part of the structure, the indicated default is used):
+- fe_options.solver = \[default = 'BristolFE'\]
+- `fe_options.field_output_every_n_frames [default = inf]` - specifies how often field output should be recorded, if at all. See below.
+- fe_options.damping_power_law = 3;
+- fe_options.max_damping = [];
+- fe_options.max_stiffness_reduction = 0.01;
+- fe_options.solver_precision = 'double';
+- fe_options.dof_to_use = []; 
+- fe_options.sort_nds = 0;
+- fe_options.nd_sort_cols = [];
 
 ### Model description (`mod`)
 This describes the model geometry and must contain the following fields:
@@ -71,7 +95,7 @@ The loads that will be applied to a model are defined in the cell array `steps`.
 3. force or displacement in the z-direction in solids
 4. volumetric expansion rate or time-integral of pressure (proportional to velocity potential) in fluids
 
-In the above list, the first term for each DoF is the type of load that can be applied to the DoF and the second term is the type of output that can be recorded for that DoF. (Internally, the latter are the field quantities that the FE solver solves for at every node-DoF pair throughout the model at every time point.)  
+In the above list, the first term for each DoF is the type of load that can be applied to the DoF and the second term is the type of output that can be recorded for that DoF. (Internally, the latter are the field quantities that the FE solver solves for at every node/DoF pair throughout the model at every time point.)  
 
 Typical contents of `step{s}.load`:
 - `step{s}.load.time` - `1 x n_time_pts` vector of time steps at which the model will be executed in this loading step
@@ -80,19 +104,15 @@ Typical contents of `step{s}.load`:
 - `step{s}.load.frcs` - `1 x n_time_pts` or `n_frc_nds x n_time_pts` matrix or vector of the forcing histories to be applied. If it is a vector, then same forcing history is applied at all nodes/DoFs.
 - `steps{s}.load.wts` - `n_frc_nds x 1` optional vector of weightings to be applied to forces at each node/DoF. This provides an efficient way of applying a single load that is not aligned to a single DoF direction at each node while still only requiring a vector for `steps{s}.load.frcs`
 
-Typical contents of `step{s}.mon`:
+#### Requesting history outputs
+
+The contents of `step{s}.mon` define what history outputs will be recorded in the output by specifying the node/DoF pairs in a similar manner to the way loads are specified:
 - `step{s}.mon.nds` - `n_mon_nds x 1` vector of node indices where history values will be recorded (`n_mon_nds` is the number of nodes at which history outputs are requested)
 - `step{s}.mon.dfs` - `n_mon_nds x 1` vector of the associated DoFs for which history values will be recorded
 
-### Requesting field output
+#### Requesting field output
 
-To record field outputs (snapshots of the field values at all nodes in the model), set `fe_options.field_output_every_n_frames` to a small integer. For example, if set to 10, a snapshot will be recorded every 10 time-steps. Obviously, a smaller number will result in more data, but around something in the 5-20 range is usually fine. If you don't want field ouptuts, use `fe_options.field_output_every_n_frames = inf` which is the default if not specified. Typically, field outputs are used for visualisation using code like:
-
-`figure;
-display_options.draw_elements = 0;
-h_patch = fn_show_geometry(mod, matls, display_options);
-anim_options.repeat_n_times = 1;
-fn_run_animation(h_patch, res{1}.fld, anim_options);`
+To record field outputs (snapshots of the field values at all nodes in the model), set `fe_options.field_output_every_n_frames` to a small integer. For example, if set to 10, a snapshot will be recorded every 10 time-steps. Obviously, a smaller number will result in more data, but around something in the 5-20 range is usually fine. If you don't want field ouptuts, use `fe_options.field_output_every_n_frames = inf`. This is the default if not specified. 
 
 ### Model results (`res`)
 
@@ -101,3 +121,14 @@ The output from a model is stored in the cell array `res`, in which each cell co
 - `res{s}.valid_mon_dsps` - `n_frc_nds x 1` logical vector with 1 wherever a requested history output is valid (which should be all of them)
 - `res{s}.fld` - `n_total_dofs x n_fld_time_pts` matrix of field outputs if requested (`n_total_dofs` is the total number of DoFs in the entire model, `n_fld_time_pts` are the number of field outputs (determined by value of `fe_options.field_output_every_n_frames`)
 - `res{s}.fld_time`  - `1 x n_fld_time_pts` vector of times associated with each field output
+
+Typically, field outputs are used for visualisation and are used in conjuntion with the BristolFE functions `fn_show_geometry` and `fn_run_animation` in code like:
+
+```
+figure;
+display_options.draw_elements = 0;
+h_patch = fn_show_geometry(mod, matls, display_options);
+anim_options.repeat_n_times = 1;
+fn_run_animation(h_patch, res{1}.fld, anim_options);
+```
+
