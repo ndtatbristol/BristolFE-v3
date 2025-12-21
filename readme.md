@@ -46,15 +46,15 @@ When `fn_FE_entry_point` is called, a complete mesh must have been specified (in
 ### Execution options (`fe_options`)
 
 The parameter `fe_options` is a structure that can contain the following fields (if a field is not part of the structure, the indicated default is used):
-- fe_options.solver = \[default = 'BristolFE'\]
+- `fe_options.solver = [default = 'BristolFE']` - which solver to use. Current options are `'BristolFE'` or `'Pogo'`
+- `fe_options.solver_precision [default = 'double']` - precision used for calculations.  Options are `'single'` or `'double'`
 - `fe_options.field_output_every_n_frames [default = inf]` - specifies how often field output should be recorded, if at all. See below.
-- fe_options.damping_power_law = 3;
-- fe_options.max_damping = [];
-- fe_options.max_stiffness_reduction = 0.01;
-- fe_options.solver_precision = 'double';
-- fe_options.dof_to_use = []; 
-- fe_options.sort_nds = 0;
-- fe_options.nd_sort_cols = [];
+- `fe_options.dof_to_use [default = []]` - which Degrees-of-Freedom (DoF) to include in calculations. Leave empty for all. 
+- `fe_options.sort_nds [default = 0]` - set to 1 to sort order of nodes based on physical coordinates prior to solving. Seems to be needed for some models executed in Pogo.
+- `fe_options.nd_sort_cols [default = []]` - if `fe_options.sort_nds = 1`, this sets the column order of coordinates if they are being sorted.
+- `fe_options.damping_power_law [default = 3]`  - the power law index that governs the rate of damping increase in a absorbing layer as the absorption index goes from 0 to 1
+- `fe_options.max_damping [default = []]` - the maximum damping to be applied in a absorbing layer (i.e. at an absorption index of 1). Leave empty for default with is the reciprocal of the time-step used
+- `fe_options.max_stiffness_reduction [default = 0.01]` - the maxium reduction in stiffness to be applied in a absorbing layer, i.e. at an absorption index of 1
 
 ### Model description (`mod`)
 This describes the model geometry and must contain the following fields:
