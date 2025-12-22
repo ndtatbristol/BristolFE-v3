@@ -2,7 +2,7 @@
 
 ### Paul Wilcox
 
-This repository contains a number of Matlab functions and example scripts for performing explicit time-marching Finite Element (FE) simulations for elastodynamic wave propagation. Simulations can be performed using the built-in solver that exploit's Matlab's native sparse-matrix and GPU processing capabilities or an alternative commercial solver such as [*pogo*](www.pogo.software). Support for Abaqus may be added in the future. 
+This repository contains a number of Matlab functions and example scripts for performing explicit time-marching Finite Element (FE) simulations for elastodynamic wave propagation. Simulations can be performed using the built-in solver that exploits Matlab's native sparse-matrix and GPU processing capabilities or an alternative commercial solver such as [*pogo*](www.pogo.software). Support for Abaqus may be added in the future. 
 
 ## Installation
 
@@ -160,3 +160,237 @@ anim_options.repeat_n_times = 1;
 fn_run_animation(h_patch, res{1}.fld, anim_options);
 ```
 ## Function summary
+### fn_2d_add_absorbing_layer
+
+Adds an absorbing boundary by increasing element absorbing indices proportional to their distance from the specified boundary divided by the specified absorbing boundary layer thickness (i.e. so it reaches one when the distance is equal to the absorbing boundary layer thickness. The boundary defines the start of the absorbing layer; within the boundary the absorbing index is set to zero.
+```
+mod = fn_2d_add_absorbing_layer(mod, abs_bdry_pts, abs_bdry_thickness)
+```
+### fn_2d_add_crack
+
+Adds a crack into a 2D by identifying nearest element edges/faces and 'splitting' model along them, by duplicating nodes. Default is a zero width crack unless optional Crack Opening Displacement (COD) is specified in which case the nodes are displaced away from plane of crack
+```
+mod = fn_2d_add_crack(mod, el_types, crack_vtcs, [crack_fcs, cod])
+```
+### fn_2d_add_inclusion_or_void
+
+Adds scatterer to existing model by turning all elements inside scat_pts to either matl(scat_matl) or void if = scat_matl
+```
+mod = fn_2d_add_inclusion_or_void(mod, el_types, scat_pts, scat_matl, scat_el_typ)
+```
+### fn_2d_create_smooth_random_blob
+
+Creates list of 2D points that describe perimeter of smooth blob shape.
+```
+pts = fn_2d_create_smooth_random_blob(min_rad_frac, complexity, no_pts)
+```
+### fn_2d_el_types
+
+Returns cell array of available 2D element types. Use in 2D models, usually exactly like this: el_types = fn_2d_el_types()
+```
+el_types = fn_2d_el_types()
+```
+### fn_2d_find_elements_in_region
+
+Returns logical n_els x 1 vectors indicating whether elements in model are inside or outside the specified region.
+```
+[in, out] = fn_2d_find_elements_in_region(mod, region)
+```
+### fn_2d_random_walk
+
+Returns
+```
+pts = fn_2d_random_walk(npts, step_mean, step_std, angle_mean, angle_std)
+```
+### fn_2d_signed_dist_to_bdry
+
+Returns signed (positive exterior) shortest distance of point(s) to boundary surface described by vertices of triangular facets
+```
+[d, nearest_pts, norm_vecs, type_of_nearest_entity, nearest_entity, bdry_edges] = fn_2d_signed_dist_to_bdry(pts, bdry_nds, bdry_edges)
+```
+### fn_2d_structured_mesh_rectangular_els
+
+Utility function for generating a structured mesh of square elements
+```
+mod = fn_2d_structured_mesh_rectangular_els(bdry_pts, el_size)
+```
+### fn_2d_structured_mesh_triangular_els
+
+Utility function for generating a isometric structured mesh of triangular elements, that fills the region specified by bdry_nds.
+```
+mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size [, force_equilateral_els])
+```
+### fn_3d_add_crack
+
+Adds a crack into a 3D model by identifying nearest element edges/faces and 'splitting' model along them, by duplicating nodes. Default is a zero width crack unless optional Crack Opening Displacement (COD) is specified in which case the nodes are displaced away from plane of crack
+```
+mod = fn_3d_add_crack(mod, el_types, crack_vtcs, crack_fcs [, cod])
+```
+### fn_3d_add_inclusion_or_void
+
+Adds scatterer to existing model by turning all elements inside scat_pts to either matl(scat_matl) or void if = scat_matl
+```
+mod = fn_3d_add_inclusion_or_void(mod, el_types, scat_pts, scat_matl, scat_el_typ)
+```
+### fn_3d_el_types
+
+Returns cell array of available 3D element types. Use in 3D models, usually exactly like this: el_types = fn_3d_el_types()
+```
+el_types = fn_3d_el_types()
+```
+### fn_3d_find_elements_in_region
+
+Returns logical n_els x 1 vectors indicating whether elements in model are inside or outside the specified region, which is defined in terms of vertices and triangular faces.
+```
+[in, out] = fn_3d_find_elements_in_region(mod, vtcs, fcs)
+```
+### fn_3d_signed_dist_to_bdry
+
+Returns signed (positive exterior) shortest distance of point(s) to boundary surface described by vertices of triangular facets
+```
+d = fn_3d_signed_dist_to_bdry(pts, bdry_nds, bdry_fcs, interior_pt)
+```
+### fn_3d_spherical_surface
+
+Create a 3D sphere described by vertices and faces
+```
+[vtcs, fcs] = fn_3d_spherical_surface(cent, rad [, n_sub_divisions])
+```
+### fn_3d_structured_mesh_hexahedral_els
+
+Utility function for generating a 3d structured mesh of cuboidal elements, that fills the cuboidal region specified by crnr_pts.
+```
+mod = fn_3d_structured_mesh_hexahedral_els(crnr_pts, el_size)
+```
+### fn_FE_entry_point
+
+Common entry point for different FE solvers.
+```
+res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options) [res, mats] = fn_FE_entry_point(mod, matls, el_types, steps, fe_options) fe_options = fn_FE_entry_point([], [], [], fe_options)
+```
+### fn_add_fluid_solid_interface_els
+
+Adds the necessary interface elements between all solid and fluid elements in a model. Without these there is no coupling between the solid and fluid domains. Only needs to be called once for a given model after all features are added (i.e. it should be the last step)
+```
+mod = fn_add_fluid_solid_interface_els(mod, el_types)
+```
+### fn_display_result_v2
+
+Displays mesh from 2D or 3D model, returning handle to patches for later animations
+```
+fn_display_result(nodes, elements, display_options) to display mesh OR
+```
+### fn_estimate_max_min_vels
+
+Estimates minimum and maximum speeds of sound possible given cell array of materials
+```
+[max_velocity, min_velocity] = fn_estimate_max_min_vels(matls)
+```
+### fn_estimate_max_min_wavelengths
+
+Estimates minimum and maximum wavelengths possible given cell array of materials
+```
+[max_wavelength, min_wavelength] = fn_estimate_max_min_wavelengths(matls, centre_frequency)
+```
+### fn_find_node_nearest_to_point
+
+Finds nearest node to specified point
+```
+node = fn_find_node_nearest_to_point(nodes, p, tol)
+```
+### fn_find_nodes_nearest_to_line
+
+Returns list of nodes that lie along line (with specified tolerance) defined by its endpoints
+```
+[node_list, s, r] = fn_find_nodes_nearest_to_line(nodes, p1, p2, tol)
+```
+### fn_fluid_el_types
+
+Returns cell array of available fluid element types.
+```
+el_types = fn_fluid_el_types()
+```
+### fn_gaussian_pulse
+
+Returns a Gaussian pulse with specifed centre frequency and number of cycles given a specified time axis.
+```
+s = fn_gaussian_pulse(t, centre_freq, no_cycles[, db_down_at_start, db_down])
+```
+### fn_get_min_max_element_sizes
+
+Returns minimum and maximum side lengths of elements in a model
+```
+[min_el_size, max_el_size] = fn_get_min_max_element_sizes(mod, el_types)
+```
+### fn_get_suitable_el_size
+
+Estimated element size to achieve the desired number of elements per wavelength for the slowest wave possible in any of the materials given. For isotropic solids, the slowest wave will be the shear mode, so for solid models, this function returns an element size based on the number of elements per SHEAR wavelength at the centre frequency.
+```
+el_size = fn_get_suitable_el_size(matls, nominal_cent_freq, els_per_wavelength)
+```
+### fn_get_suitable_time_step
+
+Returns what should be a stable time step by calculating the fastest possible wavespeed in the materials, workout out how fast such a wave traverses the specified element size and dividing that by a safety factor (default = sqrt(2), specify a alternative value as 3rd optional argument if desired
+```
+time_step = fn_get_suitable_time_step(matls, el_size [, safety_factor])
+```
+### fn_hann_pulse
+
+Returns a Hann-windowed pulse with specifed centre frequency and number of cycles given a specified time axis.
+```
+s = fn_hann_pulse(t, centre_freq, no_cycles)
+```
+### fn_matl_fluid_defined_by_bulk_modulus
+
+Returns material structure for fluid based on specifed bulk_modulus and density.
+```
+matl = fn_matl_fluid_defined_by_bulk_modulus(name, bulk_modulus, density [, col, options])
+```
+### fn_matl_fluid_defined_by_velocity
+
+Returns material structure for fluid based on specifed velocity and density.
+```
+matl = fn_matl_fluid_defined_by_velocity(name, velocity, density [, col, options])
+```
+### fn_matl_isotropic_solid_defined_by_stiffness
+
+Returns material structure based on specifed youngs_modulus, poissons_ratio, and density.
+```
+matl = fn_matl_isotropic_solid_defined_by_stiffness(name, youngs_modulus, poissons_ratio, density [, col, options])
+```
+### fn_matl_isotropic_solid_defined_by_velocities
+
+Returns material structure based on specifed velocities and density.
+```
+matl = fn_matl_isotropic_solid_defined_by_velocities(name, longitudinal_velocity, shear_velocity, density, [, col, options])
+```
+### fn_optimum_absorbing_bdry_properties
+
+Returns what appear to be good (not necessarily optimum!) values for the parameters of absorbing boundary layers
+```
+[max_damping, damping_power_law, max_stiffness_reduction] = fn_optimum_absorbing_bdry_properties(abs_bdry_thickness, matls, centre_freq)
+```
+### fn_parse_fn_file
+
+Parses function file and extracts contents of each part of help
+```
+[usage, summary, inputs, outputs] = fn_parse_fn_file(fname)
+```
+### fn_run_animation
+
+Animates field output on a previously displayed model geometry. The wave intensity is presented as the local kinetic energy on a dB scale (default range is 40dB, normalised to peak amplitude over all locations and all times). The range and normalisation value can be over-ridden by setting the appropriate options (see below).
+```
+fn_run_animation(h_patch, fld, anim_options)
+```
+### fn_show_geometry
+
+Plots the model geometry and returns handle to patches used for each element that can be used as an input argument for subsequent field animations if desired.
+```
+h_patch = fn_show_geometry(mod, matls, el_types, options)
+```
+### fn_solid_el_types
+
+Returns cell array of available solid element types.
+```
+
+```

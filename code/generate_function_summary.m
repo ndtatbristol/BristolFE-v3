@@ -20,7 +20,7 @@ for i = 1:numel(function_fnames)
     [usage, author, summary, inputs, outputs] = fn_parse_fn_file(function_fnames(i).name);
 
     if summary ~= ""
-        lines = ["### Function `" + nm + "`",
+        lines = ["### " + nm,
             "",
             summary,
             "```",
