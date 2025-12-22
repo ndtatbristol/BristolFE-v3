@@ -157,7 +157,6 @@ h_patch = fn_show_geometry(mod, matls, display_options);
 anim_options.repeat_n_times = 1;
 fn_run_animation(h_patch, res{1}.fld, anim_options);
 ```
-
 ## Function summary
 ### Function `fn_2d_add_absorbing_layer`
 

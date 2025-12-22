@@ -1,11 +1,22 @@
 function time_step = fn_get_suitable_time_step(matls, el_size, varargin)
+%USAGE
+%   time_step = fn_get_suitable_time_step(matls, el_size [, safety_factor])
+%AUTHOR
+%   Paul Wilcox (2025)
 %SUMMARY
 %   Returns what should be a stable time step by calculating the fastest
 %   possible wavespeed in the materials, workout out how fast such a wave
 %   traverses the specified element size and dividing that by a safety
 %   factor (default = sqrt(2), specify a alternative value as 3rd optional
 %   argument if desired
-
+%INPUTS
+%   matls - cell array of materials
+%   el_size - element size used in model
+%   [safety_factor = sqrt(2) - safety factor to reduce time step by
+%   relative to el_size / (maximum velocity in any material)
+%OUTPUTS
+%   time_step - a suitable time step
+%--------------------------------------------------------------------------
 if isempty(varargin)
     safety_factor = sqrt(2);
 else
