@@ -2,7 +2,7 @@
 
 ### Paul Wilcox
 
-This repository contains a number of Matlab functions and example scripts for performing explicit time-marching Finite Element (FE) simulations for elastodynamic wave propagation. Simulations can be performed using the built-in solver that exploit's Matlab's native sparse-matrix and GPU processing capabilities or an alternative commercial solver such as [*pogo*](www.pogo.software). Support for Abaqus may be added in the future. [examples](examples)
+This repository contains a number of Matlab functions and example scripts for performing explicit time-marching Finite Element (FE) simulations for elastodynamic wave propagation. Simulations can be performed using the built-in solver that exploit's Matlab's native sparse-matrix and GPU processing capabilities or an alternative commercial solver such as [*pogo*](www.pogo.software). Support for Abaqus may be added in the future. 
 
 ## Installation
 
@@ -18,8 +18,6 @@ at the start of any scripts that use the *BristolFE* functions.
 
 The user interacts with *BristolFE* via the suite of documented Matlab functions in the folder `BristolFE-v3/code`. These provide tools for the creation, execution, and visualisation of models. They are intended to be called from user-written Matlab script files and a number of example scripts are provided in `BristolFE-v3/examples`. Most likely you will start with a copy of one of these and modify it according to your requirements.
 
-[examples]:
-
 ## Examples
 
 In BristolFE-v3/examples you will find the following scripts which provide simple examples how to set up different features in models:
@@ -29,8 +27,6 @@ In BristolFE-v3/examples you will find the following scripts which provide simpl
 - `ex_2d_pogo.m` - script runs a simple simulation twice, once with the *BristolFE* solver and once with *pogo* and then overlays the results (requires *pogo* to be installed)
 - `ex_3d_pogo.m` - script demonstrates 3D model creation tools and uses the *pogo* solver (requires *pogo* to be installed)
 - `ex_3d_subdomain.m` - script demonstrates how to use 3D subdomains for more efficient modelling of localised scatterers (requires *pogo* to be installed)
-
-[examples]
 
 ## Summary of changes since v2
 
