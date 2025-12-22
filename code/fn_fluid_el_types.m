@@ -1,4 +1,8 @@
 function el_types = fn_fluid_el_types()
+%USAGE
+%   el_types = fn_fluid_el_types()
+%AUTHOR
+%   Paul Wilcox (2025)
 %SUMMARY
 %   Returns cell array of available fluid element types. 
 %INPUTS

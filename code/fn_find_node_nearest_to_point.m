@@ -1,4 +1,8 @@
 function node = fn_find_node_nearest_to_point(nodes, p, tol)
+%USAGE
+%   node = fn_find_node_nearest_to_point(nodes, p, tol)
+%AUTHOR
+%   Paul Wilcox (2025)
 %SUMMARY
 %   Finds nearest node to specified point
 %INPUTS
@@ -9,7 +13,6 @@ function node = fn_find_node_nearest_to_point(nodes, p, tol)
 %OUTPUTS
 %   node - number of node nearest to specified point. If no node is within
 %   tol of point then zero is returned.
-
 %--------------------------------------------------------------------------
 
 % r = sqrt((nodes(:,1) - p(1)) .^ 2 + (nodes(:,2) - p(2)) .^ 2);

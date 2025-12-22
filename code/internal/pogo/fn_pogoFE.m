@@ -28,7 +28,7 @@ function varargout = fn_pogoFE(mod, matls, el_types, steps, fe_options)
 %--------------------------------------------------------------------------
 %FE_OPTIONS meanings and defaults
 %Path to where pogo binaries and Pogo Matlab code are
-default_options.pogo_path = 'C:\Program Files\Pogo\windows\new version';
+default_options.pogo_path = 'C:\Program Files\Pogo\windows';
 default_options.pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
 %Level of pogo output to Matlab console (-1 = none)
 default_options.pogo_verbosity = -1;
@@ -110,7 +110,6 @@ end
 system(['"', fe_options.pogo_path, filesep, pogo_blocker, '" ',fname, '.pogo-inp', verb_flag]);
 fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0);
 
-
 %Solving
 t1 = clock;
 ndf = size(pogo_model.nodePos, 2) * pogo_model.nDofPerNode;
@@ -126,8 +125,15 @@ fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0)
 if nargout > 1
     t1 = clock;
     fn_console_output('Extracting global matrices ...');
-    info_fname  = 'generalInfo.csv';K_fname = 'k.csv';M_fname = 'm.csv';C_fname = 'c.csv';
+    info_fname  = 'generalInfo.csv';
+    K_fname = 'k.csv';
+    M_fname = 'm.csv';
+    C_fname = 'c.csv';
     mats = fn_read_pogo_global_matrix_values_from_files(info_fname, K_fname, C_fname, M_fname);
+    delete(K_fname);
+    delete(M_fname);
+    delete(C_fname);
+    delete(info_fname);
     varargout{2} = mats;
     fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0);
 end

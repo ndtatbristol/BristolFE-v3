@@ -1,4 +1,8 @@
 function el_types = fn_3d_el_types()
+%USAGE
+%   el_types = fn_3d_el_types()
+%AUTHOR
+%   Paul Wilcox (2025)
 %SUMMARY
 %   Returns cell array of available 3D element types. Use in 3D models,
 %   usually exactly like this:

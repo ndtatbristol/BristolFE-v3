@@ -1,5 +1,6 @@
 clear all;
 close all;
+
 rng(1);
 %ABOUT THIS EXAMPLE
 %This example is designed to show how to use the subdomain method. Here a
@@ -60,12 +61,11 @@ src_dir = 4;
 max_time = 1.1 * 2 * (fluid_thickness / fluid_velocity + (model_size - fluid_thickness) / solid_matl_longitudinal_velocity);
 
 show_geom_only = 0; %Set to 1 to just show geometry without running model
-run_validation_models = 0;
-fe_options.field_output_every_n_frames = inf;20; %set to inf to suppress animations
+run_validation_models = 1;
+fe_options.field_output_every_n_frames = 20; %set to inf to suppress animations
 
 fe_options.sort_nds = 0;
-% fe_options.solver_mode = 'vel at last half time step';
-% fe_options.nd_sort_cols = [2,1];
+
 %--------------------------------------------------------------------------
 %THE ACTUAL CODE STARTS HERE
 %--------------------------------------------------------------------------

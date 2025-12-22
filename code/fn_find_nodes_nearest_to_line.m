@@ -1,5 +1,8 @@
 function [node_list, s, r] = fn_find_nodes_nearest_to_line(nodes, p1, p2, tol)
-
+%USAGE
+%   [node_list, s, r] = fn_find_nodes_nearest_to_line(nodes, p1, p2, tol)
+%AUTHOR
+%   Paul Wilcox (2025)
 %SUMMARY
 %   Returns list of nodes that lie along line (with specified tolerance)
 %   defined by its endpoints
@@ -13,8 +16,8 @@ function [node_list, s, r] = fn_find_nodes_nearest_to_line(nodes, p1, p2, tol)
 %   s - parametric description of position of node on line, where 0 is at
 %   p1 and 1 is at p2
 %   r - distance of each node in list from line
-
 %--------------------------------------------------------------------------
+
 %error checks
 if size(nodes, 2) ~= 2
     error('Nodes input must be two column matrix');

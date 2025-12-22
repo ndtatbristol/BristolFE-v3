@@ -1,4 +1,8 @@
 function el_types = fn_2d_el_types()
+%USAGE
+%   el_types = fn_2d_el_types()
+%AUTHOR
+%   Paul Wilcox (2025)
 %SUMMARY
 %   Returns cell array of available 2D element types. Use in 2D models,
 %   usually exactly like this:

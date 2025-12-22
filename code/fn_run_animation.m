@@ -1,11 +1,23 @@
 function fn_run_animation(h_patch, fld, anim_options)
+%USAGE
+%   fn_run_animation(h_patch, fld, anim_options)
+%AUTHOR
+%   Paul Wilcox (2025)
 %SUMMARY
 %   Animates field output on a previously displayed model geometry. The
 %   wave intensity is presented as the local kinetic energy on a dB scale
 %   (default range is 40dB, normalised to peak amplitude over all locations
 %   and all times). The range and normalisation value can be over-ridden by
 %   setting the appropriate options (see below).
-
+%INPUTS
+%   h_patch - handles of patches of each element in model (as returned by
+%   fn_show_geometry)
+%   fld - the field output to animate, typically a res{s}.fld after a model
+%   has been run
+%   anim_options - structured options variable
+%OUTPUTS
+%   None
+%--------------------------------------------------------------------------
 default_options.pause_value = 0.001;
 default_options.max_color = [1,1,1];
 default_options.min_color = [0,0,0];

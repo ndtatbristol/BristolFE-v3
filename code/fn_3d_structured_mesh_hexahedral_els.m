@@ -1,4 +1,8 @@
 function mod = fn_3d_structured_mesh_hexahedral_els(crnr_pts, el_size)
+%USAGE
+%    mod = fn_3d_structured_mesh_hexahedral_els(crnr_pts, el_size)
+%AUTHOR
+%   Paul Wilcox (2025)
 %SUMMARY
 %   Utility function for generating a 3d structured mesh of cuboidal
 %   elements, that fills the cuboidal region specified by crnr_pts.
@@ -13,6 +17,7 @@ function mod = fn_3d_structured_mesh_hexahedral_els(crnr_pts, el_size)
 %       material indices assigned elsewhere if more than one type of
 %       material is used in model
 %--------------------------------------------------------------------------
+
 sz = crnr_pts(2,:) - crnr_pts(1,:); %1x3 vector of mesh size in each direction
 n = ceil(sz / el_size) + 1; %1x3 vector of number of nodes in each direction
 d = sz ./ (n - 1); %1x3  vector of element dims in each direction

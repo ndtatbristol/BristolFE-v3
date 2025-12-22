@@ -1,5 +1,5 @@
 clear all
-% close all;
+close all;
 
 addpath(genpath('../code'));
 show_geom_only = 0;
@@ -52,6 +52,11 @@ max_time = 1.2 * (2 * model_size_z) / solid_c_L;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
 els_per_wavelength = 5;
+
+%Following will need to be set to where the Pogo executable and Pogo Matlab
+%scripts are located respectively
+fe_options.pogo_path = 'C:\Program Files\Pogo\windows\new version';
+fe_options.pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
 
 fe_options.solver = 'pogo';
 

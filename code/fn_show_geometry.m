@@ -1,8 +1,22 @@
 function h_patch = fn_show_geometry(mod, matls, el_types, options)
+%USAGE
+%   h_patch = fn_show_geometry(mod, matls, el_types, options)
+%AUTHOR
+%   Paul Wilcox (2025)
 %SUMMARY
 %   Plots the model geometry and returns handle to patches used for each
 %   element that can be used as an input argument for subsequent field 
 %   animations if desired.
+%INPUTS
+%   mod - structured variable describing model, containing nodal
+%   coordinates, mod.nds, and element nodes, mod.els
+%   matls - cell array of materials used in mod
+%   el_types - cell array of element types used in mod
+%   options - structured options variable
+%OUTPUTS
+%   h_patch - matrix of handles to patches representing elements, which can
+%   be used for subsequent animations using fn_run_animation
+%--------------------------------------------------------------------------
 
 default_options.draw_elements = 0;
 default_options.element_edge_color = [1,1,1] * 0.95;

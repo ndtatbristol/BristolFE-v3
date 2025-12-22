@@ -4,8 +4,11 @@ close all
 addpath(genpath('..\code'));
 addpath(genpath('..\subdoms'));
 
+%Following will need to be set to where the Pogo executable and Pogo Matlab
+%scripts are located respectively
 fe_options.pogo_path = 'C:\Program Files\Pogo\windows\new version';
 fe_options.pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
+
 fe_options.sort_nds = 1;
 
 %--------------------------------------------------------------------------
@@ -70,20 +73,6 @@ main.el_types = fn_3d_el_types();
 main.mod.el_typ_i = ones(size(main.mod.el_typ_i)) * find(strcmp(main.el_types, solid_element_type));
 main.mod.el_mat_i = ones(size(main.mod.el_typ_i)) * solid_matl_i;
 
-%Quick test of absorbing layers
-% el_ctrs = fn_calc_element_centres(main.mod.nds, main.mod.els);
-% main.mod.el_abs_i = zeros(size(main.mod.el_mat_i));
-% tmp = (abs_layer_thickness - el_ctrs(:,1)) / abs_layer_thickness;
-% main.mod.el_abs_i = tmp .* (tmp > 0);
-
-
-%Quick test of making a void
-% i = sqrt(sum((el_ctrs - [0.5, 0.5, 0] * model_size) .^ 2, 2)) < 2e-3;
-% mod.els(i, :) = [];
-% mod.el_mat_i(i) = [];
-% mod.el_abs_i(i) = [];
-% [mod.nds, mod.els, ~, ~] = fn_remove_unused_nodes(mod.nds, mod.els);
-
 %Identify nodes along the source line to say where the loading will be 
 %when FE model is run
 main.trans{1}.nds = find(...
@@ -92,9 +81,7 @@ main.trans{1}.nds = find(...
     );
 main.trans{1}.dfs = ones(size(main.trans{1}.nds)) * src_dir;
 
-
 %Create the subdomain
-
 [inner_bndry_vtcs, inner_bndry_fcs] = fn_3d_spherical_surface(subdom_centre, subdom_rad);
 main.doms{1}.mod = fn_3d_create_subdomain(main.mod, main.el_types, inner_bndry_vtcs, inner_bndry_fcs, abs_bdry_thickness);
 
@@ -103,9 +90,8 @@ scat_matl_i = 0;
 scat_el_typ_i = [];
 main.doms{1}.mod = fn_3d_add_inclusion_or_void(main.doms{1}.mod, main.el_types, scat_vtcs, scat_fcs, scat_matl_i, scat_el_typ_i);
 
-
-%Show the mesh
-if show_geom_only %suppress graphics when running all scripts for testing
+if show_geom_only 
+    %Show the mesh
     figure;
     subplot(1,2,1);
     display_options.transparency = 0.5;
@@ -126,6 +112,7 @@ if show_geom_only %suppress graphics when running all scripts for testing
     axis(aa);
     return
 end
+
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 %Run main model
