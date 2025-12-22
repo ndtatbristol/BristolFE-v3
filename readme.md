@@ -2,7 +2,7 @@
 
 ### Paul Wilcox
 
-This repository contains a number of Matlab functions and example scripts for performing explicit time-marching Finite Element (FE) simulations for elastodynamic wave propagation. Simulations can be performed using the built-in solver that exploit's Matlab's native sparse-matrix and GPU processing capabilities or an alternative commercial solver such as [*pogo*](www.pogo.software). Support for Abaqus may be added in the future.
+This repository contains a number of Matlab functions and example scripts for performing explicit time-marching Finite Element (FE) simulations for elastodynamic wave propagation. Simulations can be performed using the built-in solver that exploit's Matlab's native sparse-matrix and GPU processing capabilities or an alternative commercial solver such as [*pogo*](www.pogo.software). Support for Abaqus may be added in the future. 
 
 ## Installation
 
