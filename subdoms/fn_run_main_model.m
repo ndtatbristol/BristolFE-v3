@@ -192,7 +192,7 @@ end
 
 function res = fn_parse_to_bdry_nds(res, fe_res, mon_nds, mon_dfs)
 valid_mon_dsps = fe_res{1}.valid_mon_dsps; %same for all steps
-res.dsp_gi = fe_res{1}.dsp_gi;
+res.dsp_gi = fe_res{1}.dsp_gi; 
 res.mon_nds = mon_nds(valid_mon_dsps);
 res.mon_dfs = mon_dfs(valid_mon_dsps);
 for e = 1:numel(fe_res)
@@ -260,53 +260,52 @@ for t = 1:ne
 end
 end
 
-
 function fmc = fn_parse_to_fmc(fmc_template, steps, res, trans, in_sig, fe_options)
+%At this point
+% res{t} - FE results for transmission t including
+% res{t}.dsps - n1 x nt matrix of output displacements (nt  = time pts)
+% res{t}.valid_mon_dsps - n1 x 1 logical array saying which rows in above are valid
+
+% steps{t} - the FE input for transmission t including
+% steps{t}.mon.nds - n1 x 1 vector of nds
+% steps{t}.mon.dfs - n1 x 1 vector of dfs
+
+% trans{t} - the physical transducer for transmission t including
+% trans{t}.nds - n2 x 1 vector of nds
+% trans{t}.dfs - n2 x 1 vector of dfs
+% trans{t}.wts - optional n2 x 1 vector of weights
+
+%NOTE n2 <> n1 !!!!
+
 fmc = fmc_template;
 for k = 1:numel(fmc.tx)
+    tx = fmc.tx(k);
+    rx = fmc.rx(k);
 
-    %NEW
-    %Need displacements at trans{fmc.rx(k)}.nds so 
-    %need to know indices, i, of these nodes in res{fmc.tx(k)}.dsps
-    % [~, i] = ismember(trans{fmc.rx(k)}.nds, steps{fmc.tx(k)}.mon.nds);
-    % 
-    % %If wts present, do weighted sum, if not just sum
-    % if isfield(trans{fmc.rx(k)}, 'wts')
-    %   tmp = trans{fmc.rx(k)}.wts(:)' * res{fmc.tx(k)}.dsps(i, :);
-    % else
-    %    tmp = sum(res{fmc.tx(k)}.dsps(i, :));
-    % end
-    % %Finally, stick in FMC data
-    % fmc.time_data(:, k) = tmp(:);
-
-    %OLD (works as long as no weights ... but I don't think this is correct
-    %because all DOF are monitored at all nodes so this is adding
-    %contributions from DOF that should not contribute to response.
-    %Probably gives correct validation because same (incorrect) approach
-    %applied in both cases. Best solution would be to generate wts for all
-    %cases even if not specified and avoid any ambiguity here.
-    i = ismember(steps{fmc.tx(k)}.mon.nds, trans{fmc.rx(k)}.nds);
-    % tmp = res{fmc.tx(k)}.dsps(i, :);
-    tmp = sum(res{fmc.tx(k)}.dsps(i, :));
-    fmc.time_data(:, k) = tmp(:);
-
+    %physical nds/dfs for receiving transducer
+    rx_nds_dfs = [trans{rx}.nds, trans{rx}.dfs];
     
+    %nds/dfs for monitored nodes
+    mon_nds_dfs = [steps{tx}.mon.nds, steps{tx}.mon.dfs];
+
+    %find indices of monitored nds/dfs for receiving transducer and extract
+    %displacements
+    [tmp, i] = ismember(rx_nds_dfs, mon_nds_dfs, 'rows');
+    rx_dsps = res{tx}.dsps(i, :);
+    
+    if isfield(trans{rx} ,'wts')
+        fmc.time_data(:, k) = (trans{rx}.wts' * rx_dsps).';
+    else
+        %no weights case is simple sum
+        fmc.time_data(:, k) = sum(rx_dsps).';
+    end
+
     if ~isempty(in_sig)
         fmc.time_data(:, k) = fn_convolve(fmc.time_data(:, k), in_sig(:), 1, fe_options.use_gpu_if_available);
     end
 end
 end
 
-
-% function step = fn_convert_to_step_data(t, inp, frc_nds, frc_dfs, mon_nds, mon_dfs, f_every)
-% step.load.time = t;
-% step.load.frcs = inp;
-% step.load.frc_nds = frc_nds;
-% step.load.frc_dfs = frc_dfs;
-% step.mon.nds = mon_nds;
-% step.mon.dfs = mon_dfs;
-% step.mon.field_output_every_n_frames = f_every;
-% end
 function step = fn_convert_to_step_data(t, inp, trans, mon_nds, mon_dfs, f_every)
 step.load.time = t;
 step.load.frcs = inp;

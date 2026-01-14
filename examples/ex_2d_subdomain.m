@@ -1,5 +1,5 @@
 clear all;
-close all;
+% close all;
 
 rng(1);
 %ABOUT THIS EXAMPLE

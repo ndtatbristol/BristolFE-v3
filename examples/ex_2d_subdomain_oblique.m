@@ -4,9 +4,9 @@ close all;
 rng(1);
 
 %ABOUT THIS EXAMPLE
-%This example is designed to show how to use the subdomain method for a 
+%This example is designed to show how to use the subdomain method for a
 %classic NDE case: oblique incidence shear waves using a wedge transducer
-%to detect surface-breaking cracks. 
+%to detect surface-breaking cracks.
 
 %PARAMETRIC DESCRIPTION OF MODEL
 %The model is described in terms of a small number of parameters
@@ -49,7 +49,7 @@ trans_diam = 5e-3;
 
 show_geom_only = 0; %Set to 1 to just show geometry without running model
 run_validation_models = 1;
-fe_options.field_output_every_n_frames = 10; %set to inf to suppress animations
+fe_options.field_output_every_n_frames = inf;10; %set to inf to suppress animations
 
 %--------------------------------------------------------------------------
 %END OF INPUTS
@@ -178,19 +178,26 @@ main.trans{1}.wts = [
 inner_bdry = [
     -subdomain_size_x / 2, 0
     -subdomain_size_x / 2, subdomain_size_y
-     subdomain_size_x / 2, subdomain_size_y
-     subdomain_size_x / 2, 0];
+    subdomain_size_x / 2, subdomain_size_y
+    subdomain_size_x / 2, 0];
 
 empty_subdomain = fn_2d_create_subdomain(main.mod, main.el_types, inner_bdry, abs_bdry_thickness);
 
+%Sub-domain 1 contains a large notch like a corner echo as a reference
 main.doms{1}.mod = empty_subdomain;
-main.doms{2}.mod = empty_subdomain;
 scat_pts = [
     0, 0
-    subdomain_size_x / 2 - clearance, 0
-    subdomain_size_x / 2 - clearance, subdomain_size_y - clearance
-    0, subdomain_size_y - clearance];
-main.doms{2}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.el_types, scat_pts, 0, 0);
+    subdomain_size_x / 2 - el_size, 0
+    subdomain_size_x / 2 - el_size, subdomain_size_y - el_size
+    0, subdomain_size_y - el_size];
+main.doms{1}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.el_types, scat_pts, 0, 0);
+
+%Sub-domain 2 contains a random crack
+main.doms{2}.mod = empty_subdomain;
+crack_len = subdomain_size_y;
+crack_vtcs = fn_2d_random_walk(50, crack_len / 50, 0, pi / 2, pi / 8);
+main.doms{2}.mod = fn_2d_add_crack(main.doms{2}.mod, main.el_types, crack_vtcs);
+
 
 
 %Show the mesh
@@ -234,40 +241,35 @@ if ~isinf(fe_options.field_output_every_n_frames)
     fn_run_subdomain_animations(main, h_patches, anim_options);
 end
 
-
-return
-
-
 %Run validation model if requested (just does it for last scatterer)
 if run_validation_models
     fe_options.validation_mode = 1;
     main = fn_run_main_model(main, fe_options);
 
-    %Animate validation results if requested
-    if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
-        %View the time domain data and compare wih validation
-        subdom = 2;
+    %View the time domain data and compare wih validation
+    ref_subdom = 1;
+    i = min((find(main.res.fmc.time >  2 * (wedge_path_length / wedge_matl_longitudinal_velocity + plate_path_length / plate_vel))));
+    mv = max(abs(sum(main.doms{ref_subdom}.res.fmc.time_data(i:end,: ), 2)));
+    for subdom = 1:numel(main.doms)
         figure;
-        i = max(find(abs(main.inp.sig) > max(abs(main.inp.sig)) / 1000));
-        mv = max(abs(sum(main.doms{1}.res.fmc.time_data(i:end,: ), 2)));
         plot(main.doms{subdom}.res.fmc.time, real(sum(main.doms{subdom}.res.fmc.time_data, 2)) / mv, 'k', 'LineWidth', 2);
         hold on;
         plot(main.doms{subdom}.val.fmc.time, real(sum(main.doms{subdom}.val.fmc.time_data, 2)) / mv, 'g:', 'LineWidth', 2);
         plot(main.res.fmc.time, real(sum(main.res.fmc.time_data, 2)) / mv, 'b');
-        % ylim([-1,1]);
-        % yyaxis right
-        % plot(main.doms{subdom}.res.fmc.time, 20 * log10(abs(sum(main.doms{subdom}.res.fmc.time_data, 2) - sum(main.doms{subdom}.val.fmc.time_data, 2)) / mv));
-        % ylim([-60, 0]);
-        % legend('Sub-domain method', 'Validation', 'Pristine', 'Difference (dB)');
+        ylim([-1,1]);
+        yyaxis right
+        plot(main.doms{subdom}.res.fmc.time, 20 * log10(abs(sum(main.doms{subdom}.res.fmc.time_data, 2) - sum(main.doms{subdom}.val.fmc.time_data, 2)) / mv));
+        ylim([-60, 0]);
+        legend('Sub-domain method', 'Validation', 'Pristine', 'Difference (dB)');
+    end
 
-        if ~isinf(fe_options.field_output_every_n_frames)
-            %Animate result
-            figure;
-            anim_options.repeat_n_times = 1;
-            anim_options.db_range = [-40, 0];
-            anim_options.pause_value = 0.001;
-            h_patches = fn_show_geometry(main.doms{subdom}.val_mod, main.matls, main.el_types, anim_options);
-            fn_run_animation(h_patches, main.doms{subdom}.val.trans{1}.fld, anim_options);
-        end
+    if ~isinf(fe_options.field_output_every_n_frames)
+        %Animate result
+        figure;
+        anim_options.repeat_n_times = 1;
+        anim_options.db_range = [-40, 0];
+        anim_options.pause_value = 0.001;
+        h_patches = fn_show_geometry(main.doms{ref_subdom}.val_mod, main.matls, main.el_types, anim_options);
+        fn_run_animation(h_patches, main.doms{ref_subdom}.val.trans{1}.fld, anim_options);
     end
 end
