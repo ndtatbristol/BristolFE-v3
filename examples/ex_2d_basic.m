@@ -91,7 +91,7 @@ steps{1}.load.frc_nds = fn_find_node_nearest_to_point(mod.nds, source_position, 
 steps{1}.load.frc_dfs = ones(size(steps{1}.load.frc_nds)) * source_direction;
 
 %Provide the time signal for the loading
-steps{1}.load.time = 0: time_step:  max_time;
+steps{1}.load.time = 0: time_step: max_time;
 steps{1}.load.frcs = fn_gaussian_pulse(steps{1}.load.time, centre_freq, no_cycles);
 
 %Say where the displacement should be monitored

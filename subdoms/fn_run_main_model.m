@@ -109,9 +109,13 @@ for m = 1:numel(main_modes)
 
     %Prepare the steps
     for e = 1:numel(main.trans)
+        % steps{e} = fn_convert_to_step_data(...
+        %     main.inp.time, inp, ...
+        %     main.trans{e}.nds, main.trans{e}.dfs, ...
+        %     mon_nds, mon_dfs, fe_options.field_output_every_n_frames);
         steps{e} = fn_convert_to_step_data(...
             main.inp.time, inp, ...
-            main.trans{e}.nds, main.trans{e}.dfs, ...
+            main.trans{e}, ...
             mon_nds, mon_dfs, fe_options.field_output_every_n_frames);
     end
 
@@ -260,16 +264,33 @@ end
 function fmc = fn_parse_to_fmc(fmc_template, steps, res, trans, in_sig, fe_options)
 fmc = fmc_template;
 for k = 1:numel(fmc.tx)
+
+    %NEW
+    %Need displacements at trans{fmc.rx(k)}.nds so 
+    %need to know indices, i, of these nodes in res{fmc.tx(k)}.dsps
+    % [~, i] = ismember(trans{fmc.rx(k)}.nds, steps{fmc.tx(k)}.mon.nds);
+    % 
+    % %If wts present, do weighted sum, if not just sum
+    % if isfield(trans{fmc.rx(k)}, 'wts')
+    %   tmp = trans{fmc.rx(k)}.wts(:)' * res{fmc.tx(k)}.dsps(i, :);
+    % else
+    %    tmp = sum(res{fmc.tx(k)}.dsps(i, :));
+    % end
+    % %Finally, stick in FMC data
+    % fmc.time_data(:, k) = tmp(:);
+
+    %OLD (works as long as no weights ... but I don't think this is correct
+    %because all DOF are monitored at all nodes so this is adding
+    %contributions from DOF that should not contribute to response.
+    %Probably gives correct validation because same (incorrect) approach
+    %applied in both cases. Best solution would be to generate wts for all
+    %cases even if not specified and avoid any ambiguity here.
     i = ismember(steps{fmc.tx(k)}.mon.nds, trans{fmc.rx(k)}.nds);
-    tmp = res{fmc.tx(k)}.dsps(i, :);
-    if isfield(trans{fmc.rx(k)}, 'wt')
-        tmp = trans{fmc.rx(k)}.wt(:)' * tmp;
-    else
-        tmp = sum(tmp);
-    end
-    %Convolved with input if required (which is case for pristine
-    %results which are generated for impulse response)
+    % tmp = res{fmc.tx(k)}.dsps(i, :);
+    tmp = sum(res{fmc.tx(k)}.dsps(i, :));
     fmc.time_data(:, k) = tmp(:);
+
+    
     if ~isempty(in_sig)
         fmc.time_data(:, k) = fn_convolve(fmc.time_data(:, k), in_sig(:), 1, fe_options.use_gpu_if_available);
     end
@@ -277,11 +298,23 @@ end
 end
 
 
-function step = fn_convert_to_step_data(t, inp, frc_nds, frc_dfs, mon_nds, mon_dfs, f_every)
+% function step = fn_convert_to_step_data(t, inp, frc_nds, frc_dfs, mon_nds, mon_dfs, f_every)
+% step.load.time = t;
+% step.load.frcs = inp;
+% step.load.frc_nds = frc_nds;
+% step.load.frc_dfs = frc_dfs;
+% step.mon.nds = mon_nds;
+% step.mon.dfs = mon_dfs;
+% step.mon.field_output_every_n_frames = f_every;
+% end
+function step = fn_convert_to_step_data(t, inp, trans, mon_nds, mon_dfs, f_every)
 step.load.time = t;
 step.load.frcs = inp;
-step.load.frc_nds = frc_nds;
-step.load.frc_dfs = frc_dfs;
+step.load.frc_nds = trans.nds;
+step.load.frc_dfs = trans.dfs;
+if isfield(trans, 'wts')
+    step.load.wts = trans.wts;
+end
 step.mon.nds = mon_nds;
 step.mon.dfs = mon_dfs;
 step.mon.field_output_every_n_frames = f_every;

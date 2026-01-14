@@ -278,7 +278,11 @@ for n = 1:numel(steps)
         model.shots{n}.sigs{1}.nodeSpec = steps{n}.load.frc_nds(:)';    % - nodes the signal is applied to.
         model.shots{n}.sigs{1}.dofSpec = steps{n}.load.frc_dfs(:)';     %- DOF to apply the signal to (matches nodeSpec) in (range: 1 to model.nDofPerNode)
         model.shots{n}.sigs{1}.sigType = 0;                         %- 0 force, 1 displacement or (unused at present) 2 velocity
-        model.shots{n}.sigs{1}.sigAmps = ones(size(model.shots{n}.sigs{1}.dofSpec));                         %- amplitudes the signals are multiplied by for each dof specified
+        if isfield(steps{n}.load, 'wts')
+            model.shots{n}.sigs{1}.sigAmps = steps{n}.load.wts(:)';
+        else
+            model.shots{n}.sigs{1}.sigAmps = ones(size(model.shots{n}.sigs{1}.dofSpec));                         %- amplitudes the signals are multiplied by for each dof specified
+        end
         model.shots{n}.sigs{1}.sig = steps{n}.load.frcs(1, :);
     else
         for m = 1:size(steps{n}.load.frcs, 1)

@@ -62,7 +62,7 @@ max_time = 1.1 * 2 * (fluid_thickness / fluid_velocity + (model_size - fluid_thi
 
 show_geom_only = 0; %Set to 1 to just show geometry without running model
 run_validation_models = 1;
-fe_options.field_output_every_n_frames = 20; %set to inf to suppress animations
+fe_options.field_output_every_n_frames = inf;20; %set to inf to suppress animations
 
 fe_options.sort_nds = 0;
 
@@ -176,15 +176,13 @@ figure;
 plot(main.inp.time, real(results));
 
 %Animate results if requested
-if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
-    if ~isinf(fe_options.field_output_every_n_frames)
-        figure;
-        anim_options.repeat_n_times = 1;
-        anim_options.db_range = [-40, 0];
-        anim_options.pause_value = 0.001;
-        h_patches = fn_show_geometry_with_subdomains(main, anim_options);
-        fn_run_subdomain_animations(main, h_patches, anim_options);
-    end
+if ~isinf(fe_options.field_output_every_n_frames)
+    figure;
+    anim_options.repeat_n_times = 1;
+    anim_options.db_range = [-40, 0];
+    anim_options.pause_value = 0.001;
+    h_patches = fn_show_geometry_with_subdomains(main, anim_options);
+    fn_run_subdomain_animations(main, h_patches, anim_options);
 end
 
 %Run validation model if requested (just does it for last scatterer)
