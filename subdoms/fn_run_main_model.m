@@ -109,10 +109,6 @@ for m = 1:numel(main_modes)
 
     %Prepare the steps
     for e = 1:numel(main.trans)
-        % steps{e} = fn_convert_to_step_data(...
-        %     main.inp.time, inp, ...
-        %     main.trans{e}.nds, main.trans{e}.dfs, ...
-        %     mon_nds, mon_dfs, fe_options.field_output_every_n_frames);
         steps{e} = fn_convert_to_step_data(...
             main.inp.time, inp, ...
             main.trans{e}, ...
@@ -126,14 +122,23 @@ for m = 1:numel(main_modes)
             fn_increment_indent_level;
             %Run the model for each transducer (need boundary data whether
             %transmitter or receiver anyway
-            [fe_res, main.res.mats] = fn_FE_entry_point(main.mod, main.matls, main.el_types, steps, fe_options);
+            if fe_options.doms_to_run ~= 0
+                [fe_res, main.res.mats] = fn_FE_entry_point(main.mod, main.matls, main.el_types, steps, fe_options);
+            else
+                %Special case of no subdomains - don't bother getting
+                %matrices (as this is a significant cost with Pogo at
+                %present)
+                fe_res = fn_FE_entry_point(main.mod, main.matls, main.el_types, steps, fe_options);
+            end
             
 
             %Parse the impulse data
             if strcmp(main_modes{m}, 'impulse response')
                 %Sub-domain boundary displacements - these ALWAYS hold
                 %impulse responses
-                main.res = fn_parse_to_bdry_nds(main.res, fe_res, mon_nds, mon_dfs);
+                if fe_options.doms_to_run ~= 0
+                    main.res = fn_parse_to_bdry_nds(main.res, fe_res, mon_nds, mon_dfs);
+                end
                 %Pristine FMC results
                 main.res.fmc = fn_parse_to_fmc(main.res.fmc_template, steps, fe_res, main.trans, main.inp.sig, fe_options);
             end

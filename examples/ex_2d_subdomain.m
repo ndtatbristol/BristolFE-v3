@@ -1,5 +1,5 @@
 clear all;
-% close all;
+close all;
 
 rng(1);
 %ABOUT THIS EXAMPLE
@@ -62,7 +62,7 @@ max_time = 1.1 * 2 * (fluid_thickness / fluid_velocity + (model_size - fluid_thi
 
 show_geom_only = 0; %Set to 1 to just show geometry without running model
 run_validation_models = 1;
-fe_options.field_output_every_n_frames = inf;20; %set to inf to suppress animations
+fe_options.field_output_every_n_frames = 20; %set to inf to suppress animations
 
 fe_options.sort_nds = 0;
 
