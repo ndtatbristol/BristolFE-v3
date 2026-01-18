@@ -122,7 +122,7 @@ abs_bdry_pts_wedge = [
     xwedge_centre - tmp_len * sind(wedge_angle_degs) - trans_rad * cosd(wedge_angle_degs), plate_thickness + tmp_len * cosd(wedge_angle_degs) - trans_rad * sind(wedge_angle_degs)];
 
 %Other stuff
-fe_options.dof_to_use = [1,2,3];%x, y and pressure
+fe_options.dof_to_use = [1,2,3];
 
 %Work out element size, create the nodes and elements of the mesh,
 %determine elements in plate and wedge based on y value
@@ -140,13 +140,15 @@ main.mod.el_mat_i(plate_els) = plate_matl_i;
 main.mod.el_mat_i(wedge_els) = wedge_matl_i;
 
 %Time step and max time
-main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
-main.mod.design_centre_freq = centre_freq;
-fe_options.time_pts = ceil(max_time / main.mod.max_safe_time_step);
+% main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
+% main.mod.design_centre_freq = centre_freq;
+% fe_options.time_pts = ceil(max_time / main.mod.max_safe_time_step);
 
 %Define the absorbing layer
 main.mod = fn_2d_add_absorbing_layer(main.mod, abs_bdry_pts_plate, abs_bdry_thickness, plate_els);
 main.mod = fn_2d_add_absorbing_layer(main.mod, abs_bdry_pts_wedge, abs_bdry_thickness, wedge_els);
+[fe_options.max_damping, fe_options.damping_power_law , fe_options.max_stiffness_reduction]= fn_optimum_absorbing_bdry_properties(abs_bdry_thickness, main.matls, centre_freq);
+
 wedge_els_to_go = wedge_els & (main.mod.el_abs_i == 1);
 
 %Lose the elements that need to go
@@ -173,6 +175,12 @@ main.trans{1}.wts = [
     ones(size(nds)) * cosd(force_angle_degs)
     ones(size(nds)) * sind(force_angle_degs)
     ];
+
+%Input signal
+time_step = fn_get_suitable_time_step(main.matls, el_size);
+time_pts = ceil(max_time / time_step);
+main.inp.time = [0:time_pts - 1] * time_step;
+main.inp.sig = fn_gaussian_pulse(main.inp.time, centre_freq, no_cycles);
 
 %Create a subdomain in the middle with a hole in surface as scatterer
 inner_bdry = [

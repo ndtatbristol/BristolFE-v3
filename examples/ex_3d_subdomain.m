@@ -10,11 +10,11 @@ fe_options.pogo_path = 'C:\Program Files\Pogo\windows\new version';
 fe_options.pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
 
 fe_options.sort_nds = 1;
+show_geom_only = 0;
 
 %--------------------------------------------------------------------------
 %DEFINE THE PROBLEM
 
-show_geom_only = 0;
 
 abs_bdry_thickness = 1e-3;
 
@@ -50,11 +50,11 @@ src_dir = 3; %direction of forces applied: 1 = x, 2 = y, 3 = z (for solids), 4 =
 
 %Details of input signal
 centre_freq = 5e6;
-fe_options.number_of_cycles = 5;
-fe_options.max_time = 1.5 * 2 * model_size_z / 6300;
+no_cycles = 5;
+max_time = 1.5 * 2 * model_size_z / 6300;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
-els_per_wavelength = 6;
+els_per_wavelength = 3;
 
 fe_options.solver = 'pogo';
 fe_options.dof_to_use = [1,2,3];
@@ -66,8 +66,17 @@ el_size = fn_get_suitable_el_size(main.matls, centre_freq, els_per_wavelength);
 
 %Create the nodes and elements of the mesh
 main.mod = fn_3d_structured_mesh_hexahedral_els(crnr_pts, el_size);
-main.mod.design_centre_freq = centre_freq;
-main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
+
+el_ctrs = fn_calc_element_centres(main.mod.nds, main.mod.els);
+els_to_go = el_ctrs(:,1) < model_size_x / 2 & el_ctrs(:,2) < model_size_y / 2  & el_ctrs(:,3) < model_size_z / 2;
+% els_to_go = (el_ctrs(:,1) - el_ctrs(:,3 )) > 0 & el_ctrs(:,2) < model_size_y / 2 & el_ctrs(:,3) < model_size_z / 2;
+main.mod.els(els_to_go, :) = [];
+main.mod.el_mat_i(els_to_go) = [];
+main.mod.el_abs_i(els_to_go) = [];
+main.mod.el_typ_i(els_to_go) = [];
+[main.mod.nds, main.mod.els, ~, ~] = fn_remove_unused_nodes(main.mod.nds, main.mod.els);
+
+
 
 main.el_types = fn_3d_el_types();
 main.mod.el_typ_i = ones(size(main.mod.el_typ_i)) * find(strcmp(main.el_types, solid_element_type));
@@ -81,6 +90,14 @@ main.trans{1}.nds = find(...
     );
 main.trans{1}.dfs = ones(size(main.trans{1}.nds)) * src_dir;
 
+%Input signal
+time_step = fn_get_suitable_time_step(main.matls, el_size);
+time_pts = ceil(max_time / time_step);
+main.inp.time = [0:time_pts - 1] * time_step;
+main.inp.sig = fn_gaussian_pulse(main.inp.time, centre_freq, no_cycles);
+
+
+
 %Create the subdomain
 [inner_bndry_vtcs, inner_bndry_fcs] = fn_3d_spherical_surface(subdom_centre, subdom_rad);
 main.doms{1}.mod = fn_3d_create_subdomain(main.mod, main.el_types, inner_bndry_vtcs, inner_bndry_fcs, abs_bdry_thickness);
@@ -88,7 +105,7 @@ main.doms{1}.mod = fn_3d_create_subdomain(main.mod, main.el_types, inner_bndry_v
 [scat_vtcs, scat_fcs] =  fn_3d_spherical_surface(scat_cent, scat_rad);
 scat_matl_i = 0;
 scat_el_typ_i = [];
-main.doms{1}.mod = fn_3d_add_inclusion_or_void(main.doms{1}.mod, main.el_types, scat_vtcs, scat_fcs, scat_matl_i, scat_el_typ_i);
+% main.doms{1}.mod = fn_3d_add_inclusion_or_void(main.doms{1}.mod, main.el_types, scat_vtcs, scat_fcs, scat_matl_i, scat_el_typ_i);
 
 if show_geom_only 
     %Show the mesh
@@ -135,6 +152,6 @@ plot(main.res.fmc.time, real(sum(main.res.fmc.time_data, 2)) / mv, 'b');
 ylim([-1,1]);
 yyaxis right
 plot(main.doms{1}.res.fmc.time, 20 * log10(abs(sum(main.doms{1}.res.fmc.time_data, 2) - sum(main.doms{1}.val.fmc.time_data, 2)) / mv));
-ylim([-60, 0]);
+ylim([-200, 0]);
 legend('Sub-domain method', 'Validation', 'Pristine', 'Difference (dB)');
 

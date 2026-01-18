@@ -24,7 +24,7 @@ rng(1);
 model_size = 10e-3;
 fluid_thickness = 3e-3;
 abs_bdry_thickness_in_wavelengths = 1;
-els_per_wavelength = 16;
+els_per_wavelength = 5;
 
 %Subdomain and scatterer geometry
 scatterer_size = 1e-3;
@@ -62,7 +62,7 @@ max_time = 1.1 * 2 * (fluid_thickness / fluid_velocity + (model_size - fluid_thi
 
 show_geom_only = 0; %Set to 1 to just show geometry without running model
 run_validation_models = 1;
-fe_options.field_output_every_n_frames = 20; %set to inf to suppress animations
+fe_options.field_output_every_n_frames = inf;20; %set to inf to suppress animations
 
 fe_options.sort_nds = 0;
 
@@ -127,13 +127,9 @@ main.mod.el_typ_i(els_in_fluid) = find(strcmp(main.el_types, el_typ_to_use_for_f
 %coupling between fluid and solid
 main.mod = fn_add_fluid_solid_interface_els(main.mod, main.el_types);
 
-%Time step and max time
-main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
-main.mod.design_centre_freq = centre_freq;
-fe_options.time_pts = ceil(max_time / main.mod.max_safe_time_step);
-
 %Define the absorbing layer
 main.mod = fn_2d_add_absorbing_layer(main.mod, abs_bdry_pts, abs_bdry_thickness);
+[fe_options.max_damping, fe_options.damping_power_law , fe_options.max_stiffness_reduction]= fn_optimum_absorbing_bdry_properties(abs_bdry_thickness, main.matls, centre_freq);
 
 %Define transducer
 src_end_pts = [ model_size / 2 - src_size / 2, abs_bdry_thickness
@@ -147,6 +143,13 @@ inner_bdry = [-1,-1;-1,1;1,1;1,-1] / 2 * subdomain_size + scatterer_centre;
 
 empty_subdomain = fn_2d_create_subdomain(main.mod, main.el_types, inner_bdry, abs_bdry_thickness);
 main.doms{1}.mod = empty_subdomain;
+
+%Input signal
+time_step = fn_get_suitable_time_step(main.matls, el_size);
+time_pts = ceil(max_time / time_step);
+main.inp.time = [0:time_pts - 1] * time_step;
+main.inp.sig = fn_gaussian_pulse(main.inp.time, centre_freq, no_cycles);
+
 
 %Show the mesh
 if show_geom_only %suppress graphics when running all scripts for testing

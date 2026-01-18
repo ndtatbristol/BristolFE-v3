@@ -51,7 +51,7 @@ for d = fe_options.doms_to_run
 
         %Sub-domain models are run with true input signal rather than
         %impulse response, which is what is recorded
-        bdry_dsps = real(fn_convolve(bdry_dsps, main.inp.sig, 2, fe_options.use_gpu_if_available));
+        bdry_dsps = real(fn_convolve(bdry_dsps, main.inp.sig, 2, fe_options));
 
         %Convert to forces
         [frcs, frce_set] = fn_convert_disps_to_forces_v2(...
@@ -122,10 +122,10 @@ for d = fe_options.doms_to_run
             %Convolve the measured forces from scattering at the boundary 
             %with these transfer functions to get the received signal at the
             %transducer r
-            rec_signal_at_transducer_r = sum(real(fn_convolve(transfer_function_to_r, frcs, 2, fe_options.use_gpu_if_available)));
+            rec_signal_at_transducer_r = sum(real(fn_convolve(transfer_function_to_r, frcs, 2, fe_options)));
 
-            %Add it onto the pristine FMC data that has already copied into this
-            %domain's results
+            %Add it onto the pristine FMC data that has already been copied
+            %into this domain's results
             k = find(t == main.res.fmc.tx & r == main.res.fmc.rx);
             main.doms{d}.res.fmc.time_data(:, k) = main.doms{d}.res.fmc.time_data(:, k) + rec_signal_at_transducer_r(:);
 

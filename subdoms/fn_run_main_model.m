@@ -1,61 +1,29 @@
 function main = fn_run_main_model(main, fe_options)
 
-%New version to sort out deconvolution issue
-
 default_options.doms_to_run = []; %only relevant in validation mode
-default_options.centre_freq = main.mod.design_centre_freq;
-default_options.number_of_cycles = 5;
-default_options.time_step = main.mod.max_safe_time_step;
-default_options.time_pts = 1000;
-default_options.max_time = [];
-default_options.field_output_every_n_frames = inf;
-default_options.use_gpu_if_available = 1;
 default_options.dof_to_use = [];
 default_options.tx_trans = 1:numel(main.trans); %by default all transducers are transmitters
 default_options.rx_trans = 1:numel(main.trans); %by default all transducers are also receivers
 default_options.validation_mode = 0;
-default_options.max_damping = [];
-default_options.damping_power_law = 3;
-default_options.max_stiffness_reduction = 0.01;
+
 fe_options = fn_set_default_fields(fe_options, default_options);
 if isempty(fe_options.doms_to_run)
     fe_options.doms_to_run = 1:numel(main.doms);
 end
-if isempty(fe_options.max_damping)
-    fe_options.max_damping = fe_options.centre_freq * 2 * pi;
-end
+
 if isempty(fe_options.dof_to_use)
     %This is needed for sub-domain models because all DoF need to
     %be considered as possibilities when only main model exists.
     fe_options.dof_to_use = 1:4;
 end
-if ~isfield(main.mod, 'el_typ_i')
-    main.mod.el_typ_i = {main.matls(main.mod.el_mat_i).el_typ};
-    main.mod.el_typ_i = main.mod.el_typ_i(:);
-end
-
-
-
-% fe_options.dof_to_use = fn_find_dof_in_use_and_max_dof_per_el(main.el_types, fe_options.dof_to_use);
-%deal with missing el_types for v2 legacy examples
-if ~isfield(main, 'el_types')
-    main.el_types = main.mod.el_types;
-end
 
 fe_options = fn_FE_entry_point(main.mod, main.matls, main.el_types, [], fe_options);%this call is necessary in order get the actual DoFs available from chosen solver
-
-
-%Input signal and time-axis used for all simulations
-if ~isempty(fe_options.max_time)
-    fe_options.time_pts = ceil(fe_options.max_time / fe_options.time_step);
-end
-main.inp.time = [0:fe_options.time_pts - 1] * fe_options.time_step;
-main.inp.sig = fn_gaussian_pulse(main.inp.time, fe_options.centre_freq, fe_options.number_of_cycles);
 
 %Specify which full-domain models need to be run depending on options. Note that
 %requesting field output causes the number of runs to be doubled as one is
 %run with impulse excitation to obtain transfer functions and second is run
 %with toneburst excitation to generate nice field outputs for movies
+
 if fe_options.validation_mode
     main_modes = {'validation'};
     main = fn_clear_fields(main, 'val', 1, 1);
@@ -74,7 +42,7 @@ for m = 1:numel(main_modes)
     mon_nds = zeros(size(main.mod.nds, 1), 1);
 
     %First, for sub-domains bdries (only needed in impulse mode)
-    if strcmp(main_modes{m}, 'impulse response')
+    if strcmp(main_modes{m}, 'impulse response') && isfield(main, 'doms')
         for d = 1:numel(main.doms)
             mon_nds(main.doms{d}.mod.main_nd_i(main.doms{d}.mod.bdry_lyrs > 0)) = 1;
         end
@@ -210,12 +178,12 @@ function fmc_template = fn_create_fmc_template(main, fe_options)
 [fmc_template.tx, fmc_template.rx] = meshgrid(fe_options.tx_trans, fe_options.rx_trans);
 fmc_template.tx = fmc_template.tx(:)';
 fmc_template.rx = fmc_template.rx(:)';
-fmc_template.time_data = zeros(fe_options.time_pts, numel(fmc_template.rx(:)));
-fmc_template.time = main.inp.time(:);
+fmc_template.time_data = zeros(numel(main.inp.time), numel(fmc_template.rx(:)));
+fmc_template.time = main.inp.time;
 ne = numel(main.trans);
 
 %TODO Need to add other array geom details in usual format here
-fmc_template.array.centre_freq = fe_options.centre_freq;
+% fmc_template.array.centre_freq = fe_options.centre_freq;
 fmc_template.array.el_xc = zeros(1, ne);
 fmc_template.array.el_yc = zeros(1, ne);
 fmc_template.array.el_zc = zeros(1, ne);
@@ -306,7 +274,7 @@ for k = 1:numel(fmc.tx)
     end
 
     if ~isempty(in_sig)
-        fmc.time_data(:, k) = fn_convolve(fmc.time_data(:, k), in_sig(:), 1, fe_options.use_gpu_if_available);
+        fmc.time_data(:, k) = fn_convolve(fmc.time_data(:, k), in_sig(:), 1, fe_options);
     end
 end
 end
@@ -329,8 +297,10 @@ if clear_main
     main = fn_safe_clear(main, fieldname);
 end
 if clear_doms
-    for d = 1:numel(main.doms)
+    if isfield(main, 'doms')
+        for d = 1:numel(main.doms)
             main.doms{d} = fn_safe_clear(main.doms{d}, fieldname);
+        end
     end
 end
 end
