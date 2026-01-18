@@ -3,6 +3,19 @@ function [val_mod, old_nds, new_nds] = fn_insert_subdomain_model_into_main(mn_mo
 val_mod = mn_mod;
 ndim = size(val_mod.nds, 2);
 
+%18/1/26 - idea for better way of doing this, that avoids having to use
+%fn_{2d/3d}_find_elements_in_region again:
+%Use fact that dm_mod.main_nd_i relates nodes dm_mod to mn_mod AND that
+%that dm_mod.bdry_lyrs == 1 identifies nodes in dm_mod which define the
+%stiching line. Logic something like:
+%Define N = find(dm_mod.bdry_lyrs == 1)
+%Sub-domain model - identify all els in contact with N and then subset of 
+%these in contact with dm_mod.bdry_lyrs == 2.
+%Iteratively work outwards to flag (and remove) all elements outside N
+%Main model - same idea but work inwards from equivalent nodes to N to
+%remove elements inside N.
+
+
 %Remove the elements from main model that are inside region
 switch ndim
     case 2
