@@ -1,6 +1,6 @@
 %symbolic creation of mass and stiffness matrices
 %for 3 node triangular linear (constant strain) elastic element CPE3
-restoredefaultpath;
+% restoredefaultpath;
 addpath(genpath('../..'));
 
 clear;
@@ -76,16 +76,30 @@ diff_matrix = [
 %Need to change next bit to Gauss point summation rather than integration
 %(can cover reduced integration at this point too probably)
 
-%Integrate to get K matrix
-integrand = B' * D * B * J; 
-z= sym('z', 'real'); %dummy axis for inegration through thickness
-K = simplify(int(int(int(integrand, q(1), 0, 1 - q(2)), q(2), 0, 1), z, 0, 1));
+% %Integrate to get K matrix
+% integrand = B' * D * B * J; 
+% z= sym('z', 'real'); %dummy axis for inegration through thickness
+% K = simplify(int(int(int(integrand, q(1), 0, 1 - q(2)), q(2), 0, 1), z, 0, 1));
+gauss_pts = [
+    -1, -1
+    -1,  1
+     1,  1
+     1, -1] / sqrt(3);
+integrand = B' * D * B * J;
+
+K = sym('K'); 
+for i = 1: size(gauss_pts, 1)
+    K = K + subs(subs(integrand,'q1', gauss_pts(i, 1)), 'q2', gauss_pts(i, 2));
+end
+K = simplify(K);
+
+M = sym(eye(size(K))) *  rho;
 
 %Make it a diagonal mass matrix - would be more logical to just share total
 %mass to nodes directly rather than going through consistent mass matrix
 %formualtion and then diagonalising!
-M = J * simplify(int(int(N' * N, q(1), 0, 1 - q(2)), q(2), 0, 1)) * rho;
-M = diag(sum(M));
+% M = J * simplify(int(int(N' * N, q(1), 0, 1 - q(2)), q(2), 0, 1)) * rho;
+% M = diag(sum(M));
 
 %Remove rows/cols for unwanted DOF from symbolic K and M matrices
 j = ismember(loc_df, dof_indices);
@@ -105,7 +119,7 @@ D = D + D';
 rho = 1234.5;
 
 %Test function #1 - limited DOF, just one element
-[el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats([0,0;1,0;0,1], [1,2,3], D, rho, [1,2]);
+[el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats([0,0;1,0;1,1;0,1], [1,2,3,4], D, rho, [1,2]);
 disp(squeeze(el_K));
 disp(squeeze(el_M));
 return

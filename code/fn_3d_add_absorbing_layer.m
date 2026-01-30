@@ -44,10 +44,24 @@ end
 els_to_apply_to = logical(els_to_apply_to);
 
 el_ctrs = fn_calc_element_centres(mod.nds, mod.els(els_to_apply_to, :));
-d = fn_3d_signed_dist_to_bdry(el_ctrs, abs_bdry_nds, abs_bdry_fcs);
+abs_i = fn_3d_signed_dist_to_bdry(el_ctrs, abs_bdry_nds, abs_bdry_fcs) / abs_bdry_thickness;
 
-mod.el_abs_i(els_to_apply_to) = d / abs_bdry_thickness;
-mod.el_abs_i(els_to_apply_to & (mod.el_abs_i < 0)) = 0;
-mod.el_abs_i(els_to_apply_to & (mod.el_abs_i > 1)) = 1;
+%Need to only change damping on elements outside boundary (d>0) and leave
+%state of inside ones untouched
+mod.el_abs_i(els_to_apply_to) = abs_i .* (abs_i > 0) + mod.el_abs_i(els_to_apply_to) .* (abs_i <= 0);
+
+
+% neg_d = d <= 0;
+% dd = d(~neg_d);
+% els_to_apply_to(els_to_apply_to) = 0;
+% 
+% mod.el_abs_i(els_to_apply_to) = dd / abs_bdry_thickness;
+% mod.el_abs_i(els_to_apply_to & (mod.el_abs_i < 0)) = 0;
+mod.el_abs_i = min(mod.el_abs_i, 1);
+
+
+% mod.el_abs_i(els_to_apply_to) = d / abs_bdry_thickness;
+% mod.el_abs_i(els_to_apply_to & (mod.el_abs_i < 0)) = 0;
+% mod.el_abs_i(els_to_apply_to & (mod.el_abs_i > 1)) = 1;
 
 end

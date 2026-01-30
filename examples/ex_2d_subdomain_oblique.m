@@ -1,5 +1,5 @@
 clear all;
-close all;
+% close all;
 
 rng(1);
 
@@ -47,7 +47,7 @@ no_cycles = 5;
 %Transducer details
 trans_diam = 5e-3;
 
-show_geom_only = 0; %Set to 1 to just show geometry without running model
+show_geom_only = 1; %Set to 1 to just show geometry without running model
 run_validation_models = 1;
 fe_options.field_output_every_n_frames = inf;10; %set to inf to suppress animations
 

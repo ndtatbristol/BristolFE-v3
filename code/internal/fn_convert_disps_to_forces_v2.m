@@ -1,4 +1,5 @@
 function [force_inp, force_set, force_in_set, force_out_set] = fn_convert_disps_to_forces_v2(K_sub, C_sub, M_sub, time_step, disp_inp, lyrs, in_or_out, solver_mode)
+% C_sub(:) = 0;%this is to fix a problem with C export from Pogo only!
 force_in_set = lyrs == 2;
 force_out_set = lyrs == 3;
 force_set = force_in_set | force_out_set;

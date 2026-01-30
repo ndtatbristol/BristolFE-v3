@@ -21,6 +21,7 @@ function pts = fn_2d_random_walk(npts, step_mean, step_std, angle_mean, angle_st
 %   either scalars or vectors of npts
 %--------------------------------------------------------------------------
 angs = angle_mean(:) + randn(npts, 1) .* angle_std(:);
+angs = cumsum(angs);
 step_sizes = step_mean(:) + randn(npts, 1) .* step_std(:);
 dpts = [cos(angs), sin(angs)] .* step_sizes;
 pts = cumsum(dpts);

@@ -30,7 +30,7 @@ time_step = main.inp.time(2) - main.inp.time(1);
 %Run the scatterer models
 for d = fe_options.doms_to_run
     t1 = clock;
-    fn_console_output(sprintf('Executing model for sub-domain %i/%i\n', d, numel(fe_options.doms_to_run)));
+    fn_console_output(sprintf('Executing model for sub-domain %i (%i/%i)\n', d, find(d == fe_options.doms_to_run), numel(fe_options.doms_to_run)));
     fn_increment_indent_level;
 
     main.doms{d} = fn_clear_fields(main.doms{d}, 'res', 1, 0);

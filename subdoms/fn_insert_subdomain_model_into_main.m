@@ -12,8 +12,8 @@ function [val_mod, old_nds, new_nds, dm_mod] = fn_insert_subdomain_model_into_ma
 %Main model - same idea but work inwards from equivalent nodes to N to
 %remove elements inside N.
 
-val_mod = fn_trim_subdomain_from_main(mn_mod, dm_mod);
-dm_mod = fn_trim_out_from_subdomain(dm_mod);
+val_mod = fn_trim_subdomain_interior_from_main(mn_mod, dm_mod);
+dm_mod = fn_subdomain_exterior_from_subdomain(dm_mod);
 
 %Stick the subdomain nodes at the end of the main model nodes and remember
 %the offset that needs to be added to references to these
@@ -55,17 +55,7 @@ new_nds = new_nds1;
 new_nds(j) = 0;
 end
 
-function dm_mod = fn_trim_out_from_subdomain(dm_mod)
-bdry_nds1 = find(dm_mod.bdry_lyrs == 1);
-tmp_els1 = fn_els_on_nds(dm_mod.els, bdry_nds1);
-nds_in = find(dm_mod.bdry_lyrs == 2);
-tmp_els2 = fn_els_on_nds(dm_mod.els, nds_in);
-els_in = tmp_els1 & tmp_els2;
-all_els_in_subdomain_abs_bdry = fn_all_els_inside_bdry(dm_mod.els, nds_in, els_in);
-[~, ~, dm_mod.els, dm_mod.el_mat_i, dm_mod.el_abs_i, dm_mod.el_typ_i] = fn_remove_unused_elements(~all_els_in_subdomain_abs_bdry, dm_mod.els, dm_mod.el_mat_i, dm_mod.el_abs_i, dm_mod.el_typ_i);
-end
-
-function mn_mod = fn_trim_subdomain_from_main(mn_mod, dm_mod)
+function mn_mod = fn_trim_subdomain_interior_from_main(mn_mod, dm_mod)
 bdry_nds1 = dm_mod.main_nd_i(dm_mod.bdry_lyrs == 1);
 tmp_els1 = fn_els_on_nds(mn_mod.els, bdry_nds1);
 bdry_nds2 = dm_mod.main_nd_i(dm_mod.bdry_lyrs == 2);
@@ -73,5 +63,18 @@ tmp_els2 = fn_els_on_nds(mn_mod.els, bdry_nds2);
 els_in = tmp_els1 & ~tmp_els2; %restrict to elements INSIDE bdry_nds1 (i.e. not connected to bdry_nds2);
 nds_in = setdiff(fn_nds_on_els(mn_mod.els, els_in), bdry_nds1);
 all_els_in_subdomain_in_val = fn_all_els_inside_bdry(mn_mod.els, nds_in, els_in);
-[~, ~, mn_mod.els, mn_mod.el_mat_i, mn_mod.el_abs_i, mn_mod.el_typ_i] = fn_remove_unused_elements(~all_els_in_subdomain_in_val, mn_mod.els, mn_mod.el_mat_i, mn_mod.el_abs_i, mn_mod.el_typ_i);
+[~, ~, mn_mod.els, mn_mod.el_mat_i, mn_mod.el_abs_i, mn_mod.el_typ_i] = fn_remove_unused_elements(...
+    ~all_els_in_subdomain_in_val, mn_mod.els, mn_mod.el_mat_i, mn_mod.el_abs_i, mn_mod.el_typ_i);
 end
+
+function dm_mod = fn_subdomain_exterior_from_subdomain(dm_mod)
+bdry_nds1 = find(dm_mod.bdry_lyrs == 1);
+tmp_els1 = fn_els_on_nds(dm_mod.els, bdry_nds1);
+nds_in = find(dm_mod.bdry_lyrs == 2);
+tmp_els2 = fn_els_on_nds(dm_mod.els, nds_in);
+els_in = tmp_els1 & tmp_els2;
+all_els_in_subdomain_abs_bdry = fn_all_els_inside_bdry(dm_mod.els, nds_in, els_in);
+[~, ~, dm_mod.els, dm_mod.el_mat_i, dm_mod.el_abs_i, dm_mod.el_typ_i] = fn_remove_unused_elements(...
+    ~all_els_in_subdomain_abs_bdry, dm_mod.els, dm_mod.el_mat_i, dm_mod.el_abs_i, dm_mod.el_typ_i);
+end
+
