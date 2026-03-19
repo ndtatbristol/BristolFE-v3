@@ -6,6 +6,22 @@ addpath(genpath('../..'));
 clear;
 clc;
 
+%General method
+%Define number of nodes, no DoF etc
+%Define shape functions N(q) in natural coordinates of element q (function to do
+%this?). Note r(q) = N(q)x where r is physical coordinate, x is physical nodal
+%coordinates of actual element
+%Differiate N(q) w.r.t. q to get N'(q). We actually want B(q) to give strain at q which means it
+%should be derivative w.r.t. r not q. Hence Jacobian J(q, r) needed so that
+%B(q) = N'(q)J(q, r). We don't have q(r) but we do have r(q) above, and
+%J(q, r) = inv(J(r, q)) ... critical to get meaning of J right in code!
+%Overall, B(q) will be symbolic matrix in q and containing physical
+%coordinates x.
+%Then we can evaluate integrand(q) = B'(q) D B(q) |J(q)|
+%Finally, perform integration by weighted sum over values at Gauss pts
+%(i.e. sub in q = q_i)
+
+
 %NOTE - the material stiffness matrix, D, needs to be defined in terms of 
 %engineering shear strain, e.g.
 %   gamma_xy = du_x/dy + du_y/dx = 2 * epsilon_xy
@@ -77,7 +93,7 @@ diff_matrix = [
 %(can cover reduced integration at this point too probably)
 
 % %Integrate to get K matrix
-% integrand = B' * D * B * J; 
+% integrand = B' * D * B * detJ; 
 % z= sym('z', 'real'); %dummy axis for inegration through thickness
 % K = simplify(int(int(int(integrand, q(1), 0, 1 - q(2)), q(2), 0, 1), z, 0, 1));
 gauss_pts = [
@@ -85,7 +101,7 @@ gauss_pts = [
     -1,  1
      1,  1
      1, -1] / sqrt(3);
-integrand = B' * D * B * J;
+integrand = B' * D * B * detJ;
 
 K = sym('K'); 
 for i = 1: size(gauss_pts, 1)
@@ -109,6 +125,8 @@ loc_df = loc_df(j);
 loc_nd = loc_nd(j);
 
 C = sym(zeros(size(K)));
+
+detJ = [];
 %--------------------------------------------------------------------------
 fn_create_element_matrix_file(['..', filesep, 'fn_el_', el_type, '.m'], K, C, M, detJ, loc_nd, loc_df, no_dims);
 

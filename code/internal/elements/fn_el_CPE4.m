@@ -13,7 +13,7 @@ function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE4(nds, els, D, rho, varar
 %OUTPUTS
 %	el_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices
 %AUTHOR
-%	Paul Wilcox (19-Jan-2026 23:26:12)
+%	Paul Wilcox (19-Mar-2026 08:53:49)
 
 %Deal with optional argument about which DOFs to use
 if isempty(varargin)
@@ -52,10 +52,6 @@ nds_3_1 = nds(els(:, 3), 1);
 nds_3_2 = nds(els(:, 3), 2);
 nds_4_1 = nds(els(:, 4), 1);
 nds_4_2 = nds(els(:, 4), 2);
-
-%Jacobian
-J = zeros(size(els, 1), 1, 1);
-J(:, 1, 1) = (nds_1_1 .* nds_3_2) ./ 8 - (nds_1_2 .* nds_3_1) ./ 8 + (nds_1_1 .* nds_4_2) ./ 8 - (nds_1_2 .* nds_4_1) ./ 8 + (nds_2_1 .* nds_3_2) ./ 8 - (nds_2_2 .* nds_3_1) ./ 8 + (nds_2_1 .* nds_4_2) ./ 8 - (nds_2_2 .* nds_4_1) ./ 8 - (nds_1_1 .* nds_2_2 .* q1) ./ 8 + (nds_1_2 .* nds_2_1 .* q1) ./ 8 + (nds_1_1 .* nds_2_2 .* q2) ./ 8 - (nds_1_2 .* nds_2_1 .* q2) ./ 8 + (nds_1_1 .* nds_3_2 .* q1) ./ 8 - (nds_1_2 .* nds_3_1 .* q1) ./ 8 + (nds_1_1 .* nds_4_2 .* q2) ./ 8 - (nds_1_2 .* nds_4_1 .* q2) ./ 8 - (nds_2_1 .* nds_3_2 .* q2) ./ 8 + (nds_2_2 .* nds_3_1 .* q2) ./ 8 - (nds_2_1 .* nds_4_2 .* q1) ./ 8 + (nds_2_2 .* nds_4_1 .* q1) ./ 8 + (nds_3_1 .* nds_4_2 .* q1) ./ 8 - (nds_3_2 .* nds_4_1 .* q1) ./ 8 + (nds_3_1 .* nds_4_2 .* q2) ./ 8 - (nds_3_2 .* nds_4_1 .* q2) ./ 8;
 
 %Stiffness matrix
 el_K = zeros(size(els, 1), 12, 12);
