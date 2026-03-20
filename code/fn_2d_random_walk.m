@@ -1,6 +1,6 @@
-function pts = fn_2d_random_walk(npts, step_mean, step_std, angle_mean, angle_std)
+function pts = fn_2d_random_walk(npts, step_mean, step_std, angle_start, angle_mean, angle_std)
 %USAGE
-%   pts = fn_2d_random_walk(npts, step_mean, step_std, angle_mean, angle_std)
+%   pts = fn_2d_random_walk(npts, step_mean, step_std, angle_start, angle_mean, angle_std)
 %AUTHOR
 %   Paul Wilcox (2025)
 %SUMMARY
@@ -9,18 +9,21 @@ function pts = fn_2d_random_walk(npts, step_mean, step_std, angle_mean, angle_st
 %   npts - number of points in output
 %   step_mean - mean step size between points
 %   step_std - standard deviation of step size between points
-%   angle_mean - mean angle selected at each point to make next step
+%   angle_start - angle of first step
+%   angle_mean - mean relative angle selected at each point to make next
+%   step (use zero to go in a generally straight line; non-zero to curve)
 %   angle_std - standard deviation of angle selected at each point to make
-%   next step
+%   next step (use a small value!)
 %OUTPUT
 %   pts - npts x 2 matrix of coordinates on the random wall with first
 %   point always (0, 0)
 %NOTES
-%   Angles are in radians. Distribitions for random steps are normal. The
+%   Angles are in radians. Distributions for random steps are normal. The
 %   inputs step_mean, step_std, angle_mean, and angle_std can all be 
 %   either scalars or vectors of npts
 %--------------------------------------------------------------------------
 angs = angle_mean(:) + randn(npts, 1) .* angle_std(:);
+angs = cumsum(angs) + angle_start;
 step_sizes = step_mean(:) + randn(npts, 1) .* step_std(:);
 dpts = [cos(angs), sin(angs)] .* step_sizes;
 pts = cumsum(dpts);

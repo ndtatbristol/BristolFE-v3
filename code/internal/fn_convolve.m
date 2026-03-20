@@ -1,14 +1,17 @@
-function h = fn_convolve(f, g, dim, varargin)
+function h = fn_convolve(f, g, dim, options)
+default_options.use_gpu_if_available = 1;
+
+options = fn_set_default_fields(options, default_options);
 %Convolves f by g along specified dim
 
-if numel(varargin) < 1
-    use_gpu_if_present = 1;
-else
-    use_gpu_if_present = varargin{1};
-end
+% if numel(varargin) < 1
+%     use_gpu_if_present = 1;
+% else
+%     use_gpu_if_present = varargin{1};
+% end
 
 use_gpu = 0;
-if use_gpu_if_present
+if options.use_gpu_if_available
     gpu_present = fn_test_if_gpu_present_and_working;
     if gpu_present
 	    use_gpu = 1;

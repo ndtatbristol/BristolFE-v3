@@ -54,8 +54,10 @@ end
 fprintf(fid, '\n');
 
 %Jacobian determinant
-fprintf(fid, '%%Jacobian\n');
-fprintf(fid, fn_format_sym_matrix_for_matlab(sym_J, 'J'));
+if ~isempty(sym_J)
+    fprintf(fid, '%%Jacobian\n');
+    fprintf(fid, fn_format_sym_matrix_for_matlab(sym_J, 'J'));
+end
 
 %Stiffness matrix
 fprintf(fid, '%%Stiffness matrix\n');

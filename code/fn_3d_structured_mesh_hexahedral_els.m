@@ -18,10 +18,10 @@ function mod = fn_3d_structured_mesh_hexahedral_els(crnr_pts, el_size)
 %       material is used in model
 %--------------------------------------------------------------------------
 
-sz = crnr_pts(2,:) - crnr_pts(1,:); %1x3 vector of mesh size in each direction
+sz = abs(crnr_pts(2,:) - crnr_pts(1,:)); %1x3 vector of mesh size in each direction
 n = ceil(sz / el_size) + 1; %1x3 vector of number of nodes in each direction
 d = sz ./ (n - 1); %1x3  vector of element dims in each direction
-
+c = min(crnr_pts);
 
 i1 = 1:n(1);
 i2 = 1:n(2);
@@ -30,12 +30,13 @@ i3 = 1:n(3);
 [I1, I2, I3] = ndgrid(i1, i2, i3); %3d meshgrid of node indices
 
 %physical coordinate from indices (i = nx3 matrix of indices in 3
-%directions; d = 1x3 vector of element size; c = 1x3 coordaintes of mesh 
+%directions; d = 1x3 vector of element size; c = 1x3 coordinates of mesh 
 %corner; returns nx3 of physical coordinates)
 fn_xyz = @(i, d, c) (i - 1) .* d + c;
 fn_vec = @(m) m(:);
 
-mod.nds = fn_xyz([I1(:), I2(:), I3(:)], d, crnr_pts(1,:));
+% mod.nds = fn_xyz([I1(:), I2(:), I3(:)], d, crnr_pts(1,:));
+mod.nds = fn_xyz([I1(:), I2(:), I3(:)], d, c);
 i = reshape(1:numel(I1), n);
 mod.els = [
     fn_vec(i(1:end - 1, 1:end - 1, 1:end - 1)), ... 

@@ -30,7 +30,7 @@ time_step = main.inp.time(2) - main.inp.time(1);
 %Run the scatterer models
 for d = fe_options.doms_to_run
     t1 = clock;
-    fn_console_output(sprintf('Executing model for sub-domain %i/%i\n', d, numel(fe_options.doms_to_run)));
+    fn_console_output(sprintf('Executing model for sub-domain %i (%i/%i)\n', d, find(d == fe_options.doms_to_run), numel(fe_options.doms_to_run)));
     fn_increment_indent_level;
 
     main.doms{d} = fn_clear_fields(main.doms{d}, 'res', 1, 0);
@@ -51,7 +51,7 @@ for d = fe_options.doms_to_run
 
         %Sub-domain models are run with true input signal rather than
         %impulse response, which is what is recorded
-        bdry_dsps = real(fn_convolve(bdry_dsps, main.inp.sig, 2, fe_options.use_gpu_if_available));
+        bdry_dsps = real(fn_convolve(bdry_dsps, main.inp.sig, 2, fe_options));
 
         %Convert to forces
         [frcs, frce_set] = fn_convert_disps_to_forces_v2(...
@@ -77,7 +77,6 @@ for d = fe_options.doms_to_run
     %results will be added on to this
     main.doms{d}.res.fmc = main.res.fmc;
 
-
     %Parse the field data for movies if requested
     if ~isinf(fe_options.field_output_every_n_frames)
         for si = 1:numel(fe_options.tx_trans)
@@ -89,7 +88,11 @@ for d = fe_options.doms_to_run
 
     %Parse the history results (these are not saved, just used to calculate
     %the received signals in the main model)
-    mn_all_nds_dfs = [main.res.mon_nds, main.res.mon_dfs];
+
+    %2-column matrix of nds, dfs where data has been recorded in the
+    %pristine model (includes all physical transducer nodes and all
+    %subdomain boundary nodes)
+    mn_mon_nds_dfs = [main.res.mon_nds, main.res.mon_dfs];
 
     for si = 1:numel(fe_options.tx_trans)
         t = fe_options.tx_trans(si);
@@ -98,21 +101,39 @@ for d = fe_options.doms_to_run
         [frcs, frce_set] = fn_convert_disps_to_forces_v2(...
             K_sub, C_sub, M_sub, time_step, res{si}.dsps, bdry_lyrs, 'out', fe_options.solver_mode);
 
-        %Loop over receivers
+        %Main model node numbers and DoFs associated with forcing points
+        %that represent boundary displacements around subdomain
+        mn_nds_i = main.doms{d}.mod.main_nd_i(steps{t}.mon.nds(frce_set));
+        mn_bdry_nds_dfs = [mn_nds_i, steps{t}.mon.dfs(frce_set)];
+
+        %Work out which of the pristine model result indices correspond to
+        %the boundary forcing points
+        i = ismember(mn_mon_nds_dfs, mn_bdry_nds_dfs, 'rows');
+
+        %Loop over receivers to get received signals from this subdomain at
+        %each one
         for r = fe_options.rx_trans
-            %Main nodes and DoFs associated with forcing points
-            mn_nds_i = main.doms{d}.mod.main_nd_i(steps{t}.mon.nds(frce_set));
-            mn_bdry_nds_dfs = [mn_nds_i, steps{t}.mon.dfs(frce_set)];
+            %Take the received displacements for transmitter r at the 
+            %boundary forcing points in the pristine case. By reciprocity, 
+            %these are the transfer functions for forcing at the boundary 
+            %points back to receiver r, 
+            transfer_function_to_r = main.res.trans{r}.dsps(i, :);
 
-            %USE THE PARSE TO FMC DATA unction here instead!
-            %Convolve with relevant receiver transfer function
-            i = ismember(mn_all_nds_dfs, mn_bdry_nds_dfs, 'rows');
-            tmp = sum(real(fn_convolve(main.res.trans{r}.dsps(i, :), frcs, 2, fe_options.use_gpu_if_available)));
+            %Convolve the measured forces from scattering at the boundary 
+            %with these transfer functions to get the received signal at the
+            %transducer r
+            rec_signal_at_transducer_r = sum(real(fn_convolve(transfer_function_to_r, frcs, 2, fe_options)));
 
-            %Add it onto the pristine FMC data already copied into this
-            %domain's results
+            %Add it onto the pristine FMC data that has already been copied
+            %into this domain's results
             k = find(t == main.res.fmc.tx & r == main.res.fmc.rx);
-            main.doms{d}.res.fmc.time_data(:, k) = main.doms{d}.res.fmc.time_data(:, k) + tmp(:);
+            main.doms{d}.res.fmc.time_data(:, k) = main.doms{d}.res.fmc.time_data(:, k) + rec_signal_at_transducer_r(:);
+
+            %Note that any weightings defined for transducer nds/dfs do not
+            %need to be considered here as they are already included in (a)
+            %the transmitted field imposed on the subdomain and (b) the
+            %transfer functions
+         
         end
     end
     fn_decrement_indent_level;

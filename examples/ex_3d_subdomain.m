@@ -9,18 +9,24 @@ addpath(genpath('..\subdoms'));
 fe_options.pogo_path = 'C:\Program Files\Pogo\windows\new version';
 fe_options.pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
 
-fe_options.sort_nds = 1;
+%WARNING - this script is very slow, primarily due to the time taken to
+%export the system matrices as text files from the pristine model.
+
+fe_options.sort_nds = 0;
+show_geom_only = 0;
 
 %--------------------------------------------------------------------------
 %DEFINE THE PROBLEM
 
-show_geom_only = 0;
 
 abs_bdry_thickness = 1e-3;
 
 %Material properties
 solid_matl_i = 1;
 main.matls{solid_matl_i} = fn_matl_isotropic_solid_defined_by_velocities('Aluminium', 6300, 3150, 2700);
+extra_matl_i = 2;
+main.matls{extra_matl_i} = fn_matl_isotropic_solid_defined_by_velocities('Perspex', 2730, 1345, 1190, [255, 255, 224] / 256);
+
 
 % main.el_types = fn_3d_el_types(); %C3D8 8 noded brick
 solid_element_type = 'C3D8';
@@ -30,7 +36,7 @@ model_size_x = 10e-3;
 model_size_y = 10e-3;
 model_size_z = 12e-3;
 
-src_radius = 3e-3;
+src_radius = 1e-3;
 
 %corner bts
 crnr_pts = [
@@ -45,16 +51,15 @@ scat_rad = subdom_rad / 2;
 
 %Define a line along which sources will be placed to excite waves
 src_centre = [0.5 * model_size_x, 0.5 * model_size_y, model_size_z];
-
 src_dir = 3; %direction of forces applied: 1 = x, 2 = y, 3 = z (for solids), 4 = volumetric expansion (for fluids)
 
 %Details of input signal
 centre_freq = 5e6;
-fe_options.number_of_cycles = 5;
-fe_options.max_time = 1.5 * 2 * model_size_z / 6300;
+no_cycles = 5;
+max_time = 3 * 2 * model_size_z / 6300;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
-els_per_wavelength = 6;
+els_per_wavelength = 4;
 
 fe_options.solver = 'pogo';
 fe_options.dof_to_use = [1,2,3];
@@ -66,20 +71,44 @@ el_size = fn_get_suitable_el_size(main.matls, centre_freq, els_per_wavelength);
 
 %Create the nodes and elements of the mesh
 main.mod = fn_3d_structured_mesh_hexahedral_els(crnr_pts, el_size);
-main.mod.design_centre_freq = centre_freq;
-main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
+
+el_ctrs = fn_calc_element_centres(main.mod.nds, main.mod.els);
+% els_to_go = el_ctrs(:,1) < model_size_x / 2 & el_ctrs(:,2) < model_size_y / 2  & el_ctrs(:,3) < model_size_z / 2;
+els_to_go = (el_ctrs(:,1) - el_ctrs(:,3 )) > 0 & el_ctrs(:,2) < model_size_y / 2 & el_ctrs(:,3) < model_size_z / 2;
+main.mod.el_mat_i = ones(size(main.mod.el_typ_i)) * solid_matl_i;
+main.mod.el_mat_i((0.1 * el_ctrs(:,1) + el_ctrs(:,3)) > model_size_z *0.75) = extra_matl_i;
+
+main.mod.els(els_to_go, :) = [];
+main.mod.el_mat_i(els_to_go) = [];
+main.mod.el_abs_i(els_to_go) = [];
+main.mod.el_typ_i(els_to_go) = [];
+[main.mod.nds, main.mod.els, ~, ~] = fn_remove_unused_nodes(main.mod.nds, main.mod.els);
+
+
 
 main.el_types = fn_3d_el_types();
 main.mod.el_typ_i = ones(size(main.mod.el_typ_i)) * find(strcmp(main.el_types, solid_element_type));
-main.mod.el_mat_i = ones(size(main.mod.el_typ_i)) * solid_matl_i;
 
 %Identify nodes along the source line to say where the loading will be 
 %when FE model is run
-main.trans{1}.nds = find(...
+nds = find(...
     abs(main.mod.nds(:, 3) - src_centre(3)) < el_size / 2 & ...
     sqrt(sum( (main.mod.nds(:, 1:2) - src_centre(1:2)) .^ 2, 2 )) < src_radius ...
     );
-main.trans{1}.dfs = ones(size(main.trans{1}.nds)) * src_dir;
+main.trans{1}.nds = nds;
+main.trans{1}.dfs = ones(size(nds)) * src_dir;
+
+% main.trans{1}.nds = [nds; nds];
+% main.trans{1}.dfs = [ones(size(nds)); ones(size(nds)) * 3];
+% main.trans{1}.wts = [ones(size(nds)) * 0.3; -ones(size(nds)) * 0.7];
+
+%Input signal
+time_step = fn_get_suitable_time_step(main.matls, el_size);
+time_pts = ceil(max_time / time_step);
+main.inp.time = [0:time_pts - 1] * time_step;
+main.inp.sig = fn_gaussian_pulse(main.inp.time, centre_freq, no_cycles);
+
+
 
 %Create the subdomain
 [inner_bndry_vtcs, inner_bndry_fcs] = fn_3d_spherical_surface(subdom_centre, subdom_rad);
@@ -135,6 +164,6 @@ plot(main.res.fmc.time, real(sum(main.res.fmc.time_data, 2)) / mv, 'b');
 ylim([-1,1]);
 yyaxis right
 plot(main.doms{1}.res.fmc.time, 20 * log10(abs(sum(main.doms{1}.res.fmc.time_data, 2) - sum(main.doms{1}.val.fmc.time_data, 2)) / mv));
-ylim([-60, 0]);
+ylim([-200, 0]);
 legend('Sub-domain method', 'Validation', 'Pristine', 'Difference (dB)');
 

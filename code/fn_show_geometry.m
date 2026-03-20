@@ -37,7 +37,7 @@ default_options.offset = 0;
 if isempty(matls)
     %if materials not specified make up some default colours
     %no_unique_mats = numel(unique(mod.el_mat_i));
-    default_options.matl_cols = linspace(0, 1, max(mod.el_mat_i))' * ones(1,3);
+    default_options.matl_cols = linspace(0.5, 0.75, max(mod.el_mat_i))' * ones(1,3);
 else
     default_options.matl_cols = zeros(numel(matls), 3);
     for i = 1:numel(matls)

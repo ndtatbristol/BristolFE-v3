@@ -1,18 +1,15 @@
-function [d, nearest_pts, norm_vecs, type_of_nearest_entity, nearest_entity, bdry_edges] = fn_3d_signed_dist_to_bdry(pts, bdry_nds, bdry_fcs, interior_pt)
+function [d, nearest_pts, norm_vecs, type_of_nearest_entity, nearest_entity, bdry_edges] = fn_3d_signed_dist_to_bdry(pts, bdry_nds, bdry_fcs)
 %SUMMARY
 %   Returns signed (positive exterior) shortest distance of point(s) to
 %   boundary surface described by vertices of triangular facets
 %USAGE
-%   d = fn_3d_signed_dist_to_bdry(pts, bdry_nds, bdry_fcs, interior_pt)
+%   d = fn_3d_signed_dist_to_bdry(pts, bdry_nds, bdry_fcs)
 %AUTHOR
 %   Paul Wilcox (2025)
 %INPUTS
 %   pts - n_pts x 3 list of query point coordiantes
 %   bdry_nds - n_nds x 3 list of boundary vertex coordinates
 %   bdry_fcs - n_fcs x 3 list of vertex indices for each triangular facet
-%   interior_pt - [] or 1 x 3 coordinates of point inside boundary surface,
-%   which is used to determine correct overall sign of d. If empty,
-%   sign of d will be random.
 %OUTPUTS
 %   d - n_pts x 1 signed distance of each point to nearest point on
 %   boundary where sign is negative (interior) or positive (exterior).

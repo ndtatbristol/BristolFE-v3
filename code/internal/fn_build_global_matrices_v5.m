@@ -96,7 +96,7 @@ for t = 1:numel(unique_typs)
         %Following is legacy - should require matls to have 6x6 stiffness
         %matrix
         if size(D, 1) == 3 && size(D, 2) == 3
-            D = [D(:, 1:2), zeros(3, 3), D(:,3)];
+            D = [D(:, 1:2), zeros(3, 3), D(:, 3)];
             D = [D(1:2, :); zeros(3, 6); D(3, :)];
         end
         

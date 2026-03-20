@@ -9,5 +9,5 @@ if closed
 end
 
 hold on;
-plot(pts(:, 1), pts(:, 2), col);
+plot(pts(:, 1), pts(:, 2), col, 'MarkerSize', 24);
 end

@@ -128,7 +128,7 @@ end
 if include_crack
     n = 10;
     cod = el_size / 10;
-    crack_pts = fn_2d_random_walk(n,crack_size / n, 0, 0, 0.4);
+    crack_pts = fn_2d_random_walk(n,crack_size / n, 0, 0, 0, 0.4);
     crack_vtcs = crack_centre + crack_pts - mean(crack_pts);
     mod = fn_2d_add_crack(mod, el_types, crack_vtcs, [], cod);
 end
@@ -214,5 +214,6 @@ if ~isinf(fe_options.field_output_every_n_frames)
     display_options.draw_elements = 0; %makes it easier to see waves if element edges not drawn
     h_patch = fn_show_geometry(mod, matls, el_types, display_options);
     anim_options.repeat_n_times = 1;
+    anim_options.fld_time = res{1}.fld_time;
     fn_run_animation(h_patch, res{1}.fld, anim_options);
 end

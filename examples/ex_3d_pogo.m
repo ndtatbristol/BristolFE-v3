@@ -51,7 +51,7 @@ no_cycles = 4;
 max_time = 1.2 * (2 * model_size_z) / solid_c_L;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
-els_per_wavelength = 5;
+els_per_wavelength = 6;
 
 %Following will need to be set to where the Pogo executable and Pogo Matlab
 %scripts are located respectively
