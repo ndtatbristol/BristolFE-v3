@@ -9,7 +9,10 @@ addpath(genpath('..\subdoms'));
 fe_options.pogo_path = 'C:\Program Files\Pogo\windows\new version';
 fe_options.pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
 
-fe_options.sort_nds = 1;
+%WARNING - this script is very slow, primarily due to the time taken to
+%export the system matrices as text files from the pristine model.
+
+fe_options.sort_nds = 0;
 show_geom_only = 0;
 
 %--------------------------------------------------------------------------
@@ -56,7 +59,7 @@ no_cycles = 5;
 max_time = 3 * 2 * model_size_z / 6300;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
-els_per_wavelength = 1.5;3;
+els_per_wavelength = 4;
 
 fe_options.solver = 'pogo';
 fe_options.dof_to_use = [1,2,3];
@@ -70,8 +73,8 @@ el_size = fn_get_suitable_el_size(main.matls, centre_freq, els_per_wavelength);
 main.mod = fn_3d_structured_mesh_hexahedral_els(crnr_pts, el_size);
 
 el_ctrs = fn_calc_element_centres(main.mod.nds, main.mod.els);
-els_to_go = el_ctrs(:,1) < model_size_x / 2 & el_ctrs(:,2) < model_size_y / 2  & el_ctrs(:,3) < model_size_z / 2;
-% els_to_go = (el_ctrs(:,1) - el_ctrs(:,3 )) > 0 & el_ctrs(:,2) < model_size_y / 2 & el_ctrs(:,3) < model_size_z / 2;
+% els_to_go = el_ctrs(:,1) < model_size_x / 2 & el_ctrs(:,2) < model_size_y / 2  & el_ctrs(:,3) < model_size_z / 2;
+els_to_go = (el_ctrs(:,1) - el_ctrs(:,3 )) > 0 & el_ctrs(:,2) < model_size_y / 2 & el_ctrs(:,3) < model_size_z / 2;
 main.mod.el_mat_i = ones(size(main.mod.el_typ_i)) * solid_matl_i;
 main.mod.el_mat_i((0.1 * el_ctrs(:,1) + el_ctrs(:,3)) > model_size_z *0.75) = extra_matl_i;
 

@@ -58,6 +58,12 @@ els_in_use(dm_mod.el_abs_i > 1) = 0;
 dm_mod.main_nd_i = old_nds;
 dm_mod.bdry_lyrs = dm_mod.bdry_lyrs(old_nds);
 
+%Following line is a bit ugly as it removes existing interface elements as
+%part of the process and then adds them again, but otherwise there is a
+%potential problem of interface elements with material on only one side 
+%where the main domain is truncated to form the subdomain
+dm_mod = fn_add_fluid_solid_interface_els(dm_mod, el_types);
+
 
 end
 

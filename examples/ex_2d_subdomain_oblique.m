@@ -1,5 +1,5 @@
 clear all;
-% close all;
+close all;
 
 rng(1);
 
@@ -17,7 +17,7 @@ rng(1);
 plate_thickness = 10e-3;
 clearance = 1e-3;
 abs_bdry_thickness_in_wavelengths = 1;
-els_per_wavelength = 5;
+els_per_wavelength = 10;
 inc_angle_degs = 45; %wedge geometry will be calculated from this and inc_angle mode
 inc_mode = 'S';
 
@@ -47,9 +47,9 @@ no_cycles = 5;
 %Transducer details
 trans_diam = 5e-3;
 
-show_geom_only = 1; %Set to 1 to just show geometry without running model
+show_geom_only = 0; %Set to 1 to just show geometry without running model
 run_validation_models = 1;
-fe_options.field_output_every_n_frames = inf;10; %set to inf to suppress animations
+fe_options.field_output_every_n_frames = 20; %set to inf to suppress animations
 
 %--------------------------------------------------------------------------
 %END OF INPUTS
@@ -139,11 +139,6 @@ main.mod.el_typ_i(:) = find(strcmp(main.el_types, el_typ_to_use_for_solid));
 main.mod.el_mat_i(plate_els) = plate_matl_i;
 main.mod.el_mat_i(wedge_els) = wedge_matl_i;
 
-%Time step and max time
-% main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
-% main.mod.design_centre_freq = centre_freq;
-% fe_options.time_pts = ceil(max_time / main.mod.max_safe_time_step);
-
 %Define the absorbing layer
 main.mod = fn_2d_add_absorbing_layer(main.mod, abs_bdry_pts_plate, abs_bdry_thickness, plate_els);
 main.mod = fn_2d_add_absorbing_layer(main.mod, abs_bdry_pts_wedge, abs_bdry_thickness, wedge_els);
@@ -202,8 +197,9 @@ main.doms{1}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.el_types, 
 
 %Sub-domain 2 contains a random crack
 main.doms{2}.mod = empty_subdomain;
-crack_len = subdomain_size_y;
-crack_vtcs = fn_2d_random_walk(50, crack_len / 50, 0, pi / 2, pi / 8);
+crack_len = subdomain_size_y * 0.8;
+crack_pts = 50;
+crack_vtcs = fn_2d_random_walk(crack_pts, crack_len / crack_pts, 0, pi / 2, 0, pi / 4 / sqrt(crack_pts));
 main.doms{2}.mod = fn_2d_add_crack(main.doms{2}.mod, main.el_types, crack_vtcs);
 
 
@@ -225,19 +221,6 @@ main = fn_run_main_model(main, fe_options);
 
 %Subdomain model with no scatterers
 main = fn_run_subdomain_model(main, fe_options);
-
-
-% %Demonstration of how sub-domain model can be run for multiple random scatterers
-% results = zeros(numel(main.inp.time), no_scatterers);
-% for s = 1:no_scatterers
-%     scat_pts =   fn_2d_create_smooth_random_blob(0.4, 3, 360) * scatterer_size / 2 + scatterer_centre;
-%     main.doms{1}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.el_types, scat_pts, 0, 0);
-%     main = fn_run_subdomain_model(main, fe_options);
-%     results(:,s) = sum(main.doms{1}.res.fmc.time_data, 2);
-% end
-
-% figure;
-% plot(main.inp.time, real(results));
 
 %Animate results if requested
 if ~isinf(fe_options.field_output_every_n_frames)

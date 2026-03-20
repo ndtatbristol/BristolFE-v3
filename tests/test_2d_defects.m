@@ -35,10 +35,10 @@ crack_pts2 = 10;
 crack_len2 = model_size * 0.25;
 crack_start1 = [-el_size,  model_size * 0.5];
 %top part
-crack_vtcs1 = crack_start1 + fn_2d_random_walk(crack_pts1, crack_len1/crack_pts1, 0, linspace(0,1,crack_pts1) * pi/8, 0.4);
+crack_vtcs1 = crack_start1 + fn_2d_random_walk(crack_pts1, crack_len1/crack_pts1, 0, 0, 0, 0.4);
 %branch start (mid way along top branch)
 crack_start2 = crack_vtcs1(round(crack_pts1 / 2), :); 
-crack_vtcs2 = crack_start2 + fn_2d_random_walk(crack_pts2, crack_len2/crack_pts2, 0, -pi/8-linspace(0,1,crack_pts2) * pi/8, 0.4);
+crack_vtcs2 = crack_start2 + fn_2d_random_walk(crack_pts2, crack_len2/crack_pts2, 0, 0, 0, 0.4);
 %Add the cracks
 mod = fn_2d_add_crack(mod, el_types, crack_vtcs1, [], cod);
 mod = fn_2d_add_crack(mod, el_types, crack_vtcs2, [], cod);

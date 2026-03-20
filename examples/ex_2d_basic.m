@@ -152,4 +152,5 @@ figure;
 %produce the plot for animation. It returns a handle to the patches representing
 %elements and it is the colours of these that are animated by fn_run_animation
 h_patch = fn_show_geometry(mod, matls, el_types, display_options);
-fn_run_animation(h_patch, res{1}.fld, []);
+anim_options.fld_time = res{1}.fld_time;
+fn_run_animation(h_patch, res{1}.fld, anim_options);

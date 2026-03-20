@@ -1,7 +1,7 @@
 clear all;
 close all;
 
-rng(1);
+rng(2);
 %ABOUT THIS EXAMPLE
 %This example is designed to show how to use the subdomain method. Here a
 %main model without scatterers is created and executed and then subdomain
@@ -24,13 +24,13 @@ rng(1);
 model_size = 10e-3;
 fluid_thickness = 3e-3;
 abs_bdry_thickness_in_wavelengths = 1;
-els_per_wavelength = 5;
+els_per_wavelength = 10;
 
 %Subdomain and scatterer geometry
 scatterer_size = 1e-3;
 subdomain_size = scatterer_size + 0.1e-3;
 scatterer_depth = 3e-3;
-no_scatterers = 1; %do multiple random scatterers
+no_scatterers = 1; %do multiple random scatterers in same subdomain one after another
 
 %Solid material properties
 solid_matl_name = 'steel';
@@ -62,7 +62,7 @@ max_time = 1.1 * 2 * (fluid_thickness / fluid_velocity + (model_size - fluid_thi
 
 show_geom_only = 0; %Set to 1 to just show geometry without running model
 run_validation_models = 1;
-fe_options.field_output_every_n_frames = inf;20; %set to inf to suppress animations
+fe_options.field_output_every_n_frames = 20; %set to inf to suppress animations
 
 fe_options.sort_nds = 0;
 
@@ -167,16 +167,18 @@ end
 main = fn_run_main_model(main, fe_options);
 
 %Demonstration of how sub-domain model can be run for multiple random scatterers
+figure;
 results = zeros(numel(main.inp.time), no_scatterers);
 for s = 1:no_scatterers
     scat_pts =   fn_2d_create_smooth_random_blob(0.4, 3, 360) * scatterer_size / 2 + scatterer_centre;
-    main.doms{1}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.el_types, scat_pts, 0, 0);
+    main.doms{1}.mod = fn_2d_add_inclusion_or_void(empty_subdomain, main.el_types, scat_pts, 0, 0);
     main = fn_run_subdomain_model(main, fe_options);
     results(:,s) = sum(main.doms{1}.res.fmc.time_data, 2);
+    subplot(2, no_scatterers, s);
+    plot(main.doms{1}.res.fmc.time, real(results(:,s)))
+    subplot(2, no_scatterers, no_scatterers + s);
+    fn_show_geometry(main.doms{1}.mod, main.matls, main.el_types, []);
 end
-
-figure;
-plot(main.inp.time, real(results));
 
 %Animate results if requested
 if ~isinf(fe_options.field_output_every_n_frames)
@@ -193,30 +195,29 @@ if run_validation_models
     fe_options.validation_mode = 1;
     main = fn_run_main_model(main, fe_options);
 
-    %Animate validation results if requested
-    if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
-        %View the time domain data and compare wih validation
-        figure;
-        i = max(find(abs(main.inp.sig) > max(abs(main.inp.sig)) / 1000));
-        mv = max(abs(sum(main.doms{1}.res.fmc.time_data(i:end,: ), 2)));
-        plot(main.doms{1}.res.fmc.time, real(sum(main.doms{1}.res.fmc.time_data, 2)) / mv, 'k', 'LineWidth', 2);
-        hold on;
-        plot(main.doms{1}.val.fmc.time, real(sum(main.doms{1}.val.fmc.time_data, 2)) / mv, 'g:', 'LineWidth', 2);
-        plot(main.res.fmc.time, real(sum(main.res.fmc.time_data, 2)) / mv, 'b');
-        ylim([-1,1]);
-        yyaxis right
-        plot(main.doms{1}.res.fmc.time, 20 * log10(abs(sum(main.doms{1}.res.fmc.time_data, 2) - sum(main.doms{1}.val.fmc.time_data, 2)) / mv));
-        ylim([-60, 0]);
-        legend('Sub-domain method', 'Validation', 'Pristine', 'Difference (dB)');
+    %View the time domain data and compare wih validation
+    figure;
+    i = max(find(abs(main.inp.sig) > max(abs(main.inp.sig)) / 1000));
+    mv = max(abs(sum(main.doms{1}.res.fmc.time_data(i:end,: ), 2)));
+    plot(main.doms{1}.res.fmc.time, real(sum(main.doms{1}.res.fmc.time_data, 2)) / mv, 'k', 'LineWidth', 2);
+    hold on;
+    plot(main.doms{1}.val.fmc.time, real(sum(main.doms{1}.val.fmc.time_data, 2)) / mv, 'g:', 'LineWidth', 2);
+    plot(main.res.fmc.time, real(sum(main.res.fmc.time_data, 2)) / mv, 'b');
+    ylim([-1,1]);
+    yyaxis right
+    plot(main.doms{1}.res.fmc.time, 20 * log10(abs(sum(main.doms{1}.res.fmc.time_data, 2) - sum(main.doms{1}.val.fmc.time_data, 2)) / mv));
+    ylim([-60, 0]);
+    legend('Sub-domain method', 'Validation', 'Pristine', 'Difference (dB)');
 
-        if ~isinf(fe_options.field_output_every_n_frames)
-            %Animate result
-            figure;
-            anim_options.repeat_n_times = 1;
-            anim_options.db_range = [-40, 0];
-            anim_options.pause_value = 0.001;
-            h_patches = fn_show_geometry(main.doms{1}.val_mod, main.matls, main.el_types, anim_options);
-            fn_run_animation(h_patches, main.doms{1}.val.trans{1}.fld, anim_options);
-        end
+    %Animate validation results if requested
+    if ~isinf(fe_options.field_output_every_n_frames)
+        %Animate result
+        figure;
+        anim_options.repeat_n_times = 1;
+        anim_options.db_range = [-40, 0];
+        anim_options.pause_value = 0.001;
+        h_patches = fn_show_geometry(main.doms{1}.val_mod, main.matls, main.el_types, anim_options);
+        anim_options.fld_time = main.res.trans{1}.fld_time;
+        fn_run_animation(h_patches, main.doms{1}.val.trans{1}.fld, anim_options);
     end
 end

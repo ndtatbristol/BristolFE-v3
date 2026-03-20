@@ -25,20 +25,10 @@ if isstruct(el_types) && isfield(el_types, 'rho')
     [mod, el_types] = fn_create_el_types_for_legacy_v2_models(mod, matls);
 end
 
-solid_el_i = [];
-fluid_el_i = [];
-int_el_typ_i = [];
-for i = 1:numel(el_types)
-    tmp = fn_query_el_type_info(el_types{i});
-    switch tmp.state
-        case 'solid'
-            solid_el_i(end + 1) = i;
-        case 'fluid'
-            fluid_el_i(end + 1) = i;
-        case 'fluid_solid_interface'
-            int_el_typ_i(end + 1) = i;
-    end
-end
+solid_el_i = fn_el_types_of_state(el_types, 'solid');
+fluid_el_i = fn_el_types_of_state(el_types, 'fluid');
+int_el_typ_i = fn_el_types_of_state(el_types, 'fluid_solid_interface');
+
 
 % if isempty(solid_el_i) || isempty(fluid_el_i)
 if ~(any(mod.el_typ_i == solid_el_i, 'all') && any(mod.el_typ_i == fluid_el_i, 'all'))
@@ -49,7 +39,7 @@ end
 %Remove existing interface elements - necessary otherwise new elements will
 %be added on top and will effectively double the coupling between solid and
 %fluid
-mod = fn_remove_fluid_solid_interface_els(mod, int_el_typ_i);
+mod = fn_remove_fluid_solid_interface_els(mod, el_types);
 
 %for legacy v2 calls, need to embed el_types in mod as well
 % mod.el_types = el_types;
