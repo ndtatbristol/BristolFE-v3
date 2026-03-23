@@ -1,4 +1,4 @@
-function shape_functions = fn_shape_functions_sym(nds_in_nat_coords, sf_powers)
+function [shape_functions, Q] = fn_shape_functions_sym(nds_in_nat_coords, sf_powers)
 %INPUTS
 %   nds_in_nat_coords - no_nds x no_dims matrix of nodal positions in
 %   natural coordinates
@@ -8,6 +8,10 @@ function shape_functions = fn_shape_functions_sym(nds_in_nat_coords, sf_powers)
 no_nds = size(nds_in_nat_coords, 1);
 no_dims = size(nds_in_nat_coords, 2);
 no_terms = size(sf_powers, 1);
+% no_dims = 3;
+% if size(sf_powers, 2) < no_dims
+%     sf_powers = [sf_powers, zeros(size(sf_powers, 1), no_dims - size(sf_powers, 2))];
+% end
 
 %First need to get shape function coefficients, by writing simultaneous
 %equations that need to be solved in order for n_i to be 1 at i^th node and
