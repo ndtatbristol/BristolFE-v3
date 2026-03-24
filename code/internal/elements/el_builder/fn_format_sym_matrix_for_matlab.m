@@ -11,6 +11,7 @@ for i = 1:size(Z_symm,1)
     end
 end
 str = regexprep(str, 'D_(\d)_(\d)', 'D($1, $2)');
+str = regexprep(str, 'detJ_(\d)', 'detJ(:, $1, 1)');
 str = regexprep(str, '\^',' .^ ');
 str = regexprep(str, '*',' .* ');
 str = regexprep(str, '/',' ./ ');

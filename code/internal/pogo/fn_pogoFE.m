@@ -1,8 +1,8 @@
 function varargout = fn_pogoFE(mod, matls, el_types, steps, fe_options)
 %USAGE
-%   res = fn_pogoFE(mod, matls, steps, fe_options)
-%   [res, mats] = fn_pogoFE(mod, matls, steps, fe_options)
-%   fe_options = fn_pogoFE(mod, matls, [], fe_options)
+%   res = fn_pogoFE(mod, matls, el_types, steps, fe_options)
+%   [res, mats] = fn_pogoFE(mod, matls, el_types, steps, fe_options)
+%   fe_options = fn_pogoFE(mod, matls, el_types, [], fe_options)
 %AUTHOR
 %   Paul Wilcox (2025)
 %SUMMARY

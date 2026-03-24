@@ -1,5 +1,5 @@
 clear all
-close all;
+% close all;
 
 %ABOUT THIS SCRIPT
 %This script runs the same model twice, once in BristolFE and once in Pogo
@@ -42,10 +42,9 @@ no_cycles = 4;
 %Run for long enough for longitudinal waves to travel 3 lengths of model
 max_time = 3 * model_size / matl_longitudinal_velocity; 
 
-%Say which element type will be used (currently there is only one choice for
-%a solid material in 2D model, but in the future there may be more options to choose
-%from, e.g. quadrilateral elements, second order elements)
+%Say which element type will be used (currently only CPE3 and CPE4 supported in both packages)
 el_typ_to_use_for_solid = 'CPE3'; 
+el_typ_to_use_for_solid = 'CPE4R'; 
 
 solvers = {'BristolFE', 'pogo'};
 
@@ -79,8 +78,12 @@ el_size = fn_get_suitable_el_size(matls, centre_freq, els_per_wavelength);
 time_step = fn_get_suitable_time_step(matls, el_size);
 
 %Create the nodes and elements of the mesh
-mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
-
+switch el_typ_to_use_for_solid
+    case 'CPE3'
+        mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
+    case {'CPE4', 'CPE4R'}
+        mod = fn_2d_structured_mesh_rectangular_els(bdry_pts, el_size);
+end
 %A cell array that includes all element types used in a model is required 
 %(same idea as the cell array of materials that contains all materials used 
 %in the model). The function below produces a list of all available 2d

@@ -58,6 +58,11 @@ element_node2 = node_numbers(2:end,   1:end-1);
 element_node3 = node_numbers(2:end,   2:end  );
 element_node4 = node_numbers(1:end-1, 2:end  );
 
+% element_node1 = node_numbers(1:end-1, 1:end-1);
+% element_node2 = node_numbers(1:end-1, 2:end  );
+% element_node3 = node_numbers(2:end,   2:end  );
+% element_node4 = node_numbers(2:end,   1:end-1);
+
 %Final m x 2 matrix of x and y coordinates for each node
 mod.nds = [node_x_positions(:), node_y_positions(:)];
 

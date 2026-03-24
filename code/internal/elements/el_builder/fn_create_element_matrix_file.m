@@ -1,4 +1,4 @@
-function fn_create_element_matrix_file(fname, sym_K, sym_C, sym_M, sym_J, loc_nd, loc_df, no_dims, varargin)
+function fn_create_element_matrix_file(fname, sym_K, sym_C, sym_M, sym_detJ, loc_nd, loc_df, no_dims, varargin)
 fid = fopen(fname, 'wt');
 
 [~, fn_name] = fileparts(fname);
@@ -54,9 +54,9 @@ end
 fprintf(fid, '\n');
 
 %Jacobian determinant
-if ~isempty(sym_J)
-    fprintf(fid, '%%Jacobian\n');
-    fprintf(fid, fn_format_sym_matrix_for_matlab(sym_J, 'J'));
+if ~isempty(sym_detJ)
+    fprintf(fid, '%%Jacobians at Gauss points\n');
+    fprintf(fid, fn_format_sym_matrix_for_matlab(sym_detJ, 'detJ'));
 end
 
 %Stiffness matrix

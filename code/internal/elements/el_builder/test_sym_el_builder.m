@@ -1,32 +1,35 @@
 %test new element formulation method
 clear all
-addpath('../')
+addpath(genpath('../..'));
 
 %CPE3
-nds_in_nat_coords = [
-    0, 0; 
-    1, 0; 
-    0, 1];
-sf_powers = [
-    0, 0
-    1, 0
-    0, 1];
-gauss_pts = [
-    1/3, 1/3];
-gauss_weights = 1/2; 
+% nds_in_nat_coords = [
+%     0, 0; 
+%     1, 0; 
+%     0, 1];
+% sf_powers = [
+%     0, 0
+%     1, 0
+%     0, 1];
+% gauss_pts = [
+%     1/3, 1/3];
+% gauss_weights = 1/2; 
 
 
 %CPE4
-% nds_in_nat_coords = [
-%     -1, -1 
-%      1, -1 
-%      1,  1 
-%     -1,  1];
-% sf_powers = [
-%     0, 0 
-%     1, 0 
-%     0, 1 
-%     1, 1];
+nds_in_nat_coords = [
+    -1, -1 
+     1, -1 
+     1,  1 
+    -1,  1];
+sf_powers = [
+    0, 0 
+    1, 0 
+    0, 1 
+    1, 1];
+gauss_pts = [
+    0, 0];
+gauss_weights = 1; 
 
 no_dfs = 3;
 solid_or_fluid = 'solid';
@@ -50,5 +53,11 @@ rho = 1234.5;
 %Test function #1 - limited DOF, just one element
 [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats_test([0,0;1,0;0,1], [1,2,3], D, rho, [1,2]);
 disp(squeeze(el_K));
-[el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE3([0,0;1,0;0,1], [1,2,3], D, rho, [1,2]);
-disp(squeeze(el_K));
+% [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE3([0,0;1,0;0,1], [1,2,3], D, rho, [1,2]);
+% disp(squeeze(el_K));
+% 
+% el_type = 'CPE3';
+% nds = [0,0;1,0;0,1;1,1];
+% els = [1,2,3;2,4,3];
+% 
+% [K, M] = fn_get_pogo_matrices(el_type, nds, els, D, rho);
