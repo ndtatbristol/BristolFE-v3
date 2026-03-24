@@ -34,7 +34,7 @@ gauss_weights = ones(size(gauss_pts, 1), 1) * 1;
 
 no_dfs = 3;
 solid_or_fluid = 'solid';
-new_el_type = 'CPE4_new2';
+new_el_type = 'CPE4_test_sym';
 ref_el_type = 'CPE4';
 no_dims = 2;
 

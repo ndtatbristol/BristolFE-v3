@@ -18,8 +18,8 @@ gauss_weights = 1/2;
 
 no_dfs = 3;
 solid_or_fluid = 'solid';
-new_el_type = 'CPE3';
-ref_el_type = 'CPE3_old';
+new_el_type = 'CPE3_test';
+ref_el_type = 'CPE3';
 no_dims = 2;
 
 [K, M, detJ, loc_nd, loc_df] = fn_symbolic_K_and_M_matrices(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, no_dfs, solid_or_fluid);

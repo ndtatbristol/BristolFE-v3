@@ -1,9 +1,9 @@
-function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE3(nds, els, D, rho, varargin)
+function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE3_test(nds, els, D, rho, varargin)
 %SUMMARY
 %	This function was created automatically by fn_create_element_matrix_file
 %	and contains code to return the stiffness and mass matrices
 %	for multiple elements of the same material and type given by the latter
-%	part of the filename, fn_el_CPE3.
+%	part of the filename, fn_el_CPE3_test.
 %INPUTS
 %	nds - n_nds x n_dims matrix of nodal coordinates
 %	els - n_els x n_nds_per_el matrix of node indices for each elements
@@ -13,7 +13,7 @@ function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE3(nds, els, D, rho, varar
 %OUTPUTS
 %	el_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices
 %AUTHOR
-%	Paul Wilcox (24-Mar-2026 13:46:41)
+%	Paul Wilcox (24-Mar-2026 15:45:06)
 
 %Deal with optional argument about which DOFs to use
 if isempty(varargin)

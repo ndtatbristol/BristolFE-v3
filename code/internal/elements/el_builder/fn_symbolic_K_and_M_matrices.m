@@ -32,16 +32,18 @@ else
 end
 
 %Integrate to get K
-K = fn_gauss_integration(B' * D * B, detJ, Q, gauss_pts, gauss_weights);
+simplify_expression = 0;
+K = fn_gauss_integration(B' * D * B, detJ, Q, gauss_pts, gauss_weights, simplify_expression);
 
 rho = sym('rho');
-M = fn_gauss_integration(N' * N * rho, detJ, Q, gauss_pts, gauss_weights);
+M = fn_gauss_integration(N' * N * rho, detJ, Q, gauss_pts, gauss_weights, simplify_expression);
 M = diag(sum(M));
 
 %Expressions for Jacobians at each Gauss point
-for i = 1:numel(gauss_weights)
-    detJ(i) = simplify(subs(detJ_general, Q, gauss_pts(i, :)));
-end
+% for i = 1:numel(gauss_weights)
+%     detJ(i) = simplify(subs(detJ_general, Q, gauss_pts(i, :)));
+% end
+detJ = fn_jacobians_at_gauss_points(detJ_general, Q, gauss_pts);
 
 
 [loc_nd, loc_df] = meshgrid([1:no_nds], [1:no_dfs]); 
@@ -186,10 +188,27 @@ end
 
 %--------------------------------------------------------------------------
 
-function Y = fn_gauss_integration(integrand, detJ_i, Q, gauss_pts, gauss_weights)
+function Y = fn_gauss_integration(integrand, detJ_i, Q, gauss_pts, gauss_weights, varargin)
+if ~isempty(varargin)
+    simplify_expression = varargin{1};
+else
+    simplify_expression = false;
+end
 Y = zeros(size(integrand));
 for i = 1:size(gauss_pts, 1)
     Y = Y + subs(integrand, Q, gauss_pts(i, :)) * detJ_i(i) * gauss_weights(i);
 end
-Y = simplify(Y);
+if simplify_expression
+    for i = 1:numel(Y)
+        Y(i) = simplify(Y(i), simplify_expression);
+        fprintf('Simplifying %i of %i\n', i, numel(Y));
+    end
+end
+end
+
+%--------------------------------------------------------------------------
+function detJ = fn_jacobians_at_gauss_points(detJ_general, Q, gauss_pts)
+for i = 1:size(gauss_pts, 1)
+    detJ(i) = simplify(subs(detJ_general, Q, gauss_pts(i, :)));
+end
 end
