@@ -1,16 +1,36 @@
-function [K, M, detJ, loc_nd, loc_df] = fn_symbolic_K_and_M_matrices(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, no_dfs, solid_or_fluid)
+function [K, M, detJ, loc_nd, loc_df] = fn_symbolic_K_and_M_matrices(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, varargin)
+
+if numel(varargin) < 1
+    simplify_expression = 0;
+else
+    simplify_expression = varargin{1};
+end
+
+%Define material stiffness matrix
+switch solid_or_fluid
+    case 'solid'
+        no_dfs = 3;
+        no_stress = 6;
+        D = sym('D_%d_%d', [no_stress, no_stress]); 
+    case 'fluid'
+        no_dfs = 1;
+        fluid_dof = 4;
+        no_stress = 1;
+        D = sym('D'); 
+end
 
 [shape_functions, Q] = fn_symbolic_shape_functions(nds_in_nat_coords, sf_powers);
 
+% candidates = fn_factor_shape_function(shape_functions(1));
+
 N = fn_symbolic_shape_function_matrix(shape_functions, no_dfs);
 
-diff_matrix = fn_diff_matrix(no_dfs, solid_or_fluid);
+no_dims = size(Q, 2);
+diff_matrix = fn_diff_matrix(solid_or_fluid);
 
 no_dfs = size(diff_matrix, 2);
-no_stress = size(diff_matrix, 1);
 no_nds = size(nds_in_nat_coords, 1);
 el_dfs = size(N, 2);
-no_dims = size(Q, 2);
 
 %The physical nodal coordinates
 nds = sym('nds_%d_%d', [no_nds, no_dims], 'real'); 
@@ -21,32 +41,35 @@ nds = sym('nds_%d_%d', [no_nds, no_dims], 'real');
 %Calculate B-matrix (nodal displacements to strain components)
 B = fn_B_matrix(N, Q, diff_matrix, invJ);
 
-%Define material stiffness matrix
-D = sym('D_%d_%d', [no_stress, no_stress]); 
-
 %Symbols for Jacobians at each Gauss point
-if numel(gauss_weights) == 1
+if isscalar(gauss_weights)
     detJ = sym('detJ_1');
 else
     detJ = sym('detJ_%d', [1, numel(gauss_weights)]);
 end
 
 %Integrate to get K
-simplify_expression = 0;
-K = fn_gauss_integration(B' * D * B, detJ, Q, gauss_pts, gauss_weights, simplify_expression);
+% K = fn_gauss_integration(B' * D * B, detJ, Q, gauss_pts, gauss_weights, simplify_expression);
+K = fn_gauss_integration2({B', D, B}, detJ, Q, gauss_pts, gauss_weights, simplify_expression);
 
 rho = sym('rho');
 M = fn_gauss_integration(N' * N * rho, detJ, Q, gauss_pts, gauss_weights, simplify_expression);
 M = diag(sum(M));
 
+if strcmp(solid_or_fluid, 'fluid')
+    K = -K / rho / D;
+    M = -M / D / rho;
+end
+
 %Expressions for Jacobians at each Gauss point
-% for i = 1:numel(gauss_weights)
-%     detJ(i) = simplify(subs(detJ_general, Q, gauss_pts(i, :)));
-% end
 detJ = fn_jacobians_at_gauss_points(detJ_general, Q, gauss_pts);
 
-
-[loc_nd, loc_df] = meshgrid([1:no_nds], [1:no_dfs]); 
+switch solid_or_fluid
+    case 'solid'
+        [loc_nd, loc_df] = meshgrid(1:no_nds, 1:no_dfs); 
+    case 'fluid'
+        [loc_nd, loc_df] = meshgrid([1:no_nds], fluid_dof); 
+end
 loc_nd = loc_nd(:);
 loc_df = loc_df(:);
 end
@@ -132,7 +155,8 @@ X = N * reshape(nds', [], 1);
 
 J = jacobian(X, Q);
 detJ = det(J);
-invJ = inv(J);
+invJ = simplify(inv(J) * detJ) / sym('detJ', 'real');
+ 
 end
 
 %--------------------------------------------------------------------------
@@ -159,30 +183,21 @@ end
 
 %--------------------------------------------------------------------------
 
-function diff_matrix = fn_diff_matrix(no_dfs, solid_or_fluid)
+function diff_matrix = fn_diff_matrix(solid_or_fluid)
 switch solid_or_fluid
     case 'solid'
-        switch no_dfs
-            case 1
-                diff_matrix = [
-                    1];
-            case 2
-                diff_matrix = [
-                    1, 0
-                    0, 2
-                    0, 1
-                    2, 0];
-            case 3
-                diff_matrix = [
-                    1, 0, 0
-                    0, 2, 0
-                    0, 0, 3
-                    0, 3, 2
-                    3, 0, 1
-                    2, 1, 0];
-        end
+        diff_matrix = [
+            1, 0, 0
+            0, 2, 0
+            0, 0, 3
+            0, 3, 2
+            3, 0, 1
+            2, 1, 0];
     case 'fluid'
-        diff_matrix = (1:no_dfs)';
+        diff_matrix = [
+            1
+            2
+            3];
 end
 end
 
@@ -190,17 +205,41 @@ end
 
 function Y = fn_gauss_integration(integrand, detJ_i, Q, gauss_pts, gauss_weights, varargin)
 if ~isempty(varargin)
-    simplify_expression = varargin{1};
+    simplify_expr = varargin{1};
 else
-    simplify_expression = false;
+    simplify_expr = false;
 end
 Y = zeros(size(integrand));
 for i = 1:size(gauss_pts, 1)
-    Y = Y + subs(integrand, Q, gauss_pts(i, :)) * detJ_i(i) * gauss_weights(i);
+    Y = Y + subs(subs(integrand, Q, gauss_pts(i, :)), 'detJ', detJ_i(i)) * detJ_i(i) * gauss_weights(i);
+    fprintf('Integrating %i of %i\n', i, numel(Y));
 end
-if simplify_expression
+if simplify_expr
     for i = 1:numel(Y)
-        Y(i) = simplify(Y(i), simplify_expression);
+        Y(i) = simplify(Y(i), simplify_expr);
+        fprintf('Simplifying %i of %i\n', i, numel(Y));
+    end
+end
+end
+
+function Y = fn_gauss_integration2(integrand_terms, detJ_i, Q, gauss_pts, gauss_weights, varargin)
+if ~isempty(varargin)
+    simplify_expr = varargin{1};
+else
+    simplify_expr = false;
+end
+Y = zeros(size(integrand_terms{1}, 1), size(integrand_terms{end}, 2));
+for i = 1:size(gauss_pts, 1)
+    tmp = 1;
+    for j = 1:numel(integrand_terms)
+        tmp = tmp * subs(integrand_terms{j}, Q, gauss_pts(i, :));
+    end
+    Y = Y + subs(tmp, 'detJ', detJ_i(i)) * detJ_i(i) * gauss_weights(i);
+    fprintf('Integrating %i of %i\n', i, numel(Y));
+end
+if simplify_expr
+    for i = 1:numel(Y)
+        Y(i) = simplify(Y(i), simplify_expr);
         fprintf('Simplifying %i of %i\n', i, numel(Y));
     end
 end
@@ -212,3 +251,4 @@ for i = 1:size(gauss_pts, 1)
     detJ(i) = simplify(subs(detJ_general, Q, gauss_pts(i, :)));
 end
 end
+

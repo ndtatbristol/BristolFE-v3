@@ -64,7 +64,7 @@ switch el_type
         K = -K / rho;
         M = -M / D;
 end
-
+return
 %Remove rows/cols for unwanted DOF from symbolic K and M matrices
 j = ismember(loc_df, dof_indices);
 K = K(j, j);
