@@ -1,4 +1,4 @@
-function [K, M, detJ, loc_nd, loc_df, constant_defs] = fn_symbolic_K_and_M_matrices(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, varargin)
+function [B, D, detJ_general, Q, N, loc_nd, loc_df, constant_defs] = fn_symbolic_B_D_J_Q_matrices(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, varargin)
 
 if numel(varargin) < 1
     simplify_expression = 0;
@@ -24,17 +24,17 @@ fprintf('Generating shape functions\n')
 
 % candidates = fn_factor_shape_function(shape_functions(1));
 
-N = fn_symbolic_shape_function_matrix(shape_functions, no_dfs);
-
-no_dims = size(Q, 2);
+no_spatial_dims = 3; %size(Q, 2);
+no_dims_of_el = size(Q, 2);
+N = fn_symbolic_shape_function_matrix(shape_functions, no_spatial_dims);
 diff_matrix = fn_diff_matrix(solid_or_fluid);
 
-no_dfs = size(diff_matrix, 2);
-no_nds = size(nds_in_nat_coords, 1);
-el_dfs = size(N, 2);
+no_dfs = size(diff_matrix, 2); %OK
+no_nds = size(nds_in_nat_coords, 1); %OK
+no_nds_times_dfs = no_dfs * no_nds;
 
 %The physical nodal coordinates
-nds = sym('nds_%d_%d', [no_nds, no_dims], 'real'); 
+nds = sym('nds_%d_%d', [no_nds, no_dims_of_el], 'real'); 
 
 %Jacobian determinate and inverse Jacobian for coordinate transform
 fprintf('Calculating Jacobian\n')
@@ -42,7 +42,13 @@ fprintf('Calculating Jacobian\n')
 
 %Calculate B-matrix (nodal displacements to strain components)
 fprintf('Calculating B matrix\n')
-B = fn_B_matrix(N, Q, diff_matrix, invJ);
+B = fn_B_matrix(N, Q, diff_matrix, invJ, no_nds_times_dfs);
+
+constant_defs = 'root3 = sqrt(3);';
+root3 = sym('root3', 'real');
+for i = 1:numel(B)
+    B(i) = subs(B(i), sqrt(3), 'root3');
+end
 
 %Symbols for Jacobians at each Gauss point
 if isscalar(gauss_weights)
@@ -51,31 +57,20 @@ else
     detJ = sym('detJ_%d', [1, numel(gauss_weights)]);
 end
 
-%Integrate to get K
-% K = fn_gauss_integration(B' * D * B, detJ, Q, gauss_pts, gauss_weights, simplify_expression);
-fprintf('Starting Gauss point integration for K matrix\n')
-K = fn_gauss_integration2({B', D, B}, detJ, Q, gauss_pts, gauss_weights, simplify_expression);
 
-root3 = sym('root3', 'real');
-for i = 1:numel(K)
-    K(i) = subs(K(i), sqrt(3), 'root3');
-end
-
-constant_defs = 'root3 = sqrt(3);';
-
-fprintf('Starting Gauss point integration for M matrix\n')
+fprintf('Calculating M matrix\n')
 rho = sym('rho');
 M = fn_gauss_integration(N' * N * rho, detJ, Q, gauss_pts, gauss_weights, simplify_expression);
 M = diag(sum(M));
 
-if strcmp(solid_or_fluid, 'fluid')
-    K = -K / rho / D;
-    M = -M / D / rho;
-end
-
-%Expressions for Jacobians at each Gauss point
-fprintf('Calculating Jacobians at Gauss points\n')
-detJ = fn_jacobians_at_gauss_points(detJ_general, Q, gauss_pts);
+% if strcmp(solid_or_fluid, 'fluid')
+%     K = -K / rho / D;
+%     M = -M / D / rho;
+% end
+% 
+% %Expressions for Jacobians at each Gauss point
+% fprintf('Calculating Jacobians at Gauss points\n')
+% detJ = fn_jacobians_at_gauss_points(detJ_general, Q, gauss_pts);
 
 switch solid_or_fluid
     case 'solid'
@@ -174,18 +169,17 @@ end
 
 %--------------------------------------------------------------------------
 
-function B = fn_B_matrix(N, Q, diff_matrix, invJ)
+function B = fn_B_matrix(N, Q, diff_matrix, invJ, no_nds_times_dfs)
 no_stress = size(diff_matrix, 1);
-el_dfs = size(N, 2);
 no_dims = size(Q, 2);
 no_dfs = size(diff_matrix, 2);
-B = sym('B_%d%d', [no_stress, el_dfs], 'real');
+B = sym('B_%d%d', [no_stress, no_nds_times_dfs], 'real');
 for i = 1:no_stress
-    for j = 1:el_dfs
+    for j = 1:no_nds_times_dfs
         B(i, j) = 0;
-        for k = 1:no_dfs %loop over cols in diff matrix to work out what derivatives are needed
+        for k = 1:no_dims %loop over cols in diff matrix to work out what derivatives are needed
             if diff_matrix(i, k) && diff_matrix(i, k) <= no_dims %means derivative w.r.t. this physical coordinate is needed
-                for ii = 1:size(Q, 2) %loop over natural coordinate derivatives and sum after multiplying by relelvant term from inv_J
+                for ii = 1:no_dims %loop over natural coordinate derivatives and sum after multiplying by relelvant term from inv_J
                     B(i, j) = B(i, j) + diff(N(k, j), Q(ii)) * invJ(ii, diff_matrix(i, k));
                 end
             end
@@ -207,10 +201,7 @@ switch solid_or_fluid
             3, 0, 1
             2, 1, 0];
     case 'fluid'
-        diff_matrix = [
-            1
-            2
-            3];
+        diff_matrix = [1, 2, 3];
 end
 end
 

@@ -1,4 +1,5 @@
 function fn_console_output(short_comment, varargin)
+global LOG_TO_FILE
 if numel(varargin) < 1 || isempty(varargin{1})
     long_comment = short_comment;
 else
@@ -18,9 +19,19 @@ end
 % fprintf(['Indent level %i, ', short_comment],  comment_indent_level);
 switch fn_get_comment_verbosity
     case 'low'
-        fprintf([indent_str, short_comment]);
+        str = [indent_str, short_comment];
     case 'high'
-        fprintf([indent_str, long_comment]);
+        str = [indent_str, long_comment];
     otherwise
+end
+fprintf(str);
+if exist('LOG_TO_FILE', "var")
+    try
+        fid = fopen(LOG_TO_FILE,"a");
+        fprintf(fid, str);
+        fclose(fid);
+    catch
+        % warning(['Could not write to file ', LOG_TO_FILE])
+    end
 end
 end

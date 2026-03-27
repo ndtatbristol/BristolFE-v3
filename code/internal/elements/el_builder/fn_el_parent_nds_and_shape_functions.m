@@ -26,10 +26,10 @@ switch shape
             1,  1
             1, -1];
         sf_powers = [
-            0, 0, 0
-            1, 0, 0
-            0, 1, 0
-            0, 0, 1];
+            0, 0
+            1, 0
+            0, 1
+            1, 1];
         if reduced_integration
             gauss_pts = [
                 0, 0];
