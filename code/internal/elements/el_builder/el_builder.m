@@ -12,94 +12,35 @@ ref_el_type = 'CPE3';
 [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('triangular');
 
 %CPE4 - OK
-solid_or_fluid = 'solid';
-new_el_type = 'CPE4_new';
-ref_el_type = 'CPE4';
-[nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('quadrilateral');
+% solid_or_fluid = 'solid';
+% new_el_type = 'CPE4_new';
+% ref_el_type = 'CPE4';
+% [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('quadrilateral');
 
 %AC2D3 - Not working!!
-% solid_or_fluid = 'fluid';
-% new_el_type = 'AC2D3_new';
-% ref_el_type = 'AC2D3';
-% [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('triangular');
+solid_or_fluid = 'fluid';
+new_el_type = 'AC2D3_new';
+ref_el_type = 'AC2D3';
+[nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('triangular');
 
 %C3D8
-solid_or_fluid = 'solid';
-new_el_type = 'C3D8_test';
-ref_el_type = 'C3D8';
-[nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('hexahedral');
+% solid_or_fluid = 'solid';
+% new_el_type = 'C3D8_test';
+% ref_el_type = 'C3D8';
+% [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('hexahedral');
 
 
 %--------------------------------------------------------------------------
 %DO THE SYMBOLIC CALCULATIONS AND CREATE THE ELEMENT FILE
 fname = ['..', filesep, 'fn_el_', new_el_type, '.m'];
-% [K, M, detJ, loc_nd, loc_df, constant_defs] = fn_symbolic_K_and_M_matrices(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, simplify_expression);
-% C = sym(zeros(size(K)));
-% fn_create_element_matrix_file(fname, K, C, M, detJ, loc_nd, loc_df, no_dims, constant_defs);
+[B, N, detJ, loc_nd, loc_df, constant_defs] = fn_symbolic_B_N_detJ_matrices3(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid);
+fn_create_element_matrix_file3(fname, B, detJ, N, loc_nd, loc_df, no_dims, constant_defs);
 
-% [B, D, J, Q, N, loc_nd, loc_df, constant_defs] = fn_symbolic_B_D_J_Q_matrices(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid);
-[B, D, J, Q, N, loc_nd, loc_df, constant_defs] = fn_symbolic_BDJQN_matrices2(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid);
-fn_create_element_matrix_file2(fname, B, D, J, N, Q, gauss_pts, gauss_weights, loc_nd, loc_df, no_dims, constant_defs);
 
-%--------------------------------------------------------------------------
-%TEST - BASELINE EXAMPLE WITH NODES AT PARENT NODES
-no_nds = size(nds_in_nat_coords, 1);
-test_nds = nds_in_nat_coords;
-test_els = 1:no_nds;
-fn_el_mats_test = str2func(['fn_el_', new_el_type]);
-fn_el_mats_ref = str2func(['fn_el_', ref_el_type]);
-
-switch solid_or_fluid
-    case 'solid'
-        test_D = eye(6);
-        test_dof = [1,2,3];
-    case 'fluid'
-        test_D = 1;
-        test_dof = 4;
-end
-test_rho = 1;
-
-%New function
-[test_el_K, test_el_C, test_el_M, test_loc_nd, test_loc_df] = fn_el_mats_test(test_nds, test_els, test_D, test_rho, test_dof);
-
-fprintf('test_el_K = \n')
-disp(squeeze(test_el_K));
-    fprintf('test_el_M = \n')
-    disp(squeeze(test_el_M));
-
-if exist(func2str(fn_el_mats_ref), 'file')
-    %Existing function
-    [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats_ref(test_nds, test_els, test_D, test_rho, test_dof);
-    fprintf('el_K = \n')
-    disp(squeeze(el_K));
-    fprintf('el_M = \n')
-    disp(squeeze(el_M));
-    %Comparison
-    fprintf(['\nComparison between output from ',func2str(fn_el_mats_test),' and ',func2str(fn_el_mats_ref),':\n'])
-    fprintf('  Fractional RMS error for K: %e\n', fn_compare_matrices(test_el_K, el_K));
-    fprintf('  Fractional RMS error for M: %e\n', fn_compare_matrices(test_el_M, el_M));
-end
-
-%--------------------------------------------------------------------------
-%TEST - MANY ELEMENTS SPEED COMPARISON
-
-n = 10000;
-fprintf('\nSPEED TEST FOR %i ELEMENTS\n', n);
-test_nds = rand(n, no_dims);
-test_els = randi(n, n, no_nds);
-tic;
-[el_K2, el_C2, el_M2, loc_nd2, loc_df2] = fn_el_mats_test(test_nds, test_els, test_D, test_rho);
-fprintf(['  ', func2str(fn_el_mats_test), ' took %.2fs\n'], double(toc));
-if exist(func2str(fn_el_mats_ref), 'file')
-    tic;
-    [el_K2, el_C2, el_M2, loc_nd2, loc_df2] = fn_el_mats_ref(test_nds, test_els, test_D, test_rho);
-    fprintf(['  ', func2str(fn_el_mats_ref), ' took %.2fs\n'], double(toc));
-end
-
+fn_el_test(new_el_type, ref_el_type, nds_in_nat_coords, 10000)
 return
 
 %--------------------------------------------------------------------------
-return
 %This bit needs to be done better with proper models chosen according to
 %element type
 

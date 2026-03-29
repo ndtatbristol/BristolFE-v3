@@ -13,9 +13,9 @@ function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_AC2D3_new(nds, els, D, rho, 
 %OUTPUTS
 %	el_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices
 %AUTHOR
-%	Paul Wilcox (27-Mar-2026 20:42:59)
+%	Paul Wilcox (29-Mar-2026 21:38:27)
 
-root3 = sqrt(3);
+rt3 = sqrt(3);
 %Deal with optional argument about which DOFs to use
 if isempty(varargin)
 	dofs_to_use = [];
@@ -39,7 +39,6 @@ if isempty(nds) || isempty(els) || isempty(D) || isempty(rho)
 	el_K = [];
 	el_M = [];
 	el_C = [];
-	el_Q = [];
 	[loc_nd, loc_df] = fn_remove_dofs_from_el_matrices(loc_nd, loc_df, dofs_to_use);
 	return
 end
@@ -53,93 +52,25 @@ nds_3_1 = nds(els(:, 3), 1);
 nds_3_2 = nds(els(:, 3), 2);
 
 
-%Define Gauss points and weights
-Q = [0.3333333333 0.3333333333 ];
-W = [0.5];
+%Some constants
+no_gauss_pts = 1;
+no_els = size(els, 1);
+
 
 %Zero the outputs
-el_K = zeros(size(els, 1), 3, 3);
-tmp_M = zeros(size(els, 1), 3, 3);
-el_C = zeros(size(els, 1), 3, 3);
-BTDB = zeros(size(els, 1), 3, 3);
-BTD = zeros(size(els, 1), 3, 1);
-NTN = zeros(size(els, 1), 3, 3);
+el_K = zeros(3, 3, no_els);
+el_M_tmp = zeros(3, 3, no_els);
+el_C = zeros(3, 3, no_els);
 
+detJ = zeros(no_els, 1);
+B = zeros(1, 3, no_els);
+N = zeros(1, 3, no_els);
 %Loop over Gauss points
-for i = 1:size(Q, 1)
-    q1 = Q(i, 1);
-    q2 = Q(i, 2);
+for i = 1:no_gauss_pts
 
-    %Evaluate Jacobian
-    detJ = nds_1_1 .* nds_2_2 - nds_1_2 .* nds_2_1 - nds_1_1 .* nds_3_2 + nds_1_2 .* nds_3_1 + nds_2_1 .* nds_3_2 - nds_2_2 .* nds_3_1;
+    %Jacobians, N- and B-matrices at each Gauss point
 
-    %Evaluate B matrix
-    B = zeros(size(els, 1), 1, 3);
-    B(:, 1, 1) = (-((nds_1_1 - nds_2_1) ./ detJ - (nds_1_2 - nds_2_2) ./ detJ - (nds_1_1 - nds_3_1) ./ detJ + (nds_1_2 - nds_3_2) ./ detJ) ./ (D .* rho)) .^ (1 ./ 2);
-    B(:, 1, 2) = (-((nds_1_1 - nds_3_1) ./ detJ - (nds_1_2 - nds_3_2) ./ detJ) ./ (D .* rho)) .^ (1 ./ 2);
-    B(:, 1, 3) = (((nds_1_1 - nds_2_1) ./ detJ - (nds_1_2 - nds_2_2) ./ detJ) ./ (D .* rho)) .^ (1 ./ 2);
+    switch i
+        case 1
+            detJ = (nds_1_1 .* nds_2_2) ./ 2 - (nds_1_2 .* nds_2_1) ./ 2 - (nds_1_1 .* nds_3_2) ./ 2 + (nds_1_2 .* nds_3_1) ./ 2 + (nds_2_1 .* nds_3_2) ./ 2 - (nds_2_2 .* nds_3_1) ./ 2;
 
-
-    %Evaluate B'D
-    BTD(:, 1, 1) =  + B(:, 1, 1) * D(1, 1);
-    BTD(:, 2, 1) =  + B(:, 1, 2) * D(1, 1);
-    BTD(:, 3, 1) =  + B(:, 1, 3) * D(1, 1);
-
-    %Evaluate B'DB
-    BTDB(:, 1, 1) =  + BTD(:, 1, 1) .* B(:, 1, 1);
-    BTDB(:, 1, 2) =  + BTD(:, 1, 1) .* B(:, 1, 2);
-    BTDB(:, 1, 3) =  + BTD(:, 1, 1) .* B(:, 1, 3);
-    BTDB(:, 2, 2) =  + BTD(:, 2, 1) .* B(:, 1, 2);
-    BTDB(:, 2, 3) =  + BTD(:, 2, 1) .* B(:, 1, 3);
-    BTDB(:, 3, 3) =  + BTD(:, 3, 1) .* B(:, 1, 3);
-
-    %Evaluate contribution to K at Gauss point and accumulate
-    el_K(:, 1, 1) = el_K(:, 1, 1) + BTDB(:, 1, 1) .* detJ * W(i);
-    el_K(:, 1, 2) = el_K(:, 1, 2) + BTDB(:, 1, 2) .* detJ * W(i);
-    el_K(:, 1, 3) = el_K(:, 1, 3) + BTDB(:, 1, 3) .* detJ * W(i);
-    el_K(:, 2, 2) = el_K(:, 2, 2) + BTDB(:, 2, 2) .* detJ * W(i);
-    el_K(:, 2, 3) = el_K(:, 2, 3) + BTDB(:, 2, 3) .* detJ * W(i);
-    el_K(:, 3, 3) = el_K(:, 3, 3) + BTDB(:, 3, 3) .* detJ * W(i);
-
-    %Evaluate N matrix
-    N = zeros(size(els, 1), 1, 3);
-    N(:, 1, 1) = ((q1 + q2 - 1) ./ (D .* rho)) .^ (1 ./ 2);
-    N(:, 1, 2) = (-q1 ./ (D .* rho)) .^ (1 ./ 2);
-    N(:, 1, 3) = (-q2 ./ (D .* rho)) .^ (1 ./ 2);
-
-
-    %Evaluate N'N
-    NTN(:, 1, 1) =  + N(:, 1, 1) .* N(:, 1, 1);
-    NTN(:, 1, 2) =  + N(:, 1, 1) .* N(:, 1, 2);
-    NTN(:, 1, 3) =  + N(:, 1, 1) .* N(:, 1, 3);
-    NTN(:, 2, 2) =  + N(:, 1, 2) .* N(:, 1, 2);
-    NTN(:, 2, 3) =  + N(:, 1, 2) .* N(:, 1, 3);
-    NTN(:, 3, 3) =  + N(:, 1, 3) .* N(:, 1, 3);
-
-    %Evaluate contribution to M at Gauss point and accumulate
-    tmp_M(:, 1, 1) = tmp_M(:, 1, 1) + NTN(:, 1, 1) .* rho * W(i);
-    tmp_M(:, 1, 2) = tmp_M(:, 1, 2) + NTN(:, 1, 2) .* rho * W(i);
-    tmp_M(:, 1, 3) = tmp_M(:, 1, 3) + NTN(:, 1, 3) .* rho * W(i);
-    tmp_M(:, 2, 2) = tmp_M(:, 2, 2) + NTN(:, 2, 2) .* rho * W(i);
-    tmp_M(:, 2, 3) = tmp_M(:, 2, 3) + NTN(:, 2, 3) .* rho * W(i);
-    tmp_M(:, 3, 3) = tmp_M(:, 3, 3) + NTN(:, 3, 3) .* rho * W(i);
-end
-
-
-%Copy upper triangles of K and tmp_M into lower for symmmetry
-el_K(:, 2, 1) = el_K(:, 1, 2);
-tmp_M(:, 2, 1) = tmp_M(:, 1, 2);
-el_K(:, 3, 1) = el_K(:, 1, 3);
-tmp_M(:, 3, 1) = tmp_M(:, 1, 3);
-el_K(:, 3, 2) = el_K(:, 2, 3);
-tmp_M(:, 3, 2) = tmp_M(:, 2, 3);
-
-%Diagonalise M
-M = zeros(size(els, 1), 3, 3);
-el_M(:, 1, 1) = sum(tmp_M(:, :, 1));
-el_M(:, 2, 2) = sum(tmp_M(:, :, 2));
-el_M(:, 3, 3) = sum(tmp_M(:, :, 3));
-%CRemove unwanted DOFs from element matrices
-[loc_nd, loc_df, el_K, el_C, el_M] = fn_remove_dofs_from_el_matrices(loc_nd, loc_df, dofs_to_use, el_K, el_C, el_M);
-
-end
