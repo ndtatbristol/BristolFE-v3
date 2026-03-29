@@ -12,30 +12,29 @@ ref_el_type = 'CPE3';
 [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('triangular');
 
 %CPE4 - OK
-% solid_or_fluid = 'solid';
-% new_el_type = 'CPE4_new';
-% ref_el_type = 'CPE4';
-% [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('quadrilateral');
+solid_or_fluid = 'solid';
+new_el_type = 'CPE4_new';
+ref_el_type = 'CPE4';
+[nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('quadrilateral');
 
-%AC2D3 - Not working!!
+%AC2D3 - OK
 solid_or_fluid = 'fluid';
 new_el_type = 'AC2D3_new';
 ref_el_type = 'AC2D3';
 [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('triangular');
 
 %C3D8
-% solid_or_fluid = 'solid';
-% new_el_type = 'C3D8_test';
-% ref_el_type = 'C3D8';
-% [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('hexahedral');
+solid_or_fluid = 'solid';
+new_el_type = 'C3D8_test';
+ref_el_type = 'C3D8';
+[nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('hexahedral');
 
 
 %--------------------------------------------------------------------------
 %DO THE SYMBOLIC CALCULATIONS AND CREATE THE ELEMENT FILE
 fname = ['..', filesep, 'fn_el_', new_el_type, '.m'];
-[B, N, detJ, loc_nd, loc_df, constant_defs] = fn_symbolic_B_N_detJ_matrices3(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid);
-fn_create_element_matrix_file3(fname, B, detJ, N, loc_nd, loc_df, no_dims, constant_defs);
-
+[B, N, detJ, loc_nd, loc_df, start_lines, end_lines] = fn_symbolic_B_N_detJ_matrices3(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid);
+fn_create_element_matrix_file3(fname, B, detJ, N, loc_nd, loc_df, no_dims, start_lines, end_lines);
 
 fn_el_test(new_el_type, ref_el_type, nds_in_nat_coords, 10000)
 return

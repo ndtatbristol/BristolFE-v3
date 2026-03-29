@@ -1,6 +1,6 @@
 function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE4_new(nds, els, D, rho, varargin)
 %SUMMARY
-%	This function was created automatically by fn_create_element_matrix_file
+%	This function was created automatically by fn_create_element_matrix_file3
 %	and contains code to return the stiffness and mass matrices
 %	for multiple elements of the same material and type given by the latter
 %	part of the filename, fn_el_CPE4_new.
@@ -9,12 +9,13 @@ function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE4_new(nds, els, D, rho, v
 %	els - n_els x n_nds_per_el matrix of node indices for each elements
 %	D - ns x ns material stiffness matrix
 %	rho - material density
-%	[dofs_to_use = [] - optional string listing the DoFs to use, e.g. '12'. Use [] for all]
+%	[dofs_to_use = [] - optional vector listing the DoFs to use, e.g. [1, 2]. Use [] for all]
 %OUTPUTS
 %	el_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices
 %AUTHOR
-%	Paul Wilcox (29-Mar-2026 21:16:16)
+%	Paul Wilcox (29-Mar-2026 22:06:48)
 
+%Define sqrt(3)
 rt3 = sqrt(3);
 %Deal with optional argument about which DOFs to use
 if isempty(varargin)
@@ -249,7 +250,7 @@ for i = 1:no_gauss_pts
 end
 
 %Diagonalise M
-el_M = zeros(12, 12, size(els, 1));
+el_M = zeros(12, 12, no_els);
 el_M(1, 1, :) = sum(el_M_tmp(:, 1, :), 1);
 el_M(2, 2, :) = sum(el_M_tmp(:, 2, :), 1);
 el_M(3, 3, :) = sum(el_M_tmp(:, 3, :), 1);

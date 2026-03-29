@@ -1,6 +1,6 @@
 function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_AC2D3_new(nds, els, D, rho, varargin)
 %SUMMARY
-%	This function was created automatically by fn_create_element_matrix_file
+%	This function was created automatically by fn_create_element_matrix_file3
 %	and contains code to return the stiffness and mass matrices
 %	for multiple elements of the same material and type given by the latter
 %	part of the filename, fn_el_AC2D3_new.
@@ -9,12 +9,13 @@ function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_AC2D3_new(nds, els, D, rho, 
 %	els - n_els x n_nds_per_el matrix of node indices for each elements
 %	D - ns x ns material stiffness matrix
 %	rho - material density
-%	[dofs_to_use = [] - optional string listing the DoFs to use, e.g. '12'. Use [] for all]
+%	[dofs_to_use = [] - optional vector listing the DoFs to use, e.g. [1, 2]. Use [] for all]
 %OUTPUTS
 %	el_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices
 %AUTHOR
-%	Paul Wilcox (29-Mar-2026 21:38:27)
+%	Paul Wilcox (29-Mar-2026 22:07:09)
 
+%Define sqrt(3)
 rt3 = sqrt(3);
 %Deal with optional argument about which DOFs to use
 if isempty(varargin)
@@ -63,7 +64,7 @@ el_M_tmp = zeros(3, 3, no_els);
 el_C = zeros(3, 3, no_els);
 
 detJ = zeros(no_els, 1);
-B = zeros(1, 3, no_els);
+B = zeros(3, 3, no_els);
 N = zeros(1, 3, no_els);
 %Loop over Gauss points
 for i = 1:no_gauss_pts
@@ -74,3 +75,48 @@ for i = 1:no_gauss_pts
         case 1
             detJ = (nds_1_1 .* nds_2_2) ./ 2 - (nds_1_2 .* nds_2_1) ./ 2 - (nds_1_1 .* nds_3_2) ./ 2 + (nds_1_2 .* nds_3_1) ./ 2 + (nds_2_1 .* nds_3_2) ./ 2 - (nds_2_2 .* nds_3_1) ./ 2;
 
+            B(1, 1, :) = (nds_1_2 - nds_3_2) ./ detJ - (nds_1_2 - nds_2_2) ./ detJ;
+            B(1, 2, :) = -(nds_1_2 - nds_3_2) ./ detJ;
+            B(1, 3, :) = (nds_1_2 - nds_2_2) ./ detJ;
+            B(2, 1, :) = B(1, 2, :);
+            B(2, 2, :) = (nds_1_1 - nds_3_1) ./ detJ;
+            B(2, 3, :) = -(nds_1_1 - nds_2_1) ./ detJ;
+
+            N(1, 1, :) = 1 ./ 3;
+            N(1, 2, :) = 1 ./ 3;
+            N(1, 3, :) = 1 ./ 3;
+
+    end
+
+    %Evaluate B'DB|J|
+    el_K = el_K + pagemtimes(pagemtimes(B, 'transpose', pagemtimes(D, B), 'none'), permute(detJ, [2, 3, 1]));
+
+
+    %Evaluate N'rhoN|J|
+    el_M_tmp = el_M_tmp + pagemtimes(pagemtimes(N, 'transpose', rho * N, 'none'), permute(detJ, [2, 3, 1]));
+
+end
+
+%Diagonalise M
+el_M = zeros(3, 3, no_els);
+el_M(1, 1, :) = sum(el_M_tmp(:, 1, :), 1);
+el_M(2, 2, :) = sum(el_M_tmp(:, 2, :), 1);
+el_M(3, 3, :) = sum(el_M_tmp(:, 3, :), 1);
+
+%Remove unwanted DOFs from element matrices
+j = ismember(loc_df, dofs_to_use);
+el_K = el_K(j, j, :);
+el_M = el_M(j, j, :);
+el_C = el_C(j, j, :);
+loc_nd = loc_nd(j);
+loc_df = loc_df(j);
+
+%Change dimension order of element matrices
+el_K = permute(el_K, [3, 1, 2]);
+el_M = permute(el_M, [3, 1, 2]);
+el_C = permute(el_C, [3, 1, 2]);
+%Special scaling for fluid elements;
+el_K = -el_K / (rho * D);
+el_M = -el_M / (rho * D);
+
+end

@@ -1,4 +1,4 @@
-function [B, N, detJ, loc_nd, loc_df, constant_defs] = fn_symbolic_B_N_detJ_matrices3(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, varargin)
+function [B, N, detJ, loc_nd, loc_df, start_lines, end_lines] = fn_symbolic_B_N_detJ_matrices3(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, varargin)
 
 if numel(varargin) < 1
     simplify_expression = 0;
@@ -55,11 +55,20 @@ for i = 1: no_gps
 end
 
 %Substitute for known repeating constants
-constant_defs = 'rt3 = sqrt(3);';
+start_lines = {'%%Define sqrt(3)', 'rt3 = sqrt(3);'};
 for i = 1: no_gps
     B(:,:,i) = subs(B(:,:,i), sqrt(3), 'rt3');
     N(:,:,i) = subs(N(:,:,i), sqrt(3), 'rt3');
     detJ(i) = subs(detJ(i), sqrt(3), 'rt3');
+end
+
+if strcmp(solid_or_fluid, 'fluid')
+    end_lines = {
+        '%%Special scaling for fluid elements;',
+        'el_K = -el_K / (rho * D);',
+        'el_M = -el_M / (rho * D);'};
+else
+    end_lines = [];
 end
 
 rho = sym('rho');
@@ -172,10 +181,8 @@ end
 function B = fn_B_matrix(N, Q, solid_or_fluid, invJ)
 diff_matrix = fn_diff_matrix(solid_or_fluid);
 B = sym('B_%d%d', [size(diff_matrix, 1), size(N, 2)], 'real');
-% no_dims = 3;
 switch solid_or_fluid
     case 'solid'
-        % no_dfs = size(diff_matrix, 2);
         for i = 1:size(diff_matrix, 1)
             for j = 1:size(N, 2)
                 B(i, j) = 0;
@@ -190,6 +197,18 @@ switch solid_or_fluid
         end
     case 'fluid'
         N = repmat(N, [size(diff_matrix, 2), 1]);
+        for i = 1:size(diff_matrix, 1)
+            for j = 1:size(N, 2)
+                B(i, j) = 0;
+                for k = 1:size(diff_matrix, 2) %loop over cols in diff matrix to work out what derivatives are needed
+                    if diff_matrix(i, k)% && diff_matrix(i, k) <= no_Q %means derivative w.r.t. this physical coordinate is needed
+                        for ii = 1:numel(Q) %loop over natural coordinate derivatives and sum after multiplying by relelvant term from inv_J
+                            B(i, j) = B(i, j) + diff(N(k, j), Q(ii)) * invJ(ii, diff_matrix(i, k));
+                        end
+                    end
+                end
+            end
+        end
 end
 end
 
@@ -206,7 +225,7 @@ switch solid_or_fluid
             3, 0, 1
             2, 1, 0];
     case 'fluid'
-        diff_matrix = [1, 2, 3];
+        diff_matrix = [1, 2, 3]';
 end
 end
 

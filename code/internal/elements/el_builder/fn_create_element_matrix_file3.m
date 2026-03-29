@@ -1,4 +1,4 @@
-function fn_create_element_matrix_file3(fname, B, detJ, N, loc_nd, loc_df, no_dims, varargin)
+function fn_create_element_matrix_file3(fname, B, detJ, N, loc_nd, loc_df, no_dims, start_lines, end_lines)
 fid = fopen(fname, 'wt');
 
 [~, fn_name] = fileparts(fname);
@@ -7,7 +7,7 @@ fid = fopen(fname, 'wt');
 fprintf(fid, ['function [el_K, el_C, el_M, loc_nd, loc_df] = ', fn_name, '(nds, els, D, rho, varargin)\n']);
 %Comment lines
 fprintf(fid, '%%SUMMARY\n');
-fprintf(fid, '%%\tThis function was created automatically by fn_create_element_matrix_file\n');
+fprintf(fid, '%%\tThis function was created automatically by fn_create_element_matrix_file3\n');
 fprintf(fid, '%%\tand contains code to return the stiffness and mass matrices\n');
 fprintf(fid, '%%\tfor multiple elements of the same material and type given by the latter\n');
 fprintf(fid, ['%%\tpart of the filename, ', fn_name, '.\n']);
@@ -16,16 +16,18 @@ fprintf(fid, '%%\tnds - n_nds x n_dims matrix of nodal coordinates\n');
 fprintf(fid, '%%\tels - n_els x n_nds_per_el matrix of node indices for each elements\n');
 fprintf(fid, '%%\tD - ns x ns material stiffness matrix\n');
 fprintf(fid, '%%\trho - material density\n');
-fprintf(fid, '%%\t[dofs_to_use = [] - optional string listing the DoFs to use, e.g. ''12''. Use [] for all]\n');
+fprintf(fid, '%%\t[dofs_to_use = [] - optional vector listing the DoFs to use, e.g. [1, 2]. Use [] for all]\n');
 fprintf(fid, '%%OUTPUTS\n');
 fprintf(fid, '%%\tel_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices\n');
 fprintf(fid, '%%AUTHOR\n');
 fprintf(fid, ['%%\tPaul Wilcox (', char(datetime), ')\n']);
 fprintf(fid, '\n');
 
-%Deal with any extra lines specified in varargin
-for i = 1:length(varargin)
-    fprintf(fid, [varargin{i}, '\n']);
+%Deal with any extra starting lines specified in varargin
+if ~isempty(start_lines)
+    for i = 1:length(start_lines)
+        fprintf(fid, [start_lines{i}, '\n']);
+    end
 end
 
 fprintf(fid, '%%Deal with optional argument about which DOFs to use\n');
@@ -85,15 +87,15 @@ for i = 1:no_gps
 end
 fprintf(fid, '    end\n');
 
+%Evaluate the K-matrix integrand
 fprintf(fid, '\n    %%Evaluate B''DB|J|\n');
 fprintf(fid, '    el_K = el_K + pagemtimes(pagemtimes(B, ''transpose'', pagemtimes(D, B), ''none''), permute(detJ, [2, 3, 1]));\n\n');
 
-% %Write the N-matrix definition for GP
-% fprintf(fid, '    %%Define N-matrix\n');
-% fprintf(fid, fn_format_symbolic_matrix(N(:, :, i), 'N', '    '));
-
+%Evaluate the M-matrix integrand
 fprintf(fid, '\n    %%Evaluate N''rhoN|J|\n');
 fprintf(fid, '    el_M_tmp = el_M_tmp + pagemtimes(pagemtimes(N, ''transpose'', rho * N, ''none''), permute(detJ, [2, 3, 1]));\n\n');
+
+%End of loop over GPs
 fprintf(fid, 'end\n');
 
 fprintf(fid, '\n%%Diagonalise M\n');
@@ -111,12 +113,19 @@ fprintf(fid, 'el_C = el_C(j, j, :);\n');
 fprintf(fid, 'loc_nd = loc_nd(j);\n');
 fprintf(fid, 'loc_df = loc_df(j);\n');
 
-%Permute dimension order - this may be removed in future version but
+%Permute dimension order - this may be removed in future version but that
 %requires fn_build_global_matrices to be changed
 fprintf(fid, '\n%%Change dimension order of element matrices\n');
 fprintf(fid, 'el_K = permute(el_K, [3, 1, 2]);\n');
 fprintf(fid, 'el_M = permute(el_M, [3, 1, 2]);\n');
 fprintf(fid, 'el_C = permute(el_C, [3, 1, 2]);\n');
+
+%Deal with any extra starting lines specified in varargin
+if ~isempty(end_lines)
+    for i = 1:length(end_lines)
+        fprintf(fid, [end_lines{i}, '\n']);
+    end
+end
 
 %End line and close
 fprintf(fid, '\nend\n');
@@ -155,10 +164,6 @@ if size(Z_symm, 1) ~= size(Z_symm, 2)
     symmetric = 0;
 end
 
-if isvector(Z_symm) || isscalar(Z_symm)
-    error('Not a matrix')
-end
-% str = sprintf([indent_str, var_name, ' = zeros(%i, %i, no_els);\n'], size(Z_symm,1), size(Z_symm,2));
 str = '';
 
 fmt_str = '(%i, %i, :)';
@@ -184,26 +189,26 @@ str = fn_format_string_for_file(str);
 end
 
 %--------------------------------------------------------------------------
-function str = fn_format_symbolic_vector(Z_symm, var_name, varargin)
-if numel(varargin) < 1
-    indent_str = '';
-else
-    indent_str = varargin{1};
-end
-
-if ~isvector(Z_symm) || isscalar(Z_symm)
-    error('Not a vector')
-end
-% str = sprintf([indent_str, var_name, ' = zeros(%i, no_els);\n'], numel(Z_symm,1));
-str = '';
-fmt_str = '(%i, :)';
-for i = 1:numel(Z_symm)
-    if ~isequal(Z_symm(i),sym(0))
-        str = [str, indent_str, sprintf([var_name, fmt_str,' = ', char(Z_symm(i)), fmt_str, ';\n'], i)];
-    end
-end
-str = fn_format_string_for_file(str);
-end
+% function str = fn_format_symbolic_vector(Z_symm, var_name, varargin)
+% if numel(varargin) < 1
+%     indent_str = '';
+% else
+%     indent_str = varargin{1};
+% end
+% 
+% if ~isvector(Z_symm) || isscalar(Z_symm)
+%     error('Not a vector')
+% end
+% % str = sprintf([indent_str, var_name, ' = zeros(%i, no_els);\n'], numel(Z_symm,1));
+% str = '';
+% fmt_str = '(%i, :)';
+% for i = 1:numel(Z_symm)
+%     if ~isequal(Z_symm(i),sym(0))
+%         str = [str, indent_str, sprintf([var_name, fmt_str,' = ', char(Z_symm(i)), fmt_str, ';\n'], i)];
+%     end
+% end
+% str = fn_format_string_for_file(str);
+% end
 
 %--------------------------------------------------------------------------
 function str = fn_format_string_for_file(str)

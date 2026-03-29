@@ -1,6 +1,6 @@
 function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE3_new(nds, els, D, rho, varargin)
 %SUMMARY
-%	This function was created automatically by fn_create_element_matrix_file
+%	This function was created automatically by fn_create_element_matrix_file3
 %	and contains code to return the stiffness and mass matrices
 %	for multiple elements of the same material and type given by the latter
 %	part of the filename, fn_el_CPE3_new.
@@ -9,12 +9,13 @@ function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE3_new(nds, els, D, rho, v
 %	els - n_els x n_nds_per_el matrix of node indices for each elements
 %	D - ns x ns material stiffness matrix
 %	rho - material density
-%	[dofs_to_use = [] - optional string listing the DoFs to use, e.g. '12'. Use [] for all]
+%	[dofs_to_use = [] - optional vector listing the DoFs to use, e.g. [1, 2]. Use [] for all]
 %OUTPUTS
 %	el_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices
 %AUTHOR
-%	Paul Wilcox (29-Mar-2026 21:29:20)
+%	Paul Wilcox (29-Mar-2026 22:06:31)
 
+%Define sqrt(3)
 rt3 = sqrt(3);
 %Deal with optional argument about which DOFs to use
 if isempty(varargin)

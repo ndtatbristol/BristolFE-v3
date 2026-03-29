@@ -13,7 +13,7 @@ phys_dims = 3; %do not alter!!!
 
 pressure_dof_i = 4;
 
-el_type = 'AC2D3';
+el_type = '';
 
 %--------------------------------------------------------------------------
 %Change current folder to where this file is to ensure generated element
