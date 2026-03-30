@@ -1,6 +1,6 @@
 clear all;
-close all;
-
+% close all;
+rng(1)
 %ABOUT THIS EXAMPLE
 %This example demonstrates multiple features in a 2D model, including
 %fluid-solid coupling, absorbing regions, defect generation (crack, 
@@ -53,7 +53,7 @@ else
     max_time = 3 * model_size_y / solid_longitudinal_velocity;
 end
 
-fe_options.field_output_every_n_frames = 10;
+fe_options.field_output_every_n_frames = inf;10;
 
 show_geom_only = 0; %Set to 1 to just show geometry without running model
 
@@ -71,7 +71,7 @@ fluid_matl_i = 2;
 matls{fluid_matl_i} = fn_matl_fluid_defined_by_velocity(fluid_name, fluid_velocity, fluid_density);
 
 %Element types to use
-el_typ_to_use_for_solid = 'CPE3'; 
+el_typ_to_use_for_solid = 'CPE4'; 
 el_typ_to_use_for_fluid = 'AC2D3'; 
 
 %Define shape of model
@@ -93,7 +93,8 @@ el_size = fn_get_suitable_el_size(matls, centre_freq, els_per_wavelength);
 time_step = fn_get_suitable_time_step(matls, el_size);
 
 %Create the nodes and elements of the mesh
-mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
+% mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
+mod = fn_2d_structured_mesh_rectangular_els(bdry_pts, el_size);
 el_types = fn_2d_el_types();
 
 %First set material of all elements to steel ...

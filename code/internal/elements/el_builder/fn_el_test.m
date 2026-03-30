@@ -1,4 +1,4 @@
-function fn_el_test(test_element, ref_element, parent_nds, trial_pts)
+function [el_K_test, el_K_ref] = fn_el_test(test_element, ref_element, parent_nds, trial_pts)
 
 fn_el_mats_test = str2func(['fn_el_', test_element]);
 fn_el_mats_ref = str2func(['fn_el_', ref_element]);
@@ -50,6 +50,9 @@ if trial_pts == 1
     disp(squeeze(test_el_K));
     fprintf('test_el_M = \n')
     disp(squeeze(test_el_M));
+    el_K_test = squeeze(test_el_K);
+else
+    el_K_test = [];
 end
 
 if exist(func2str(fn_el_mats_ref), 'file')
@@ -62,6 +65,9 @@ if exist(func2str(fn_el_mats_ref), 'file')
         disp(squeeze(el_K));
         fprintf('el_M = \n')
         disp(squeeze(el_M));
+        el_K_ref = squeeze(el_K);
+    else
+        el_K_ref = [];
     end
     %Comparison
     fprintf(['\nCOMPARISON OF OUTPUTS FROM  ',func2str(fn_el_mats_test),' AND ',func2str(fn_el_mats_ref),':\n'])
@@ -69,6 +75,7 @@ if exist(func2str(fn_el_mats_ref), 'file')
     fprintf('  Fractional RMS error for M: %e\n', fn_compare_matrices(test_el_M, el_M));
 else
     t_ref = -1;
+    el_K_ref = [];
 end
 
 fprintf('\nSPEED TEST FOR %i ELEMENTS\n', trial_pts);

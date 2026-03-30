@@ -1,7 +1,13 @@
-function fn_create_element_matrix_file3(fname, B, detJ, N, loc_nd, loc_df, no_dims, start_lines, end_lines)
+function fn_create_element_matrix_file3(fname, B, N, detJ, W, loc_nd, loc_df, no_dims, start_lines, end_lines)
 fid = fopen(fname, 'wt');
 
 [~, fn_name] = fileparts(fname);
+
+%Numbers for use in this function (not directly the element script)
+no_gps = size(B, 3);
+K_size = size(B, 2);
+D_size = size(B, 1);
+no_dfs = size(N, 1);
 
 %Header line
 fprintf(fid, ['function [el_K, el_C, el_M, loc_nd, loc_df] = ', fn_name, '(nds, els, D, rho, varargin)\n']);
@@ -45,8 +51,12 @@ fprintf(fid, 'if isempty(dofs_to_use)\n\tdofs_to_use = unique(loc_df);\nend\n\n'
 fprintf(fid, '%%If any inputs blank, return at this point with just the loc_nd and loc_df\n');
 fprintf(fid, 'if isempty(nds) || isempty(els) || isempty(D) || isempty(rho)\n\tel_K = [];\n\tel_M = [];\n\tel_C = [];\n\t[loc_nd, loc_df] = fn_remove_dofs_from_el_matrices(loc_nd, loc_df, dofs_to_use);\n\treturn\nend\n\n');
 
-%Shortcut variables for local nds
-fprintf(fid, '%%Temporary matrices of nodal coordinates to save time\n');
+fprintf(fid, '\n%%Some constants\n');
+fprintf(fid, 'no_gauss_pts = %i;\n', no_gps);
+fprintf(fid, 'no_els = size(els, 1);\n\n');
+
+%Variables for local nds
+fprintf(fid, '%%Matrices of nodal coordinates\n');
 un_loc_nd = unique(loc_nd);
 for i = 1:numel(un_loc_nd)
     for j = 1:no_dims
@@ -55,15 +65,14 @@ for i = 1:numel(un_loc_nd)
 end
 fprintf(fid, '\n');
 
-no_gps = size(B, 3);
-K_size = size(B, 2);
-D_size = size(B, 1);
-no_dfs = size(N, 1);
+%Variables for Gauss weights
+fprintf(fid, '%%Vector of Gauss weights\n');
+fprintf(fid, 'W = zeros(%i, 1);\n', no_gps);
+for i = 1:no_gps
+    fprintf(fid, 'W(%i) = %.18e;\n', i, W(i));
+end
 
-fprintf(fid, '\n%%Some constants\n');
-fprintf(fid, 'no_gauss_pts = %i;\n', no_gps);
-fprintf(fid, 'no_els = size(els, 1);\n\n');
-
+%Empty matrices for outputs
 fprintf(fid, '\n%%Zero the outputs\n');
 fprintf(fid, 'el_K = zeros(%i, %i, no_els);\n', K_size, K_size);
 fprintf(fid, 'el_M_tmp = zeros(%i, %i, no_els);\n', K_size, K_size);
@@ -89,11 +98,11 @@ fprintf(fid, '    end\n');
 
 %Evaluate the K-matrix integrand
 fprintf(fid, '\n    %%Evaluate B''DB|J|\n');
-fprintf(fid, '    el_K = el_K + pagemtimes(pagemtimes(B, ''transpose'', pagemtimes(D, B), ''none''), permute(detJ, [2, 3, 1]));\n\n');
+fprintf(fid, '    el_K = el_K + pagemtimes(pagemtimes(B, ''transpose'', pagemtimes(D, B), ''none''), permute(detJ, [2, 3, 1])) * W(i);\n\n');
 
 %Evaluate the M-matrix integrand
 fprintf(fid, '\n    %%Evaluate N''rhoN|J|\n');
-fprintf(fid, '    el_M_tmp = el_M_tmp + pagemtimes(pagemtimes(N, ''transpose'', rho * N, ''none''), permute(detJ, [2, 3, 1]));\n\n');
+fprintf(fid, '    el_M_tmp = el_M_tmp + pagemtimes(pagemtimes(N, ''transpose'', rho * N, ''none''), permute(detJ, [2, 3, 1])) * W(i);\n\n');
 
 %End of loop over GPs
 fprintf(fid, 'end\n');

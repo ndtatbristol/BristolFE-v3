@@ -1,10 +1,9 @@
 %symbolic creation of mass and stiffness matrices
 %for 3 node triangular acoustic element AC2D3
-restoredefaultpath;
+% restoredefaultpath;
 addpath(genpath('../..'));
 
 clear;
-% clc;
 
 no_nds = 3; %number of nodes of element
 no_dims = 2; %this is number of dimensions of element
@@ -56,14 +55,8 @@ M = J * simplify(int(int(N' * N, q(1), 0, 1 - q(2)), q(2), 0, 1));
 M = diag(sum(M));
 
 %The critical lines that determine what the field variable actually is!
-switch el_type
-    case 'AC2D3_b'
-        K = K / rho;
-        M = M / D;
-    otherwise %this is the right one!!
-        K = -K / rho;
-        M = -M / D;
-end
+K = -K / rho;
+M = -M / D;
 return
 %Remove rows/cols for unwanted DOF from symbolic K and M matrices
 j = ismember(loc_df, dof_indices);

@@ -1,5 +1,5 @@
 clear all
-% close all;
+close all;
 
 %ABOUT THIS SCRIPT
 %This script runs the same model twice, once in BristolFE and once in Pogo
@@ -44,7 +44,7 @@ max_time = 3 * model_size / matl_longitudinal_velocity;
 
 %Say which element type will be used (currently only CPE3 and CPE4 supported in both packages)
 el_typ_to_use_for_solid = 'CPE3'; 
-el_typ_to_use_for_solid = 'CPE4R'; 
+el_typ_to_use_for_solid = 'CPE4'; 
 
 solvers = {'BristolFE', 'pogo'};
 

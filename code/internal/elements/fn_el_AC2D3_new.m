@@ -13,7 +13,7 @@ function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_AC2D3_new(nds, els, D, rho, 
 %OUTPUTS
 %	el_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices
 %AUTHOR
-%	Paul Wilcox (29-Mar-2026 22:07:09)
+%	Paul Wilcox (30-Mar-2026 17:00:23)
 
 %Define sqrt(3)
 rt3 = sqrt(3);
@@ -44,7 +44,12 @@ if isempty(nds) || isempty(els) || isempty(D) || isempty(rho)
 	return
 end
 
-%Temporary matrices of nodal coordinates to save time
+
+%Some constants
+no_gauss_pts = 1;
+no_els = size(els, 1);
+
+%Matrices of nodal coordinates
 nds_1_1 = nds(els(:, 1), 1);
 nds_1_2 = nds(els(:, 1), 2);
 nds_2_1 = nds(els(:, 2), 1);
@@ -52,11 +57,9 @@ nds_2_2 = nds(els(:, 2), 2);
 nds_3_1 = nds(els(:, 3), 1);
 nds_3_2 = nds(els(:, 3), 2);
 
-
-%Some constants
-no_gauss_pts = 1;
-no_els = size(els, 1);
-
+%Vector of Gauss weights
+W = zeros(1, 1);
+W(1) = 5.000000000000000000e-01;
 
 %Zero the outputs
 el_K = zeros(3, 3, no_els);
@@ -73,13 +76,13 @@ for i = 1:no_gauss_pts
 
     switch i
         case 1
-            detJ = (nds_1_1 .* nds_2_2) ./ 2 - (nds_1_2 .* nds_2_1) ./ 2 - (nds_1_1 .* nds_3_2) ./ 2 + (nds_1_2 .* nds_3_1) ./ 2 + (nds_2_1 .* nds_3_2) ./ 2 - (nds_2_2 .* nds_3_1) ./ 2;
+            detJ = nds_1_1 .* nds_2_2 - nds_1_2 .* nds_2_1 - nds_1_1 .* nds_3_2 + nds_1_2 .* nds_3_1 + nds_2_1 .* nds_3_2 - nds_2_2 .* nds_3_1;
 
-            B(1, 1, :) = (nds_1_2 - nds_3_2) ./ detJ - (nds_1_2 - nds_2_2) ./ detJ;
+            B(1, 1, :) = -(nds_1_1 - nds_1_2 - nds_3_1 + nds_3_2) ./ detJ;
             B(1, 2, :) = -(nds_1_2 - nds_3_2) ./ detJ;
-            B(1, 3, :) = (nds_1_2 - nds_2_2) ./ detJ;
+            B(1, 3, :) = (nds_1_1 - nds_3_1) ./ detJ;
             B(2, 1, :) = B(1, 2, :);
-            B(2, 2, :) = (nds_1_1 - nds_3_1) ./ detJ;
+            B(2, 2, :) = (nds_1_2 - nds_2_2) ./ detJ;
             B(2, 3, :) = -(nds_1_1 - nds_2_1) ./ detJ;
 
             N(1, 1, :) = 1 ./ 3;
@@ -89,11 +92,11 @@ for i = 1:no_gauss_pts
     end
 
     %Evaluate B'DB|J|
-    el_K = el_K + pagemtimes(pagemtimes(B, 'transpose', pagemtimes(D, B), 'none'), permute(detJ, [2, 3, 1]));
+    el_K = el_K + pagemtimes(pagemtimes(B, 'transpose', pagemtimes(D, B), 'none'), permute(detJ, [2, 3, 1])) * W(i);
 
 
     %Evaluate N'rhoN|J|
-    el_M_tmp = el_M_tmp + pagemtimes(pagemtimes(N, 'transpose', rho * N, 'none'), permute(detJ, [2, 3, 1]));
+    el_M_tmp = el_M_tmp + pagemtimes(pagemtimes(N, 'transpose', rho * N, 'none'), permute(detJ, [2, 3, 1])) * W(i);
 
 end
 

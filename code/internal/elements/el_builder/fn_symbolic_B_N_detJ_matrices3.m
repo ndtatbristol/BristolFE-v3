@@ -1,4 +1,4 @@
-function [B, N, detJ, loc_nd, loc_df, start_lines, end_lines] = fn_symbolic_B_N_detJ_matrices3(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, varargin)
+function [B, N, detJ, W, loc_nd, loc_df, start_lines, end_lines] = fn_symbolic_B_N_detJ_matrices3(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, varargin)
 
 if numel(varargin) < 1
     simplify_expression = 0;
@@ -24,6 +24,9 @@ switch solid_or_fluid
 end
 no_nds_times_dfs = no_dfs * no_nds;
 
+%Copy Gauss weights straight to output
+W = gauss_weights;
+
 %Define symbols for the physical nodal coordinates
 nds = sym('nds_%d_%d', [no_nds, no_spatial_dims], 'real'); 
 
@@ -33,33 +36,43 @@ Q = sym('q', [1, no_spatial_dims], 'real'); %nat coordinates
 fprintf('Generating shape functions\n')
 shape_functions = fn_symbolic_shape_functions(nds_in_nat_coords, sf_powers, Q);
 
+fprintf('Calculating general form of N-matrix\n')
 N_gen = fn_symbolic_shape_function_matrix(shape_functions, no_dfs);
 
 %Jacobian determinate and inverse Jacobian for coordinate transform
-fprintf('Calculating Jacobian\n')
+fprintf('Calculating general form of Jacobian\n')
 [detJ_gen, invJ] = fn_symbolic_inv_jacobian(shape_functions, nds, Q, no_dims_of_el);
 
 %Calculate B-matrix (nodal displacements to strain components)
-fprintf('Calculating B matrix\n')
+fprintf('Calculating general form of B matrix\n')
 B_gen = fn_B_matrix(N_gen, Q, solid_or_fluid, invJ);
 
+fprintf('Calculating N-matrices, Jacobians, and B-matrices at Gauss points\n')
 B = sym('B_%d_%d_%d', [size(B_gen), no_gps], 'real');
 N = sym('N_%d_%d_%d', [size(N_gen), no_gps], 'real');
 detJ = sym('detJ_%d', no_gps, 'real');
 rt3 = sym('rt3', 'real');
 zero_pad = zeros(1, no_spatial_dims - no_dims_of_el);
 for i = 1: no_gps
-    B(:,:,i) = subs(B_gen, Q, [gauss_pts(i, :), zero_pad]);
-    N(:,:,i) = subs(N_gen, Q, [gauss_pts(i, :), zero_pad]);
-    detJ(i) = subs(detJ_gen, Q, [gauss_pts(i, :), zero_pad]) * gauss_weights(i);
+    B(:, :, i) = subs(B_gen, Q, [gauss_pts(i, :), zero_pad]);
+    N(:, :, i) = subs(N_gen, Q, [gauss_pts(i, :), zero_pad]);
+    detJ(i) = subs(detJ_gen, Q, [gauss_pts(i, :), zero_pad]);
 end
 
 %Substitute for known repeating constants
+fprintf('Substitution for sqrt(3)\n')
 start_lines = {'%%Define sqrt(3)', 'rt3 = sqrt(3);'};
 for i = 1: no_gps
-    B(:,:,i) = subs(B(:,:,i), sqrt(3), 'rt3');
-    N(:,:,i) = subs(N(:,:,i), sqrt(3), 'rt3');
+    B(:, :, i) = subs(B(:, :, i), sqrt(3), 'rt3');
+    N(:, :, i) = subs(N(:, :, i), sqrt(3), 'rt3');
     detJ(i) = subs(detJ(i), sqrt(3), 'rt3');
+end
+
+if simplify_expression
+    fprintf('Simplifying expressions\n')
+    B = simplify(B);
+    N = simplify(N);
+    detJ = simplify(detJ);
 end
 
 if strcmp(solid_or_fluid, 'fluid')
@@ -196,19 +209,25 @@ switch solid_or_fluid
             end
         end
     case 'fluid'
-        N = repmat(N, [size(diff_matrix, 2), 1]);
         for i = 1:size(diff_matrix, 1)
             for j = 1:size(N, 2)
-                B(i, j) = 0;
-                for k = 1:size(diff_matrix, 2) %loop over cols in diff matrix to work out what derivatives are needed
-                    if diff_matrix(i, k)% && diff_matrix(i, k) <= no_Q %means derivative w.r.t. this physical coordinate is needed
-                        for ii = 1:numel(Q) %loop over natural coordinate derivatives and sum after multiplying by relelvant term from inv_J
-                            B(i, j) = B(i, j) + diff(N(k, j), Q(ii)) * invJ(ii, diff_matrix(i, k));
-                        end
-                    end
-                end
+                B(i, j) = diff(N(j), Q(i));
             end
         end
+        B = invJ * B;
+        % N = repmat(N, [size(diff_matrix, 2), 1]);
+        % for i = 1:size(diff_matrix, 1)
+        %     for j = 1:size(N, 2)
+        %         B(i, j) = 0;
+        %         for k = 1:size(diff_matrix, 2) %loop over cols in diff matrix to work out what derivatives are needed
+        %             if diff_matrix(i, k)% && diff_matrix(i, k) <= no_Q %means derivative w.r.t. this physical coordinate is needed
+        %                 for ii = 1:numel(Q) %loop over natural coordinate derivatives and sum after multiplying by relelvant term from inv_J
+        %                     B(i, j) = B(i, j) + diff(N(k, j), Q(ii));% * invJ(ii, diff_matrix(i, k));
+        %                 end
+        %             end
+        %         end
+        %     end
+        % end
 end
 end
 

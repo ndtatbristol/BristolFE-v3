@@ -22,6 +22,12 @@ for i = 1:numel(un_el_typ_i)
                 1, 2
                 2, 3
                 3, 1];
+        case 'quadrilateral' %2D quadrilateral
+            fc_i = [
+                1, 2
+                2, 3
+                3, 4
+                4, 1];
         case 'line' %2D line - note that for lines this function returns faces (same as fn_faceas_from_els)
             fc_i = [
                 1, 2];
