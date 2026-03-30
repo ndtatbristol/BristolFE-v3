@@ -6,34 +6,41 @@ addpath(genpath('..\..\..\..\code'));
 simplify_expression = 0;
 
 %CPE3 - OK
-% solid_or_fluid = 'solid';
-% new_el_type = 'CPE3_x';
-% ref_el_type = 'CPE3';
-% [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('triangular');
+solid_or_fluid = 'solid';
+new_el_type = 'CPE3_new';
+ref_el_type = 'CPE3';
+[nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('triangular');
 
 %CPE4 - OK
-% solid_or_fluid = 'solid';
-% new_el_type = 'CPE4_new2';
-% ref_el_type = 'CPE4';
-% [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('quadrilateral');
+solid_or_fluid = 'solid';
+new_el_type = 'CPE4_new';
+ref_el_type = 'CPE4';
+[nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('quadrilateral');
 
-%AC2D3 - K not yet correct
+%AC2D3 - OK
 solid_or_fluid = 'fluid';
 new_el_type = 'AC2D3_new';
 ref_el_type = 'AC2D3';
 [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('triangular');
 
+%AC2D4 - 
+solid_or_fluid = 'fluid';
+new_el_type = 'AC2D4_new';
+ref_el_type = '';
+[nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('quadrilateral');
+
+
 %C3D8
-% solid_or_fluid = 'solid';
-% new_el_type = 'C3D8_new2';
-% ref_el_type = 'C3D8_new';
-% [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('hexahedral');
+solid_or_fluid = 'solid';
+new_el_type = 'C3D8_new3';
+ref_el_type = 'C3D8_new';
+[nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('hexahedral');
 
 
 %--------------------------------------------------------------------------
 %DO THE SYMBOLIC CALCULATIONS AND CREATE THE ELEMENT FILE
 fname = ['..', filesep, 'fn_el_', new_el_type, '.m'];
-simplify_expressions = 1;
+simplify_expressions = 0;
 % nds_in_nat_coords = nds_in_nat_coords([2,3,1], :);
 % [G, D, N, detJ, W, loc_nd, loc_df, start_lines, end_lines] = fn_symbolic_G_D_N_detJ_matrices4(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, simplify_expressions);
 [B, N, detJ, W, loc_nd, loc_df, start_lines, end_lines] = fn_symbolic_B_N_detJ_matrices3(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, simplify_expressions);

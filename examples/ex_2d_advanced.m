@@ -1,6 +1,6 @@
 clear all;
-% close all;
-rng(1)
+close all;
+rng(2)
 %ABOUT THIS EXAMPLE
 %This example demonstrates multiple features in a 2D model, including
 %fluid-solid coupling, absorbing regions, defect generation (crack, 
@@ -53,7 +53,7 @@ else
     max_time = 3 * model_size_y / solid_longitudinal_velocity;
 end
 
-fe_options.field_output_every_n_frames = inf;10;
+fe_options.field_output_every_n_frames = 10;
 
 show_geom_only = 0; %Set to 1 to just show geometry without running model
 
@@ -71,8 +71,8 @@ fluid_matl_i = 2;
 matls{fluid_matl_i} = fn_matl_fluid_defined_by_velocity(fluid_name, fluid_velocity, fluid_density);
 
 %Element types to use
-el_typ_to_use_for_solid = 'CPE4'; 
-el_typ_to_use_for_fluid = 'AC2D3'; 
+el_typ_to_use_for_solid = 'CPE3_new'; 
+el_typ_to_use_for_fluid = 'AC2D3_new'; 
 
 %Define shape of model
 bdry_pts = [

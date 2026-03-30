@@ -13,7 +13,7 @@ function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_AC2D3_new(nds, els, D, rho, 
 %OUTPUTS
 %	el_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices
 %AUTHOR
-%	Paul Wilcox (30-Mar-2026 17:00:23)
+%	Paul Wilcox (30-Mar-2026 17:45:41)
 
 %Define sqrt(3)
 rt3 = sqrt(3);
@@ -67,7 +67,7 @@ el_M_tmp = zeros(3, 3, no_els);
 el_C = zeros(3, 3, no_els);
 
 detJ = zeros(no_els, 1);
-B = zeros(3, 3, no_els);
+B = zeros(2, 3, no_els);
 N = zeros(1, 3, no_els);
 %Loop over Gauss points
 for i = 1:no_gauss_pts
@@ -81,7 +81,7 @@ for i = 1:no_gauss_pts
             B(1, 1, :) = -(nds_1_1 - nds_1_2 - nds_3_1 + nds_3_2) ./ detJ;
             B(1, 2, :) = -(nds_1_2 - nds_3_2) ./ detJ;
             B(1, 3, :) = (nds_1_1 - nds_3_1) ./ detJ;
-            B(2, 1, :) = B(1, 2, :);
+            B(2, 1, :) = (nds_1_1 - nds_1_2 - nds_2_1 + nds_2_2) ./ detJ;
             B(2, 2, :) = (nds_1_2 - nds_2_2) ./ detJ;
             B(2, 3, :) = -(nds_1_1 - nds_2_1) ./ detJ;
 

@@ -28,10 +28,10 @@ no_nds_times_dfs = no_dfs * no_nds;
 W = gauss_weights;
 
 %Define symbols for the physical nodal coordinates
-nds = sym('nds_%d_%d', [no_nds, no_spatial_dims], 'real'); 
+nds = sym('nds_%d_%d', [no_nds, no_dims_of_el], 'real'); 
 
 %Define symbols for the natural coordinates
-Q = sym('q', [1, no_spatial_dims], 'real'); %nat coordinates
+Q = sym('q', [1, no_dims_of_el], 'real'); %nat coordinates
 
 fprintf('Generating shape functions\n')
 shape_functions = fn_symbolic_shape_functions(nds_in_nat_coords, sf_powers, Q);
@@ -54,9 +54,9 @@ detJ = sym('detJ_%d', no_gps, 'real');
 rt3 = sym('rt3', 'real');
 zero_pad = zeros(1, no_spatial_dims - no_dims_of_el);
 for i = 1: no_gps
-    B(:, :, i) = subs(B_gen, Q, [gauss_pts(i, :), zero_pad]);
-    N(:, :, i) = subs(N_gen, Q, [gauss_pts(i, :), zero_pad]);
-    detJ(i) = subs(detJ_gen, Q, [gauss_pts(i, :), zero_pad]);
+    B(:, :, i) = subs(B_gen, Q, gauss_pts(i, :));
+    N(:, :, i) = subs(N_gen, Q, gauss_pts(i, :));
+    detJ(i) = subs(detJ_gen, Q, gauss_pts(i, :));
 end
 
 %Substitute for known repeating constants
@@ -167,26 +167,26 @@ end
 %--------------------------------------------------------------------------
 
 function [detJ, invJ] = fn_symbolic_inv_jacobian(shape_functions, nds, Q, no_dims_of_el)
-no_dims = 3;
+% no_dims = 3;
 
 %Shape function matrix N for coordinates (no_dims may be less than no_dfs so local version needed here as this is only used to interpolate coordinates)
-N = fn_symbolic_shape_function_matrix(shape_functions, no_dims);
+N = fn_symbolic_shape_function_matrix(shape_functions, no_dims_of_el);
 
 %Phys coordinates in terms of natural ones
 X = N * reshape(nds', [], 1);
-if no_dims_of_el < no_dims
-    X(no_dims_of_el + 1:end) = 0;%needs generalising for 3D
-end 
+% if no_dims_of_el < no_dims
+%     X(no_dims_of_el + 1:end) = 0;%needs generalising for 3D
+% end 
 
-J = [jacobian(X, Q), zeros(no_dims, no_dims - size(Q,2))];
-if no_dims_of_el < no_dims
-    J(no_dims_of_el + 1:end, no_dims_of_el + 1:end) = eye(no_dims - no_dims_of_el);%needs generalising for 3D
-end 
+J = jacobian(X, Q);
+% if no_dims_of_el < no_dims
+%     J(no_dims_of_el + 1:end, no_dims_of_el + 1:end) = eye(no_dims - no_dims_of_el);%needs generalising for 3D
+% end 
 detJ = det(J);
 invJ = simplify(inv(J) * detJ) / sym('detJ', 'real');
-if no_dims_of_el < no_dims
-    invJ(no_dims_of_el + 1:end, :) = 0;%needs generalising for 3D
-end 
+% if no_dims_of_el < no_dims
+%     invJ(no_dims_of_el + 1:end, :) = 0;%needs generalising for 3D
+% end 
 end
 
 %--------------------------------------------------------------------------
@@ -202,13 +202,17 @@ switch solid_or_fluid
                 for k = 1:size(diff_matrix, 2) %loop over cols in diff matrix to work out what derivatives are needed
                     if diff_matrix(i, k)% && diff_matrix(i, k) <= no_Q %means derivative w.r.t. this physical coordinate is needed
                         for ii = 1:numel(Q) %loop over natural coordinate derivatives and sum after multiplying by relelvant term from inv_J
-                            B(i, j) = B(i, j) + diff(N(k, j), Q(ii)) * invJ(ii, diff_matrix(i, k));
+                            if diff_matrix(i, k) <= size(invJ, 2)
+                                B(i, j) = B(i, j) + diff(N(k, j), Q(ii)) * invJ(ii, diff_matrix(i, k));
+                            end
                         end
                     end
                 end
             end
         end
     case 'fluid'
+        diff_matrix = [1: numel(Q)]';
+        B = sym('B_%d%d', [size(diff_matrix, 1), size(N, 2)], 'real');
         for i = 1:size(diff_matrix, 1)
             for j = 1:size(N, 2)
                 B(i, j) = diff(N(j), Q(i));

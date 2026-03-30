@@ -66,10 +66,22 @@ el_type_info{i}.shape = 'quadrilateral';
 
 %test elements
 i = i + 1;
+el_type_info{i}.name = 'CPE4_new';
+el_type_info{i}.dims = 2;
+el_type_info{i}.state = 'solid';
+el_type_info{i}.shape = 'quadrilateral';
+
+i = i + 1;
 el_type_info{i}.name = 'AC2D3_new';
 el_type_info{i}.dims = 2;
 el_type_info{i}.state = 'fluid';
 el_type_info{i}.shape = 'triangular';
+
+i = i + 1;
+el_type_info{i}.name = 'AC2D4_new';
+el_type_info{i}.dims = 2;
+el_type_info{i}.state = 'fluid';
+el_type_info{i}.shape = 'quadrilateral';
 
 %2D modelling - fluid-solid interface
 i = i + 1;

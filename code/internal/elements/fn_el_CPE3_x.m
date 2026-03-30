@@ -13,7 +13,7 @@ function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE3_x(nds, els, D, rho, var
 %OUTPUTS
 %	el_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices
 %AUTHOR
-%	Paul Wilcox (30-Mar-2026 16:41:58)
+%	Paul Wilcox (30-Mar-2026 17:44:52)
 
 %Define sqrt(3)
 rt3 = sqrt(3);
