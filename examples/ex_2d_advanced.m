@@ -55,7 +55,7 @@ end
 
 fe_options.field_output_every_n_frames = 10;
 
-show_geom_only = 0; %Set to 1 to just show geometry without running model
+show_geom_only = 1; %Set to 1 to just show geometry without running model
 
 %--------------------------------------------------------------------------
 %THE ACTUAL CODE STARTS HERE
@@ -71,8 +71,8 @@ fluid_matl_i = 2;
 matls{fluid_matl_i} = fn_matl_fluid_defined_by_velocity(fluid_name, fluid_velocity, fluid_density);
 
 %Element types to use
-el_typ_to_use_for_solid = 'CPE3_new'; 
-el_typ_to_use_for_fluid = 'AC2D3_new'; 
+el_typ_to_use_for_solid = 'CPE3'; 
+el_typ_to_use_for_fluid = 'AC2D3'; 
 
 %Define shape of model
 bdry_pts = [

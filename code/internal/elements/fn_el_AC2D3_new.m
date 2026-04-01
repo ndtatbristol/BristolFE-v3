@@ -13,7 +13,7 @@ function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_AC2D3_new(nds, els, D, rho, 
 %OUTPUTS
 %	el_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices
 %AUTHOR
-%	Paul Wilcox (30-Mar-2026 17:45:41)
+%	Paul Wilcox (01-Apr-2026 11:25:37)
 
 %Define sqrt(3)
 rt3 = sqrt(3);
@@ -78,10 +78,10 @@ for i = 1:no_gauss_pts
         case 1
             detJ = nds_1_1 .* nds_2_2 - nds_1_2 .* nds_2_1 - nds_1_1 .* nds_3_2 + nds_1_2 .* nds_3_1 + nds_2_1 .* nds_3_2 - nds_2_2 .* nds_3_1;
 
-            B(1, 1, :) = -(nds_1_1 - nds_1_2 - nds_3_1 + nds_3_2) ./ detJ;
+            B(1, 1, :) = (nds_1_2 - nds_3_2) ./ detJ - (nds_1_1 - nds_3_1) ./ detJ;
             B(1, 2, :) = -(nds_1_2 - nds_3_2) ./ detJ;
             B(1, 3, :) = (nds_1_1 - nds_3_1) ./ detJ;
-            B(2, 1, :) = (nds_1_1 - nds_1_2 - nds_2_1 + nds_2_2) ./ detJ;
+            B(2, 1, :) = (nds_1_1 - nds_2_1) ./ detJ - (nds_1_2 - nds_2_2) ./ detJ;
             B(2, 2, :) = (nds_1_2 - nds_2_2) ./ detJ;
             B(2, 3, :) = -(nds_1_1 - nds_2_1) ./ detJ;
 

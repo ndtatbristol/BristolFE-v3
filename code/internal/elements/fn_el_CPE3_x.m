@@ -13,7 +13,7 @@ function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE3_x(nds, els, D, rho, var
 %OUTPUTS
 %	el_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices
 %AUTHOR
-%	Paul Wilcox (30-Mar-2026 17:44:52)
+%	Paul Wilcox (01-Apr-2026 11:25:54)
 
 %Define sqrt(3)
 rt3 = sqrt(3);
@@ -78,20 +78,20 @@ for i = 1:no_gauss_pts
         case 1
             detJ = nds_1_1 .* nds_2_2 - nds_1_2 .* nds_2_1 - nds_1_1 .* nds_3_2 + nds_1_2 .* nds_3_1 + nds_2_1 .* nds_3_2 - nds_2_2 .* nds_3_1;
 
-            B(1, 1, :) = (nds_2_2 - nds_3_2) ./ detJ;
+            B(1, 1, :) = (nds_1_2 - nds_3_2) ./ detJ - (nds_1_2 - nds_2_2) ./ detJ;
             B(1, 4, :) = -(nds_1_2 - nds_3_2) ./ detJ;
             B(1, 7, :) = (nds_1_2 - nds_2_2) ./ detJ;
-            B(2, 2, :) = -(nds_2_1 - nds_3_1) ./ detJ;
+            B(2, 2, :) = (nds_1_1 - nds_2_1) ./ detJ - (nds_1_1 - nds_3_1) ./ detJ;
             B(2, 5, :) = (nds_1_1 - nds_3_1) ./ detJ;
             B(2, 8, :) = -(nds_1_1 - nds_2_1) ./ detJ;
-            B(4, 3, :) = -(nds_2_1 - nds_3_1) ./ detJ;
+            B(4, 3, :) = (nds_1_1 - nds_2_1) ./ detJ - (nds_1_1 - nds_3_1) ./ detJ;
             B(4, 6, :) = (nds_1_1 - nds_3_1) ./ detJ;
             B(4, 9, :) = -(nds_1_1 - nds_2_1) ./ detJ;
-            B(5, 3, :) = (nds_2_2 - nds_3_2) ./ detJ;
+            B(5, 3, :) = (nds_1_2 - nds_3_2) ./ detJ - (nds_1_2 - nds_2_2) ./ detJ;
             B(5, 6, :) = -(nds_1_2 - nds_3_2) ./ detJ;
             B(5, 9, :) = (nds_1_2 - nds_2_2) ./ detJ;
-            B(6, 1, :) = -(nds_2_1 - nds_3_1) ./ detJ;
-            B(6, 2, :) = (nds_2_2 - nds_3_2) ./ detJ;
+            B(6, 1, :) = (nds_1_1 - nds_2_1) ./ detJ - (nds_1_1 - nds_3_1) ./ detJ;
+            B(6, 2, :) = (nds_1_2 - nds_3_2) ./ detJ - (nds_1_2 - nds_2_2) ./ detJ;
             B(6, 4, :) = (nds_1_1 - nds_3_1) ./ detJ;
             B(6, 5, :) = -(nds_1_2 - nds_3_2) ./ detJ;
             B(6, 7, :) = -(nds_1_1 - nds_2_1) ./ detJ;
