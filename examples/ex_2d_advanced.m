@@ -63,6 +63,9 @@ show_geom_only = 1; %Set to 1 to just show geometry without running model
 
 %SET UP THE MODEL
 
+%Add path to BristolFE functions in case not already on path
+addpath(genpath('../code'));
+
 %Define the materials in use
 solid_matl_i = 1; 
 matls{solid_matl_i} = fn_matl_isotropic_solid_defined_by_velocities(solid_name, solid_longitudinal_velocity, solid_shear_velocity, solid_density);
@@ -82,9 +85,6 @@ bdry_pts = [
     0,              model_size_y];
 
 %SET UP THE MODEL
-
-%Add path to BristolFE functions in case not already on path
-addpath(genpath('../code'));
 
 %PREPARE THE MESH
 
