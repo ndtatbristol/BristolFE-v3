@@ -1,4 +1,8 @@
-function [el_K_test, el_K_ref] = fn_el_test(test_element, ref_element, parent_nds, trial_pts)
+function [el_K_test, el_K_ref] = fn_el_test(test_element, ref_element, solid_or_fluid, test_nds, test_D, test_rho, trial_pts)
+
+if trial_pts > 1
+    nds = nds + randn(size(nds)) * 0.1;
+end
 
 fn_el_mats_test = str2func(['fn_el_', test_element]);
 fn_el_mats_ref = str2func(['fn_el_', ref_element]);
@@ -10,46 +14,23 @@ else
     solid_or_fluid = 'solid';
 end
 
-nds = repmat(parent_nds, [trial_pts, 1]);
-els = reshape(1:size(nds, 1), size(parent_nds, 1), [])';
+nds = repmat(test_nds, [trial_pts, 1]);
+els = reshape(1:size(nds, 1), size(test_nds, 1), [])';
 
-if trial_pts > 1
-    nds = nds + randn(size(nds)) * 0.1;
-end
-
-if trial_pts > 1
-    rho = rand(1);
-    switch solid_or_fluid
-        case 'solid'
-            D = rand(6);
-            D = D + D';
-            D = eye(6);
-        case 'fluid'
-            if trial_pts > 1
-                D = rand(1);
-            end
-    end
-else
-    rho = 1;
-    switch solid_or_fluid
-        case 'solid'
-            D = eye(6);
-        case 'fluid'
-            D = 1;
-    end
-end
 
 %--------------------------------------------------------------------------
 %Do the test
 tic;
-[test_el_K, test_el_C, test_el_M, test_loc_nd, test_loc_df] = fn_el_mats_test(nds, els, D, rho);
+[test_el_K, test_el_C, test_el_M, test_loc_nd, test_loc_df] = fn_el_mats_test(nds, els, test_D, test_rho);
 t_test = double(toc);
 
 if trial_pts == 1
-    fprintf('test_el_K = \n')
-    disp(squeeze(test_el_K));
-    fprintf('test_el_M = \n')
-    disp(squeeze(test_el_M));
+    if nargout == 0
+        fprintf('test_el_K = \n')
+        disp(squeeze(test_el_K));
+        fprintf('test_el_M = \n')
+        disp(squeeze(test_el_M));
+    end
     el_K_test = squeeze(test_el_K);
 else
     el_K_test = [];
@@ -58,7 +39,7 @@ end
 if exist(func2str(fn_el_mats_ref), 'file')
     %Existing function
     tic;
-    [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats_ref(nds, els, D, rho);
+    [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats_ref(nds, els, test_D, test_rho);
     t_ref = double(toc);
     if trial_pts == 1
         fprintf('el_K = \n')
@@ -78,10 +59,12 @@ else
     el_K_ref = [];
 end
 
-fprintf('\nSPEED TEST FOR %i ELEMENTS\n', trial_pts);
-fprintf(['  ', func2str(fn_el_mats_test), ' took %.2fs\n'], t_test);
-if t_ref >= 0
-    fprintf(['  ', func2str(fn_el_mats_ref), ' took %.2fs\n'], t_ref);
+if nargout == 0
+    fprintf('\nSPEED TEST FOR %i ELEMENTS\n', trial_pts);
+    fprintf(['  ', func2str(fn_el_mats_test), ' took %.2fs\n'], t_test);
+    if t_ref >= 0
+        fprintf(['  ', func2str(fn_el_mats_ref), ' took %.2fs\n'], t_ref);
+    end
 end
 
 end

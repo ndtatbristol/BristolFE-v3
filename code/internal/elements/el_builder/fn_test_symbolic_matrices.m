@@ -1,4 +1,4 @@
-function [K, M] = fn_test_symbolic_matrices(sym_mats, test_nds, test_D)
+function [K, M] = fn_test_symbolic_matrices(sym_mats, test_nds, test_D, test_rho)
 %Purpose of this is to allow tests of the symbolic matrices before they are
 %converted into m-files, so that errors in the symbolic formulations can be
 %identified first
@@ -13,6 +13,7 @@ for g = 1:numel(sym_mats.gauss_wts)
         Kg = sym_mats.K(:,:,g);
         Kg = subs(Kg, sym_mats.nds, test_nds);
         Kg = subs(Kg, 'detJ', detJ);
+        Kg = subs(Kg, sym_mats.D, test_D);
     else
         if isfield(sym_mats, 'B')
             B = sym_mats.B(:,:,g);
@@ -38,7 +39,7 @@ for g = 1:numel(sym_mats.gauss_wts)
         end
         Kg = B' * test_D *  B * detJ;
     end
-    K = K + Kg * sym_mats.gauss_wts(g);
+    K = K + double(Kg * sym_mats.gauss_wts(g));
 end
 M = [];
 end

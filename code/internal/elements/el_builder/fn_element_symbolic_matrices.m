@@ -62,21 +62,20 @@ fprintf('Calculating shape function derivatives at Gauss points\n')
 sym_mats.N_diff = fn_calculate_shape_function_derivatives_at_gauss_pts(shape_functions, gauss_pts, Q);
 
 if factorisation_level == 3
-    % if nargout > 1
-    %     test_mats = fn_form_test_mats(sym_mats, nds_in_nat_coords, eye(size(sym_mats.D)));
-    % end
+    % sym_mats.N_diff = sym('N_diff', size(sym_mats.N_diff));
+    % sym_mats.invJ = sym('invJ', size(sym_mats.invJ));
+    % sym_mats.N_diff = sym('N_diff', size(sym_mats.N_diff));
     return
 end
+
+sym_mats.B = sym_mats.L * kron(sym_mats.invJ, eye(3)) * kron(eye(3), sym_mats.N_diff);
 
 %Multiply out factors to get B matrix at each Gauss point;
 fprintf('Calculating B matrices at Gauss points\n')
 sym_mats.B = fn_calculate_B_matrix(sym_mats.L, sym_mats.invJ, sym_mats.N_diff, no_dfs);
 
 if factorisation_level == 2
-    if nargout > 1
-        test_mats = fn_form_test_mats(sym_mats, nds_in_nat_coords, eye(size(sym_mats.D)));
-    end
-    % sym_mats = rmfield(sym_mats, {'L', 'N_diff'});
+    sym_mats = rmfield(sym_mats, {'L', 'N_diff'});
     return
 end
 
@@ -104,10 +103,13 @@ X = N * reshape(nds', [], 1);
 
 J = jacobian(X, Q);
 detJ = sym('detJ_%d', [1, no_gauss_pts], 'real');
-invJ = sym('detJ_%d', [no_dims_of_el, no_dims_of_el, no_gauss_pts], 'real');
+invJ = sym('detJ_%d', [3, 3, no_gauss_pts], 'real');
+invJ(:, :, :) = 0;
+invJ(3, 3, :) = 1;
+
 for i = 1:no_gauss_pts
     detJ(i) = det(subs(J, Q, gauss_pts(i, :)));
-    invJ(:, :, i) = simplify(inv(subs(J, Q, gauss_pts(i, :))) * detJ(i) / sym('detJ', 'real'));
+    invJ(1:no_dims_of_el, 1:no_dims_of_el, i) = simplify(inv(subs(J, Q, gauss_pts(i, :))) * detJ(i) / sym('detJ', 'real'));
 end
 
 end
@@ -172,7 +174,8 @@ function N_diff = fn_calculate_shape_function_derivatives_at_gauss_pts(shape_fun
 no_shape_functions = numel(shape_functions);
 no_gauss_pts = size(gauss_pts, 1);
 no_dims_of_el = size(gauss_pts, 2);
-N_diff = sym('N_diff', [no_dims_of_el, no_shape_functions, no_gauss_pts], 'real');
+N_diff = sym('N_diff', [3, no_shape_functions, no_gauss_pts], 'real');
+N_diff(:,:) = 0;
 for g = 1:no_gauss_pts
     for i = 1:no_dims_of_el
         for j = 1:no_shape_functions
@@ -185,32 +188,43 @@ end
 %--------------------------------------------------------------------------
 function E = fn_calculate_E_matrix(N_diff, no_nds, no_dfs)
 no_dims_of_el = size(N_diff, 1);
-E = sym('E', [no_dfs * no_dims_of_el, no_dfs * no_nds]);
-E(:, :) = 0;
-for n = 1:no_nds %outer loop across columns in steps of no_dfs
-    for j = 1:no_dfs %outer loop down rows (first strain index - disp comp)
-        for k = 1:no_dims_of_el %inner loop down rows (second strain index - deriv direction)
-            E((j - 1) * no_dims_of_el + k, (n-1) * no_dfs + j) = N_diff(k, n);
-        end
-    end
-end
+N_diff_pad = sym('N_diff_pad', [3,3]);
+%N_diff_pad(:,:) = 0;N_diff = sym('N_diff', [no_dims_of_el, 3, 1], 'real');
+
+N_diff_pad(1:size(N_diff, 1), :) = N_diff;
+E = kron(N_diff_pad, eye(3));
+
+% E = sym('E', [no_dfs * no_dims_of_el, no_dfs * no_nds]);
+% E(:, :) = 0;
+% for n = 1:no_nds %outer loop across columns in steps of no_dfs
+%     for j = 1:no_dfs %outer loop down rows (first strain index - disp comp)
+%         for k = 1:no_dims_of_el %inner loop down rows (second strain index - deriv direction)
+%             E((j - 1) * no_dims_of_el + k, (n-1) * no_dfs + j) = N_diff(k, n);
+%         end
+%     end
+% end
 end
 
 %--------------------------------------------------------------------------
 function B = fn_calculate_B_matrix(L, invJ, N_diff, no_dfs)
+
+
 no_spatial_dims = 3;
 no_gauss_pts = size(invJ, 3);
 no_strain_components = size(L, 1);
 no_nds = size(N_diff, 2);
-no_dims_of_el = size(N_diff, 1);
+% no_dims_of_el = size(N_diff, 1);
 B = sym('B', [no_strain_components, no_dfs * no_nds, no_gauss_pts], 'real');
 for g = 1:no_gauss_pts
-    invJpadded = sym('invJpadded', [no_spatial_dims, no_dims_of_el]);
-    invJpadded(:, :) = 0;
-    invJpadded(1:no_dims_of_el, :) = invJ(:, :, g);
-    invJstar = kron(eye(no_dfs), invJpadded);
-    E = fn_calculate_E_matrix(N_diff(:, :, g), no_nds, no_dfs);
-    B(:, :, g) = L * invJstar * E;
+    B(:, :, g) = L * kron(invJ(:,:,g), eye(no_spatial_dims)) * kron(eye(no_spatial_dims), N_diff(:,:,g));
+
+    % % invJpadded = sym('invJpadded', [no_spatial_dims, no_dims_of_el]);
+    % invJpadded = sym('invJpadded', [no_spatial_dims, no_spatial_dims]);
+    % invJpadded(:, :) = 0;
+    % invJpadded(1:no_dims_of_el, 1:no_dims_of_el) = invJ(:, :, g);
+    % invJstar = kron(invJpadded, eye(no_dfs));
+    % E = fn_calculate_E_matrix(N_diff(:, :, g), no_nds, no_dfs);
+    % B(:, :, g) = L * invJstar * E;
 end
 end
 %--------------------------------------------------------------------------
