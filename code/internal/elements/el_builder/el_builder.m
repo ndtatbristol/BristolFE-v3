@@ -12,10 +12,10 @@ ref_el_type = 'CPE3';
 [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('triangular');
 
 %CPE4 - OK
-% solid_or_fluid = 'solid';
-% new_el_type = 'CPE4_new4';
-% ref_el_type = 'CPE4';
-% [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('quadrilateral');
+solid_or_fluid = 'solid';
+new_el_type = 'CPE4_new4';
+ref_el_type = 'CPE4';
+[nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('quadrilateral');
 
 %AC2D3 - OK
 % solid_or_fluid = 'fluid';
@@ -43,9 +43,16 @@ fname = ['..', filesep, 'fn_el_', new_el_type, '.m'];
 simplify_expressions = 0;
 % nds_in_nat_coords = nds_in_nat_coords([2,3,1], :);
 % [G, D, N, detJ, W, loc_nd, loc_df, start_lines, end_lines] = fn_symbolic_G_D_N_detJ_matrices4(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, simplify_expressions);
+factorisation_level = 3;
+sym_mats = fn_element_symbolic_matrices(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, factorisation_level);
+
+test_D = eye(size(sym_mats.D));
+[K, M] = fn_test_symbolic_matrices(sym_mats, nds_in_nat_coords, test_D)
+K_ref = fn_el_test(ref_el_type, '', nds_in_nat_coords, 1);
+return
 [B, N, detJ, W, loc_nd, loc_df, start_lines, end_lines] = fn_symbolic_B_N_detJ_matrices3(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, simplify_expressions);
 fn_create_element_matrix_file3(fname, B, N, detJ, W, loc_nd, loc_df, no_dims, start_lines, end_lines);
-[a,b] = fn_el_test(new_el_type, ref_el_type, nds_in_nat_coords, 100000);
+
 return
 
 %--------------------------------------------------------------------------

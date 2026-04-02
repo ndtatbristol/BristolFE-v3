@@ -93,8 +93,7 @@ el_size = fn_get_suitable_el_size(matls, centre_freq, els_per_wavelength);
 time_step = fn_get_suitable_time_step(matls, el_size);
 
 %Create the nodes and elements of the mesh
-% mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
-mod = fn_2d_structured_mesh_rectangular_els(bdry_pts, el_size);
+mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
 el_types = fn_2d_el_types();
 
 %First set material of all elements to steel ...
