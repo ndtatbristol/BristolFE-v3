@@ -1,4 +1,4 @@
-function [el_K_test, el_K_ref] = fn_el_test(test_element, ref_element, solid_or_fluid, test_nds, test_D, test_rho, trial_pts)
+function [el_K_test, el_M_test, el_K_ref, el_M_ref] = fn_el_test(test_element, ref_element, solid_or_fluid, test_nds, test_D, test_rho, trial_pts)
 
 if trial_pts > 1
     nds = nds + randn(size(nds)) * 0.1;
@@ -32,8 +32,10 @@ if trial_pts == 1
         disp(squeeze(test_el_M));
     end
     el_K_test = squeeze(test_el_K);
+    el_M_test = squeeze(test_el_M);
 else
     el_K_test = [];
+    el_M_test = [];
 end
 
 if exist(func2str(fn_el_mats_ref), 'file')
@@ -47,8 +49,10 @@ if exist(func2str(fn_el_mats_ref), 'file')
         fprintf('el_M = \n')
         disp(squeeze(el_M));
         el_K_ref = squeeze(el_K);
+        el_M_ref = squeeze(el_M);
     else
         el_K_ref = [];
+        el_M_ref = [];
     end
     %Comparison
     fprintf(['\nCOMPARISON OF OUTPUTS FROM  ',func2str(fn_el_mats_test),' AND ',func2str(fn_el_mats_ref),':\n'])
