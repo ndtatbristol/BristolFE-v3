@@ -6,9 +6,17 @@ no_gauss_pts = numel(sym_mats.gauss_wts);
 no_dfs = numel(unique(sym_mats.loc_df));
 no_dims_of_el = size(test_nds, 2);
 
+%insert - get form of symbolic K for testing
+% B = sym_mats.B1 * sym_mats.B2 * sym_mats.B3;
+% S = sym('J_%d_%d', size(sym_mats.J));
+% B = subs(B, S, sym_mats.J);
+% K = B' * sym('rho', 'real') * B * sym('detJ', 'real') * sym_mats.gauss_wts(1);
+% 
+% disp(char(simplify(K(1,1), 10)));
+
 B1 = sym_mats.B1;
 if isscalar(test_D)
-    scaling = double(subs(subs(sym_mats.scaling, 'rho', test_rho), 'D', test_D));
+    scaling = double(subs(subs(sym_mats.scaling, sym_mats.rho, test_rho), sym_mats.D, test_D));
 else
     scaling = 1;
 end
@@ -16,10 +24,9 @@ end
 K = zeros(numel(sym_mats.loc_nd));
 M = zeros(numel(sym_mats.loc_nd));
 for g = 1:no_gauss_pts
-    detJ = double(subs(sym_mats.detJ(g), sym_mats.nds, test_nds));
-    J = subs(sym_mats.J(:,:,g), sym_mats.nds, test_nds);
-    S = sym('J_%d_%d', size(J));
-    B2 = double(subs(subs(sym_mats.B2, S, J), 'detJ', detJ));
+    detJ = double(subs(sym_mats.detJ(g), sym_mats.nds_sym, test_nds));
+    J = subs(sym_mats.J(:,:,g), sym_mats.nds_sym, test_nds);
+    B2 = double(subs(subs(sym_mats.B2, sym_mats.J_sym, J), sym_mats.detJ_sym, detJ));
     B3 = double(sym_mats.B3(:, :, g));
     N = double(sym_mats.N(:, :, g));
     B = B1 * B2 * B3;

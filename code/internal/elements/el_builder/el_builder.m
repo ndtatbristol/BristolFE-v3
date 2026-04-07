@@ -1,5 +1,7 @@
 %General script for building and testing elements
+
 clear all
+rng(1);
 cd(fileparts(mfilename('fullpath')));
 addpath(genpath('..\..\..\..\code'));
 
@@ -12,10 +14,10 @@ ref_el_type = 'CPE3';
 [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('triangular');
 
 %CPE4 - OK
-solid_or_fluid = 'solid';
-new_el_type = 'CPE4_new4';
-ref_el_type = 'CPE4_new';
-[nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('quadrilateral');
+% solid_or_fluid = 'solid';
+% new_el_type = 'CPE4_new4';
+% ref_el_type = 'CPE4_new';
+% [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('quadrilateral');
 
 %AC2D3 - OK
 solid_or_fluid = 'fluid';
@@ -44,23 +46,23 @@ simplify_expressions = 0;
 % nds_in_nat_coords = nds_in_nat_coords([2,3,1], :);
 % [G, D, N, detJ, W, loc_nd, loc_df, start_lines, end_lines] = fn_symbolic_G_D_N_detJ_matrices4(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, simplify_expressions);
 factorisation_level =3;
+% nds_in_nat_coords = nds_in_nat_coords([2, 3, 1], :);
 sym_mats = fn_element_symbolic_matrices(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, factorisation_level);
-% return
 
 
 test_D = rand(size(sym_mats.D));
 test_D = test_D + test_D';
 test_rho = rand(1);
 % test_D = eye(size(sym_mats.D)); test_rho = 1;
-test_nds = nds_in_nat_coords + randn(size(nds_in_nat_coords)) * 0;
+test_nds = nds_in_nat_coords + randn(size(nds_in_nat_coords)) * 0.1;
 [K_test, M_test] = fn_test_symbolic_matrices(sym_mats, test_nds, test_D, test_rho);
 [K_ref, M_ref] = fn_el_test(ref_el_type, '', solid_or_fluid, test_nds, test_D, test_rho, 1);
 fprintf(['\nCOMPARISON OF OUTPUTS FROM NEW SYMBOLIC MATRICES (FACTORISATION %i) AND ', ref_el_type,':\n'], factorisation_level);
 fprintf('  Fractional RMS error for K: %e\n', fn_compare_matrices(K_test, K_ref));
 fprintf('  Fractional RMS error for M: %e\n', fn_compare_matrices(M_test, M_ref));
 return
-[B, N, detJ, W, loc_nd, loc_df, start_lines, end_lines] = fn_symbolic_B_N_detJ_matrices3(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, simplify_expressions);
-fn_create_element_matrix_file3(fname, B, N, detJ, W, loc_nd, loc_df, no_dims, start_lines, end_lines);
+% [B, N, detJ, W, loc_nd, loc_df, start_lines, end_lines] = fn_symbolic_B_N_detJ_matrices3(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, simplify_expressions);
+% fn_create_element_matrix_file3(fname, B, N, detJ, W, loc_nd, loc_df, no_dims, start_lines, end_lines);
 
 return
 

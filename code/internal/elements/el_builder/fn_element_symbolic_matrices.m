@@ -12,6 +12,7 @@ function sym_mats = fn_element_symbolic_matrices(nds_in_nat_coords, gauss_pts, g
 %   3 - return expressions for detJ, invJ, L, N, Ndiff evaluated at each Gauss point
 
 %General constants
+fprintf('Getting basics and B1 factor of B-matrix\n')
 no_spatial_dims = 3; 
 no_gauss_pts = size(gauss_pts, 1);
 no_dims_of_el = size(gauss_pts, 2);
@@ -48,31 +49,27 @@ sym_mats.loc_df = loc_df(:);
 sym_mats.gauss_wts = gauss_wts;
 
 %Define symbols for the physical nodal coordinates
-sym_mats.nds = sym('nds_%d_%d', [no_nds, no_dims_of_el], 'real'); 
+sym_mats.nds_sym = sym('nds_%d_%d', [no_nds, no_dims_of_el], 'real'); 
 
 %Define symbols for the natural coordinates (number = number of dimensions of element)
 Q = sym('q', [1, no_dims_of_el], 'real');
 
-%Shape functions (one per node)
 fprintf('Generating shape functions\n')
 shape_functions = fn_symbolic_shape_functions(nds_in_nat_coords, sf_powers, Q);
+
+fprintf('Calculating Jacobians and determinants at Gauss points\n')
+[sym_mats.detJ, sym_mats.J, sym_mats.detJ_sym, sym_mats.J_sym] = fn_jacobian_at_gauss_pts(shape_functions, sym_mats.nds_sym, Q, gauss_pts);
+
+fprintf('Calculating B2 factor of B-matrix\n')
+sym_mats.B2 = fn_calculate_B2_matrix(no_dfs, no_spatial_dims, sym_mats.J_sym, sym_mats.detJ_sym);
+
+fprintf('Calculating B3 factor of B-matrix\n')
 sym_mats.B3 = fn_calculate_B3_at_gauss_pts(shape_functions, gauss_pts, Q, no_dfs);
 
-
-%Inverse Jacobians and determinants at Gauss points
-fprintf('Calculating Jacobians and determinants at Gauss points\n')
-[sym_mats.detJ, sym_mats.J] = fn_jacobian_at_gauss_pts(shape_functions, sym_mats.nds, Q, gauss_pts);
-
+fprintf('Calculating N-matrices at Gauss points\n')
 sym_mats.N = fn_N_at_gauss_pts(shape_functions, Q, no_dfs, gauss_pts);
 
-%Symbolic inverse x det(J)
-tmp = sym('J_%d_%d', [no_dims_of_el, no_dims_of_el], 'real'); 
-sym_mats.B2 = kron(eye(no_dfs) ,[inv(tmp) * det(tmp); zeros(no_spatial_dims - no_dims_of_el,size(tmp, 2))] / sym('detJ', 'real'));
-
 if factorisation_level == 3
-    % sym_mats.N_diff = sym('N_diff', size(sym_mats.N_diff));
-    % sym_mats.invJ = sym('invJ', size(sym_mats.invJ));
-    % sym_mats.N_diff = sym('N_diff', size(sym_mats.N_diff));
     return
 end
 
@@ -94,31 +91,6 @@ sym_mats = rmfield(sym_mats, {'B', 'N_diff'});
 if nargout > 1
     test_mats = fn_form_test_mats(sym_mats, nds_in_nat_coords, eye(size(sym_mats.D)));
 end
-end
-
-%--------------------------------------------------------------------------
-function [detJ, J] = fn_jacobian_at_gauss_pts(shape_functions, nds, Q, gauss_pts)
-
-no_dims_of_el = size(Q, 2);
-no_nds = numel(shape_functions);
-no_gauss_pts = size(gauss_pts, 1);
-
-%local shape function matrix just for coordinate transform to get Jacobiab
-N_gen = kron(shape_functions, eye(no_dims_of_el));
-
-%Phys coordinates in terms of natural ones
-X = N_gen * reshape(nds', [], 1);
-
-J_gen = jacobian(X, Q);
-
-detJ = sym('detJ_%d', [1, no_gauss_pts], 'real');
-J = sym('detJ_%d', [no_dims_of_el, no_dims_of_el, no_gauss_pts], 'real');
-
-for g = 1:no_gauss_pts
-    J(:, :, g) = simplify(subs(J_gen, Q, gauss_pts(g, :)));
-    detJ(g) = simplify(det(J(:, :, g)));
-end
-
 end
 
 %--------------------------------------------------------------------------
@@ -152,7 +124,6 @@ for n = 1:no_nds
         for j = 1:no_dims_of_el
             tmp = tmp * Q(j) .^ sf_powers(i, j);
         end
-         % * sf_coeffs(n, j)
         shape_functions(n) = shape_functions(n) + tmp * sf_coeffs(i, n);
     end
 end
@@ -160,7 +131,62 @@ end
 shape_functions = simplify(shape_functions);
 end
 %--------------------------------------------------------------------------
+function [detJ, J, detJ_sym, J_sym] = fn_jacobian_at_gauss_pts(shape_functions, nds, Q, gauss_pts)
 
+no_dims_of_el = size(Q, 2);
+no_nds = numel(shape_functions);
+no_gauss_pts = size(gauss_pts, 1);
+
+%local shape function matrix just for coordinate transform to get Jacobiab
+N_gen = kron(shape_functions, eye(no_dims_of_el));
+
+%Phys coordinates in terms of natural ones
+X = N_gen * reshape(nds', [], 1);
+
+J_gen = jacobian(X, Q)';
+
+detJ = sym('detJ_%d', [1, no_gauss_pts], 'real');
+J = sym('detJ_%d', [no_dims_of_el, no_dims_of_el, no_gauss_pts], 'real');
+detJ_sym = sym('detJ', 'real');
+J_sym = sym('J_%d_%d', [no_dims_of_el, no_dims_of_el], 'real');
+
+for g = 1:no_gauss_pts
+    J(:, :, g) = simplify(subs(J_gen, Q, gauss_pts(g, :)));
+    detJ(g) = simplify(det(J(:, :, g)));
+end
+
+end
+%--------------------------------------------------------------------------
+function B2 = fn_calculate_B2_matrix(no_dfs, no_spatial_dims, J_sym, detJ_sym)
+no_dims_of_el = size(J_sym, 1);
+B2 = kron(eye(no_dfs) ,[inv(J_sym) * det(J_sym); zeros(no_spatial_dims - no_dims_of_el, size(J_sym, 2))] / detJ_sym);
+end
+%--------------------------------------------------------------------------
+function B3 = fn_calculate_B3_at_gauss_pts(shape_functions, gauss_pts, Q, no_dfs)
+no_gauss_pts = size(gauss_pts, 1);
+no_dims_of_el = size(gauss_pts, 2);
+no_nds = numel(shape_functions);
+%Shape function derivatives w.r.t. each dimension
+% fprintf('Calculating shape function derivatives at Gauss points\n')
+N_diff = fn_calculate_shape_function_derivatives_at_gauss_pts(shape_functions, gauss_pts, Q);
+% fprintf('Assembling B3 factor at Gauss points\n')
+B3 = sym('B3', [no_dfs * no_dims_of_el, no_dfs * no_nds, no_gauss_pts], 'real');
+for g = 1:no_gauss_pts
+    for n = 1: no_nds
+        B3(:, (n - 1) * no_dfs + 1: n * no_dfs, g) = kron(eye(no_dfs), N_diff(:, n, g));
+    end
+end
+end
+%--------------------------------------------------------------------------
+function N = fn_N_at_gauss_pts(shape_functions, Q, no_dfs, gauss_pts)
+N_gen = kron(shape_functions, eye(no_dfs));
+no_gauss_pts = size(gauss_pts, 1);
+N = sym('N_', [size(N_gen), no_gauss_pts], 'real');
+for g = 1:no_gauss_pts
+    N(:, :, g) = simplify(subs(N_gen, Q, gauss_pts(g, :)));
+end
+end
+%--------------------------------------------------------------------------
 function sf_terms = fn_sf_terms_at_q(sf_powers, q)
 no_dims = numel(q);
 no_terms = size(sf_powers, 1);
@@ -174,15 +200,12 @@ for i = 1:no_terms
     end
 end
 end
-
 %--------------------------------------------------------------------------
-
 function N_diff = fn_calculate_shape_function_derivatives_at_gauss_pts(shape_functions, gauss_pts, Q)
 no_shape_functions = numel(shape_functions);
 no_gauss_pts = size(gauss_pts, 1);
 no_dims_of_el = size(gauss_pts, 2);
 N_diff = sym('N_diff', [no_dims_of_el, no_shape_functions, no_gauss_pts], 'real');
-% N_diff(:,:) = 0;
 for g = 1:no_gauss_pts
     for i = 1:no_dims_of_el
         for j = 1:no_shape_functions
@@ -193,25 +216,25 @@ end
 end
 
 %--------------------------------------------------------------------------
-function E = fn_calculate_E_matrix(N_diff, no_nds, no_dfs)
-no_dims_of_el = size(N_diff, 1);
-N_diff_pad = sym('N_diff_pad', [3,3]);
-%N_diff_pad(:,:) = 0;N_diff = sym('N_diff', [no_dims_of_el, 3, 1], 'real');
-
-N_diff_pad(1:size(N_diff, 1), :) = N_diff;
-E = kron(N_diff_pad, eye(3));
-
-% E = sym('E', [no_dfs * no_dims_of_el, no_dfs * no_nds]);
-% E(:, :) = 0;
-% for n = 1:no_nds %outer loop across columns in steps of no_dfs
-%     for j = 1:no_dfs %outer loop down rows (first strain index - disp comp)
-%         for k = 1:no_dims_of_el %inner loop down rows (second strain index - deriv direction)
-%             E((j - 1) * no_dims_of_el + k, (n-1) * no_dfs + j) = N_diff(k, n);
-%         end
-%     end
+% function E = fn_calculate_E_matrix(N_diff, no_nds, no_dfs)
+% no_dims_of_el = size(N_diff, 1);
+% N_diff_pad = sym('N_diff_pad', [3,3]);
+% %N_diff_pad(:,:) = 0;N_diff = sym('N_diff', [no_dims_of_el, 3, 1], 'real');
+% 
+% N_diff_pad(1:size(N_diff, 1), :) = N_diff;
+% E = kron(N_diff_pad, eye(3));
+% 
+% % E = sym('E', [no_dfs * no_dims_of_el, no_dfs * no_nds]);
+% % E(:, :) = 0;
+% % for n = 1:no_nds %outer loop across columns in steps of no_dfs
+% %     for j = 1:no_dfs %outer loop down rows (first strain index - disp comp)
+% %         for k = 1:no_dims_of_el %inner loop down rows (second strain index - deriv direction)
+% %             E((j - 1) * no_dims_of_el + k, (n-1) * no_dfs + j) = N_diff(k, n);
+% %         end
+% %     end
+% % end
 % end
-end
-
+% 
 %--------------------------------------------------------------------------
 function B = fn_calculate_B_matrix(L, invJ, N_diff, no_dfs)
 
@@ -244,32 +267,4 @@ for g = 1:no_gauss_pts
 end
 end
 
-%--------------------------------------------------------------------------
-function B3 = fn_calculate_B3_at_gauss_pts(shape_functions, gauss_pts, Q, no_dfs)
-no_gauss_pts = size(gauss_pts, 1);
-no_dims_of_el = size(gauss_pts, 2);
-no_nds = numel(shape_functions);
-%Shape function derivatives w.r.t. each dimension
-fprintf('Calculating shape function derivatives at Gauss points\n')
-N_diff = fn_calculate_shape_function_derivatives_at_gauss_pts(shape_functions, gauss_pts, Q);
-fprintf('Assembling B3 factor at Gauss points\n')
-B3 = sym('B3', [no_dfs * no_dims_of_el, no_dfs * no_nds, no_gauss_pts], 'real');
-% N_diff = sym('N_diff', size(N_diff));
-for g = 1:no_gauss_pts
-    for n = 1: no_nds
-        B3(:, (n - 1) * no_dfs + 1: n * no_dfs, g) = kron(eye(no_dfs), N_diff(:, n, g));
-    end
-end
-end
 
-%--------------------------------------------------------------------------
-function N = fn_N_at_gauss_pts(shape_functions, Q, no_dfs, gauss_pts)
-N_gen = kron(shape_functions, eye(no_dfs));
-no_gauss_pts = size(gauss_pts, 1);
-N = sym('N_', [size(N_gen), no_gauss_pts], 'real');
-
-for g = 1:no_gauss_pts
-    N(:, :, g) = simplify(subs(N_gen, Q, gauss_pts(g, :)));
-end
-
-end
