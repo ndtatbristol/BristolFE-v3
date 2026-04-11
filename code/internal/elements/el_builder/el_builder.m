@@ -20,10 +20,10 @@ ref_el_type = 'CPE3';
 % [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('quadrilateral');
 
 %AC2D3 - OK
-solid_or_fluid = 'fluid';
-new_el_type = 'AC2D3_new';
-ref_el_type = 'AC2D3';
-[nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('triangular');
+% solid_or_fluid = 'fluid';
+% new_el_type = 'AC2D3_new';
+% ref_el_type = 'AC2D3';
+% [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('triangular');
 
 %AC2D4 - 
 % solid_or_fluid = 'fluid';
@@ -41,28 +41,37 @@ ref_el_type = 'AC2D3';
 
 %--------------------------------------------------------------------------
 %DO THE SYMBOLIC CALCULATIONS AND CREATE THE ELEMENT FILE
-fname = ['..', filesep, 'fn_el_', new_el_type, '.m'];
-simplify_expressions = 0;
-% nds_in_nat_coords = nds_in_nat_coords([2,3,1], :);
-% [G, D, N, detJ, W, loc_nd, loc_df, start_lines, end_lines] = fn_symbolic_G_D_N_detJ_matrices4(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, simplify_expressions);
-factorisation_level =3;
-% nds_in_nat_coords = nds_in_nat_coords([2, 3, 1], :);
+new_el_fname = ['..', filesep, 'fn_el_', new_el_type, '.m'];
+
+factorisation_level = 3;
+
+%Symbolic calculation
 sym_mats = fn_element_symbolic_matrices(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, factorisation_level);
 
+%Write the element file
+fn_create_element_matrix_file3(new_el_fname, sym_mats);
 
+%Tests
 test_D = rand(size(sym_mats.D));
 test_D = test_D + test_D';
 test_rho = rand(1);
-% test_D = eye(size(sym_mats.D)); test_rho = 1;
 test_nds = nds_in_nat_coords + randn(size(nds_in_nat_coords)) * 0.1;
+
+%First test - just of the symbolic result (not the element file)
 [K_test, M_test] = fn_test_symbolic_matrices(sym_mats, test_nds, test_D, test_rho);
 [K_ref, M_ref] = fn_el_test(ref_el_type, '', solid_or_fluid, test_nds, test_D, test_rho, 1);
 fprintf(['\nCOMPARISON OF OUTPUTS FROM NEW SYMBOLIC MATRICES (FACTORISATION %i) AND ', ref_el_type,':\n'], factorisation_level);
 fprintf('  Fractional RMS error for K: %e\n', fn_compare_matrices(K_test, K_ref));
 fprintf('  Fractional RMS error for M: %e\n', fn_compare_matrices(M_test, M_ref));
-return
-% [B, N, detJ, W, loc_nd, loc_df, start_lines, end_lines] = fn_symbolic_B_N_detJ_matrices3(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, simplify_expressions);
-% fn_create_element_matrix_file3(fname, B, N, detJ, W, loc_nd, loc_df, no_dims, start_lines, end_lines);
+
+%Second test - test of new element file for one element
+[K_test, M_test, K_ref, M_ref] = fn_el_test(new_el_type, ref_el_type, solid_or_fluid, test_nds, test_D, test_rho, 1);
+fprintf(['\nCOMPARISON OF OUTPUTS FROM NEW IMPLEMENTATIONS (FACTORISATION %i) AND ', ref_el_type,':\n'], factorisation_level);
+fprintf('  Fractional RMS error for K: %e\n', fn_compare_matrices(K_test, K_ref));
+fprintf('  Fractional RMS error for M: %e\n', fn_compare_matrices(M_test, M_ref));
+
+%Third test - speed test for lost of elements
+fn_el_test(new_el_type, ref_el_type, solid_or_fluid, test_nds, test_D, test_rho, 10000);
 
 return
 

@@ -49,7 +49,8 @@ sym_mats.loc_df = loc_df(:);
 sym_mats.gauss_wts = gauss_wts;
 
 %Define symbols for the physical nodal coordinates
-sym_mats.nds_sym = sym('nds_%d_%d', [no_nds, no_dims_of_el], 'real'); 
+sym_mats.nds_fmt_str = 'nds_%d_%d';
+sym_mats.nds_sym = sym(sym_mats.nds_fmt_str, [no_nds, no_dims_of_el], 'real'); 
 
 %Define symbols for the natural coordinates (number = number of dimensions of element)
 Q = sym('q', [1, no_dims_of_el], 'real');

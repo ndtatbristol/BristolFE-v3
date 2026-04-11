@@ -1,14 +1,16 @@
-function fn_create_element_matrix_file3(fname, B, N, detJ, W, loc_nd, loc_df, no_dims, start_lines, end_lines)
+function fn_create_element_matrix_file3(fname, sym_mats)
 fid = fopen(fname, 'wt');
 
 [~, fn_name] = fileparts(fname);
 
 %Numbers for use in this function (not directly the element script)
-no_gps = size(B, 3);
-K_size = size(B, 2);
-D_size = size(B, 1);
-no_dfs = size(N, 1);
-
+if isfield(sym_mats, 'B2')
+    no_gps = numel(sym_mats.gauss_wts);
+    K_size = size(sym_mats.B3, 2);
+    D_size = size(sym_mats.D, 2);
+    no_dfs = numel(unique(sym_mats.loc_df));
+    no_dims = size(sym_mats.nds_sym, 2);
+end
 %Header line
 fprintf(fid, ['function [el_K, el_C, el_M, loc_nd, loc_df] = ', fn_name, '(nds, els, D, rho, varargin)\n']);
 %Comment lines
@@ -30,9 +32,9 @@ fprintf(fid, ['%%\tPaul Wilcox (', char(datetime), ')\n']);
 fprintf(fid, '\n');
 
 %Deal with any extra starting lines specified in varargin
-if ~isempty(start_lines)
-    for i = 1:length(start_lines)
-        fprintf(fid, [start_lines{i}, '\n']);
+if isfield(sym_mats, 'start_lines')
+    for i = 1:length(sym_mats.start_lines)
+        fprintf(fid, [sym_mats.start_lines{i}, '\n']);
     end
 end
 
@@ -40,10 +42,10 @@ fprintf(fid, '%%Deal with optional argument about which DOFs to use\n');
 fprintf(fid, 'if isempty(varargin)\n\tdofs_to_use = [];\nelse\n\tdofs_to_use = varargin{1};\nend\n\n');
 
 fprintf(fid, '%%Record the local node numbers of the element stiffness matrices\n');
-fprintf(fid, ['loc_nd = [', num2str(loc_nd'), '];\n\n']);
+fprintf(fid, ['loc_nd = [', num2str(sym_mats.loc_nd'), '];\n\n']);
 
 fprintf(fid, '%%Record the local DOFs of the element stiffness matrices\n');
-fprintf(fid, ['loc_df = [', num2str(loc_df'), '];\n\n']);
+fprintf(fid, ['loc_df = [', num2str(sym_mats.loc_df'), '];\n\n']);
 
 fprintf(fid, '%%Get the DOFs if not specified\n');
 fprintf(fid, 'if isempty(dofs_to_use)\n\tdofs_to_use = unique(loc_df);\nend\n\n');
@@ -57,19 +59,19 @@ fprintf(fid, 'no_els = size(els, 1);\n\n');
 
 %Variables for local nds
 fprintf(fid, '%%Matrices of nodal coordinates\n');
-un_loc_nd = unique(loc_nd);
+un_loc_nd = unique(sym_mats.loc_nd);
 for i = 1:numel(un_loc_nd)
     for j = 1:no_dims
-        fprintf(fid, 'nds_%i_%i = nds(els(:, %i), %i);\n', un_loc_nd(i), j, un_loc_nd(i), j);
+        fprintf(fid, [sym_mats.nds_fmt_str, ' = nds(els(:, %i), %i);\n'], un_loc_nd(i), j, un_loc_nd(i), j);
     end
 end
 fprintf(fid, '\n');
 
 %Variables for Gauss weights
 fprintf(fid, '%%Vector of Gauss weights\n');
-fprintf(fid, 'W = zeros(%i, 1);\n', no_gps);
+fprintf(fid, 'gauss_wts = zeros(%i, 1);\n', no_gps);
 for i = 1:no_gps
-    fprintf(fid, 'W(%i) = %.18e;\n', i, W(i));
+    fprintf(fid, 'gauss_wts(%i) = %.18e;\n', i, sym_mats.gauss_wts(i));
 end
 
 %Empty matrices for outputs
@@ -77,40 +79,65 @@ fprintf(fid, '\n%%Zero the outputs\n');
 fprintf(fid, 'el_K = zeros(%i, %i, no_els);\n', K_size, K_size);
 fprintf(fid, 'el_M_tmp = zeros(%i, %i, no_els);\n', K_size, K_size);
 fprintf(fid, 'el_C = zeros(%i, %i, no_els);\n\n', K_size, K_size);
-fprintf(fid, 'detJ = zeros(no_els, 1);\n');
-fprintf(fid, 'B = zeros(%i, %i, no_els);\n', D_size, K_size);
+fprintf(fid, 'detJ = zeros(1, 1, no_els);\n');
+fprintf(fid, 'B2 = zeros(%i, %i, no_els);\n', size(sym_mats.B2, 1), size(sym_mats.B2, 2));
+fprintf(fid, 'B3 = zeros(%i, %i);\n', size(sym_mats.B3, 1), size(sym_mats.B3, 2));
 fprintf(fid, 'N = zeros(%i, %i, no_els);\n', no_dfs, K_size);
 
-%Write the code to loop over GPs
+fprintf(fid, ['%%Factors of B matrix are B1, B2, and B3. Only B2 is a function of the specific\n ' ...
+    '%%element. B1 is also independent of Gauss point and is defined first.\n']);
+fprintf(fid, ['B1 = ', fn_format_numeric_matrix(sym_mats.B1, '%d')]);
+    
+%Start loop over GPs
 fprintf(fid, '%%Loop over Gauss points\n');
-fprintf(fid, 'for i = 1:no_gauss_pts\n');
+fprintf(fid, 'for g = 1:no_gauss_pts\n\n');
 
-%Write the Jacobian determinant definitions for each GP
-fprintf(fid, '\n    %%Jacobians, N- and B-matrices at each Gauss point\n');
-fprintf(fid, '\n    switch i\n');
-for i = 1:no_gps
-    fprintf(fid, '        case %i\n', i);
-    fprintf(fid, fn_format_symbolic_scalar(detJ(i), 'detJ', '            '));
-    fprintf(fid, fn_format_symbolic_matrix(B(:, :, i), 'B', '            '));
-    fprintf(fid, fn_format_symbolic_matrix(N(:, :, i), 'N', '            '));
+fprintf(fid, '\tswitch g\n');
+for g = 1:no_gps
+    fprintf(fid, '\t\tcase %i\n', g);
+    fprintf(fid, '\t\t\t%%Determinant of Jacobian\n');
+    fprintf(fid, fn_format_symbolic_scalar(sym_mats.detJ(g), 'detJ(:)', '\t\t\t'));
+
+    fprintf(fid, '\t\t\t%%Terms of Jacobian\n');
+    fprintf(fid, fn_format_symbolic_matrix(sym_mats.J(:, :, g), 'J', 0, '\t\t\t'));
+
+    fprintf(fid, '\t\t\t%%Terms of B3 matrix\n');
+    fprintf(fid, fn_format_symbolic_matrix(sym_mats.B3(:, :, g), 'B3', 0, '\t\t\t'));
+
+    fprintf(fid, '\t\t\t%%Terms of N matrix\n');
+    fprintf(fid, fn_format_symbolic_matrix(sym_mats.N(:, :, g), 'N', 0, '\t\t\t'));
 end
-fprintf(fid, '    end\n');
+fprintf(fid, '\tend\n');
+
+fprintf(fid, '\t%%Terms of B2 matrix\n');
+fprintf(fid, fn_format_symbolic_matrix(sym_mats.B2, 'B2', 0, '\t'));
+
+fprintf(fid, '\n\t%%Calculate B matrix\n');
+fprintf(fid, '\tB = pagemtimes(B1, pagemtimes(B2, B3));\n');
 
 %Evaluate the K-matrix integrand
-fprintf(fid, '\n    %%Evaluate B''DB|J|\n');
-fprintf(fid, '    el_K = el_K + pagemtimes(pagemtimes(B, ''transpose'', pagemtimes(D, B), ''none''), permute(detJ, [2, 3, 1])) * W(i);\n\n');
+fprintf(fid, '\n\t%%Evaluate B''DB|J|\n');
+fprintf(fid, '\tel_K = el_K + pagemtimes(pagemtimes(B, ''transpose'', pagemtimes(D, B), ''none''), detJ) * gauss_wts(g);\n\n');
 
 %Evaluate the M-matrix integrand
-fprintf(fid, '\n    %%Evaluate N''rhoN|J|\n');
-fprintf(fid, '    el_M_tmp = el_M_tmp + pagemtimes(pagemtimes(N, ''transpose'', rho * N, ''none''), permute(detJ, [2, 3, 1])) * W(i);\n\n');
+fprintf(fid, '\n\t%%Evaluate rho * N''N|J|\n');
+fprintf(fid, '\tel_M_tmp = el_M_tmp + rho * pagemtimes(pagemtimes(N, ''transpose'', N, ''none''), detJ) * gauss_wts(g);\n\n');
 
-%End of loop over GPs
+%End loop over GPs
 fprintf(fid, 'end\n');
 
+%Diagonalise M
 fprintf(fid, '\n%%Diagonalise M\n');
 fprintf(fid, 'el_M = zeros(%i, %i, no_els);\n', K_size, K_size);
 for i = 1: K_size
     fprintf(fid, 'el_M(%i, %i, :) = sum(el_M_tmp(:, %i, :), 1);\n', i, i, i);
+end
+
+%Scale matrices (needed for fluid elements)
+if isfield(sym_mats, 'scaling') && sym_mats.scaling ~= 1
+    fprintf(fid, '\n%%Scale matrices\n');
+    fprintf(fid, ['\nel_K = el_K * ', char(sym_mats.scaling), ';\n']);
+    fprintf(fid, ['\nel_M = el_M * ', char(sym_mats.scaling), ';\n']);
 end
 
 %Call function to remove unwanted DOFs in all matrices
@@ -129,17 +156,10 @@ fprintf(fid, 'el_K = permute(el_K, [3, 1, 2]);\n');
 fprintf(fid, 'el_M = permute(el_M, [3, 1, 2]);\n');
 fprintf(fid, 'el_C = permute(el_C, [3, 1, 2]);\n');
 
-%Deal with any extra starting lines specified in varargin
-if ~isempty(end_lines)
-    for i = 1:length(end_lines)
-        fprintf(fid, [end_lines{i}, '\n']);
-    end
-end
+%End function
+fprintf(fid, 'end\n');
 
-%End line and close
-fprintf(fid, '\nend\n');
 fclose(fid);
-
 end
 
 %--------------------------------------------------------------------------
@@ -160,13 +180,12 @@ str = fn_format_string_for_file(str);
 end
 
 %--------------------------------------------------------------------------
-function str = fn_format_symbolic_matrix(Z_symm, var_name, varargin)
+function str = fn_format_symbolic_matrix(Z_symm, var_name, symmetric, varargin)
 if numel(varargin) < 1
     indent_str = '';
 else
     indent_str = varargin{1};
 end
-symmetric = 1;
 %This writes out symbolic matrices in flattened form ready for use in
 %numeric code
 if size(Z_symm, 1) ~= size(Z_symm, 2)
@@ -198,35 +217,17 @@ str = fn_format_string_for_file(str);
 end
 
 %--------------------------------------------------------------------------
-% function str = fn_format_symbolic_vector(Z_symm, var_name, varargin)
-% if numel(varargin) < 1
-%     indent_str = '';
-% else
-%     indent_str = varargin{1};
-% end
-% 
-% if ~isvector(Z_symm) || isscalar(Z_symm)
-%     error('Not a vector')
-% end
-% % str = sprintf([indent_str, var_name, ' = zeros(%i, no_els);\n'], numel(Z_symm,1));
-% str = '';
-% fmt_str = '(%i, :)';
-% for i = 1:numel(Z_symm)
-%     if ~isequal(Z_symm(i),sym(0))
-%         str = [str, indent_str, sprintf([var_name, fmt_str,' = ', char(Z_symm(i)), fmt_str, ';\n'], i)];
-%     end
-% end
-% str = fn_format_string_for_file(str);
-% end
-
-%--------------------------------------------------------------------------
 function str = fn_format_string_for_file(str)
-% str = regexprep(str, 'D_(\d)_(\d)', 'D($1, $2)');
-% str = regexprep(str, 'detJ_(\d)', 'detJ(:, $1)');
 str = regexprep(str, '\^',' .^ ');
 str = regexprep(str, '*',' .* ');
 str = regexprep(str, '/',' ./ ');
-% str = regexprep(str, 'detJ','detJ(1, 1, :)');
+str = regexprep(str, 'J_(\d)_(\d)', 'J($1, $2, :)');
 str = [str, '\n'];
 end
 
+%--------------------------------------------------------------------------
+function str = fn_format_numeric_matrix(X, num_fmt_str)
+fmt_str = ['\t', repmat([num_fmt_str, ', '], [1, size(X, 2) - 1]), num_fmt_str, '\n'];
+fmt_str = repmat(fmt_str, [1, size(X, 1)]);
+str = ['[\n', sprintf(fmt_str, X.'), '];\n'];
+end
