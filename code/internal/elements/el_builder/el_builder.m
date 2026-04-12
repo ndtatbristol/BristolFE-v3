@@ -8,7 +8,7 @@ cd(fileparts(mfilename('fullpath')));
 addpath(genpath('..\..\..\..\code'));
 
 el_types = {'CPE3', 'AC2D3', 'CPE4', 'AC2D4'};
-el_types = {'C3D8'};
+el_types = {'AC3D8'};
 ref_el_suffix = '_f3';
 new_el_suffix = '_f3';
 factorisation_level = 3;
