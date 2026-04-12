@@ -1,9 +1,9 @@
-function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE4_new4(nds, els, D, rho, varargin)
+function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE4_f3(nds, els, D, rho, varargin)
 %SUMMARY
 %	This function was created automatically by fn_create_element_matrix_file3
 %	and contains code to return the stiffness and mass matrices
 %	for multiple elements of the same material and type given by the latter
-%	part of the filename, fn_el_CPE4_new4.
+%	part of the filename, fn_el_CPE4_f3.
 %INPUTS
 %	nds - n_nds x n_dims matrix of nodal coordinates
 %	els - n_els x n_nds_per_el matrix of node indices for each elements
@@ -13,7 +13,7 @@ function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE4_new4(nds, els, D, rho, 
 %OUTPUTS
 %	el_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices
 %AUTHOR
-%	Paul Wilcox (11-Apr-2026 12:41:44)
+%	Paul Wilcox (12-Apr-2026 09:05:33)
 
 %Deal with optional argument about which DOFs to use
 if isempty(varargin)
@@ -70,9 +70,10 @@ el_M_tmp = zeros(12, 12, no_els);
 el_C = zeros(12, 12, no_els);
 
 detJ = zeros(1, 1, no_els);
+N = zeros(3, 12, no_els);
+J = zeros(2, 2, no_els);
 B2 = zeros(9, 6, no_els);
 B3 = zeros(6, 12);
-N = zeros(3, 12, no_els);
 %Factors of B matrix are B1, B2, and B3. Only B2 is a function of the specific
  %element. B1 is also independent of Gauss point and is defined first.
 B1 = [
@@ -297,9 +298,8 @@ for g = 1:no_gauss_pts
 	%Calculate B matrix
 	B = pagemtimes(B1, pagemtimes(B2, B3));
 
-	%Evaluate B'DB|J|
+	%Evaluate K = B'DB|J| and accumulate over Gauss points
 	el_K = el_K + pagemtimes(pagemtimes(B, 'transpose', pagemtimes(D, B), 'none'), detJ) * gauss_wts(g);
-
 
 	%Evaluate rho * N'N|J|
 	el_M_tmp = el_M_tmp + rho * pagemtimes(pagemtimes(N, 'transpose', N, 'none'), detJ) * gauss_wts(g);

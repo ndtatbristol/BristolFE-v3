@@ -1,55 +1,70 @@
 %General script for building and testing elements
 
 clear all
+clc;
+
 rng(1);
 cd(fileparts(mfilename('fullpath')));
 addpath(genpath('..\..\..\..\code'));
 
-simplify_expression = 0;
+el_types = {'CPE3', 'AC2D3', 'CPE4', 'AC2D4'};
+el_types = {'C3D8'};
+ref_el_suffix = '_f3';
+new_el_suffix = '_f3';
+factorisation_level = 3;
+no_trials = 100000;
 
-%CPE3 - OK
-solid_or_fluid = 'solid';
-new_el_type = 'CPE3_new';
-ref_el_type = 'CPE3';
-[nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('triangular');
+build_element_functions = 1;
+test_element_functions = 1;
 
-%CPE4 - OK
-% solid_or_fluid = 'solid';
-% new_el_type = 'CPE4_new4';
-% ref_el_type = 'CPE4_new';
-% [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('quadrilateral');
+if build_element_functions
+    for el = 1:numel(el_types)
+        el_type = el_types{el};
+        
+        %Get the details for the specified element type
+        [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims, solid_or_fluid] = fn_el_details_for_builder(el_type);
 
-%AC2D3 - OK
-% solid_or_fluid = 'fluid';
-% new_el_type = 'AC2D3_new';
-% ref_el_type = 'AC2D3';
-% [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('triangular');
+        new_el_fn_name = ['fn_el_', el_type, new_el_suffix];
+        new_el_fname = ['..', filesep, new_el_fn_name, '.m'];
 
-%AC2D4 - 
-% solid_or_fluid = 'fluid';
-% new_el_type = 'AC2D4_new';
-% ref_el_type = '';
-% [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('quadrilateral');
+        %Symbolic calculation
+        fprintf(['Generating symbolic matrices for ', el_type, ':\n']);
+        sym_mats = fn_element_symbolic_matrices(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, factorisation_level);
 
+        %Write the element file
+        fprintf(['Writing element file for ', new_el_fn_name, '\n']);
+        fn_write_element_matrix_file(new_el_fname, sym_mats);
 
-%C3D8
-% solid_or_fluid = 'solid';
-% new_el_type = 'C3D8_new3';
-% ref_el_type = 'C3D8_new';
-% [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions('hexahedral');
+        %Test it - this is purely to check for errors
+        fprintf(['Performing numerical test of ', el_type, '\n']);
+        [el_K, el_M, el_C, time_taken] = fn_test_element_numeric(new_el_fn_name, nds_in_nat_coords, 10);
+    end
+end
 
-
+if test_element_functions
+    for el = 1:numel(el_types)
+        el_type = el_types{el};
+        [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims, solid_or_fluid] = fn_el_details_for_builder(el_type);        new_el_fn_name = ['fn_el_', el_type, new_el_suffix];
+        ref_el_fn_name = ['fn_el_', el_type, ref_el_suffix];
+        fprintf(['Testing ', new_el_fn_name, ' for %d elements:\n'], no_trials);
+        [el_K1, el_M1, el_C1, time_taken1] = fn_test_element_numeric(new_el_fn_name, nds_in_nat_coords, no_trials);
+        fprintf('\tTime taken: %.3f\n', time_taken1);
+        if exist(ref_el_fn_name, 'file')
+            fprintf(['Testing ', ref_el_fn_name, ' for %d elements:\n'], no_trials);
+            [el_K2, el_M2, el_C2, time_taken2] = fn_test_element_numeric(ref_el_fn_name, nds_in_nat_coords, no_trials);
+            fprintf('\tTime taken: %.3f\n', time_taken2);
+            fprintf(['\nComparison between ', new_el_fn_name,' and ', ref_el_fn_name,':\n']);
+            fprintf('  Fractional RMS difference for K: %e\n', fn_compare_matrices(el_K1, el_K2));
+            fprintf('  Fractional RMS difference for M: %e\n', fn_compare_matrices(el_M1, el_M2));
+            fprintf('  Fractional RMS difference for C: %e\n', fn_compare_matrices(el_C1, el_C2));
+        end
+    end
+end
+return
 %--------------------------------------------------------------------------
 %DO THE SYMBOLIC CALCULATIONS AND CREATE THE ELEMENT FILE
-new_el_fname = ['..', filesep, 'fn_el_', new_el_type, '.m'];
 
-factorisation_level = 3;
 
-%Symbolic calculation
-sym_mats = fn_element_symbolic_matrices(nds_in_nat_coords, gauss_pts, gauss_weights, sf_powers, solid_or_fluid, factorisation_level);
-
-%Write the element file
-fn_create_element_matrix_file3(new_el_fname, sym_mats);
 
 %Tests
 test_D = rand(size(sym_mats.D));
@@ -89,12 +104,12 @@ fe_options.pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
 %Say which element type will be used (currently there is only one choice for
 %a solid material in 2D model, but in the future there may be more options to choose
 %from, e.g. quadrilateral elements, second order elements)
-el_typ_to_use_for_solid = new_el_type; 
+el_typ_to_use_for_solid = new_el_type;
 
 model_size = 0.01;
 bdry_pts = [
-    0,          0 
-    model_size, 0 
+    0,          0
+    model_size, 0
     model_size, model_size
     0,          model_size];
 
@@ -115,7 +130,7 @@ end
 %Work out element size and time step
 el_size = 0.01;
 time_step = fn_get_suitable_time_step(matls, el_size);
-max_time = 10 * time_step; 
+max_time = 10 * time_step;
 
 %Create the nodes and elements of the mesh
 mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
@@ -149,7 +164,7 @@ for s = 1:numel(solvers)
 end
 
 if numel(solvers) > 1
-fprintf('\nCOMPARISON WITH POGO\n')
-fprintf('Fractional RMS error for model K compared to pogo: %e\n', full(fn_compare_matrices(mats{1}.K, mats{2}.K)));
-fprintf('Fractional RMS error for model M compared to pogo: %e\n', full(fn_compare_matrices(mats{1}.M, mats{2}.M)));
+    fprintf('\nCOMPARISON WITH POGO\n')
+    fprintf('Fractional RMS error for model K compared to pogo: %e\n', full(fn_compare_matrices(mats{1}.K, mats{2}.K)));
+    fprintf('Fractional RMS error for model M compared to pogo: %e\n', full(fn_compare_matrices(mats{1}.M, mats{2}.M)));
 end

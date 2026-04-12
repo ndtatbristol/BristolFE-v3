@@ -24,8 +24,8 @@ end
 K = zeros(numel(sym_mats.loc_nd));
 M = zeros(numel(sym_mats.loc_nd));
 for g = 1:no_gauss_pts
-    detJ = double(subs(sym_mats.detJ(g), sym_mats.nds_sym, test_nds));
     J = subs(sym_mats.J(:,:,g), sym_mats.nds_sym, test_nds);
+    detJ = double(subs(sym_mats.detJ, sym_mats.J_sym, J));
     B2 = double(subs(subs(sym_mats.B2, sym_mats.J_sym, J), sym_mats.detJ_sym, detJ));
     B3 = double(sym_mats.B3(:, :, g));
     N = double(sym_mats.N(:, :, g));

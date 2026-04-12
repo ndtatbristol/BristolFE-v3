@@ -1,9 +1,9 @@
-function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE3_new(nds, els, D, rho, varargin)
+function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE3_f2(nds, els, D, rho, varargin)
 %SUMMARY
 %	This function was created automatically by fn_create_element_matrix_file3
 %	and contains code to return the stiffness and mass matrices
 %	for multiple elements of the same material and type given by the latter
-%	part of the filename, fn_el_CPE3_new.
+%	part of the filename, fn_el_CPE3_f2.
 %INPUTS
 %	nds - n_nds x n_dims matrix of nodal coordinates
 %	els - n_els x n_nds_per_el matrix of node indices for each elements
@@ -13,7 +13,7 @@ function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE3_new(nds, els, D, rho, v
 %OUTPUTS
 %	el_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices
 %AUTHOR
-%	Paul Wilcox (11-Apr-2026 12:32:09)
+%	Paul Wilcox (12-Apr-2026 09:06:00)
 
 %Deal with optional argument about which DOFs to use
 if isempty(varargin)
@@ -65,19 +65,9 @@ el_M_tmp = zeros(9, 9, no_els);
 el_C = zeros(9, 9, no_els);
 
 detJ = zeros(1, 1, no_els);
-B2 = zeros(9, 6, no_els);
-B3 = zeros(6, 9);
 N = zeros(3, 9, no_els);
-%Factors of B matrix are B1, B2, and B3. Only B2 is a function of the specific
- %element. B1 is also independent of Gauss point and is defined first.
-B1 = [
-	1, 0, 0, 0, 0, 0, 0, 0, 0
-	0, 0, 0, 0, 1, 0, 0, 0, 0
-	0, 0, 0, 0, 0, 0, 0, 0, 1
-	0, 0, 0, 0, 0, 1, 0, 1, 0
-	0, 0, 1, 0, 0, 0, 1, 0, 0
-	0, 1, 0, 1, 0, 0, 0, 0, 0
-];
+J = zeros(2, 2, no_els);
+B = zeros(6, 9, no_els);
 %Loop over Gauss points
 for g = 1:no_gauss_pts
 
@@ -89,19 +79,28 @@ for g = 1:no_gauss_pts
 			J(2, 1, :) = nds_3_1 - nds_1_1;
 			J(2, 2, :) = nds_3_2 - nds_1_2;
 
-			%Terms of B3 matrix
-			B3(1, 1, :) = -1;
-			B3(1, 4, :) = 1;
-			B3(2, 1, :) = -1;
-			B3(2, 7, :) = 1;
-			B3(3, 2, :) = -1;
-			B3(3, 5, :) = 1;
-			B3(4, 2, :) = -1;
-			B3(4, 8, :) = 1;
-			B3(5, 3, :) = -1;
-			B3(5, 6, :) = 1;
-			B3(6, 3, :) = -1;
-			B3(6, 9, :) = 1;
+			%Determinant of Jacobian
+			detJ = J(1, 1, :) .* J(2, 2, :) - J(1, 2, :) .* J(2, 1, :);
+
+			%Terms of B matrix
+			B(1, 1, :) = J(1, 2, :) ./ detJ - J(2, 2, :) ./ detJ;
+			B(1, 4, :) = J(2, 2, :) ./ detJ;
+			B(1, 7, :) = -J(1, 2, :) ./ detJ;
+			B(2, 2, :) = J(2, 1, :) ./ detJ - J(1, 1, :) ./ detJ;
+			B(2, 5, :) = -J(2, 1, :) ./ detJ;
+			B(2, 8, :) = J(1, 1, :) ./ detJ;
+			B(4, 3, :) = J(2, 1, :) ./ detJ - J(1, 1, :) ./ detJ;
+			B(4, 6, :) = -J(2, 1, :) ./ detJ;
+			B(4, 9, :) = J(1, 1, :) ./ detJ;
+			B(5, 3, :) = J(1, 2, :) ./ detJ - J(2, 2, :) ./ detJ;
+			B(5, 6, :) = J(2, 2, :) ./ detJ;
+			B(5, 9, :) = -J(1, 2, :) ./ detJ;
+			B(6, 1, :) = J(2, 1, :) ./ detJ - J(1, 1, :) ./ detJ;
+			B(6, 2, :) = J(1, 2, :) ./ detJ - J(2, 2, :) ./ detJ;
+			B(6, 4, :) = -J(2, 1, :) ./ detJ;
+			B(6, 5, :) = J(2, 2, :) ./ detJ;
+			B(6, 7, :) = J(1, 1, :) ./ detJ;
+			B(6, 8, :) = -J(1, 2, :) ./ detJ;
 
 			%Terms of N matrix
 			N(1, 1, :) = 1 ./ 3;
@@ -115,30 +114,9 @@ for g = 1:no_gauss_pts
 			N(3, 9, :) = 1 ./ 3;
 
 	end
-			%Determinant of Jacobian
-			detJ = J(1, 1, :) .* J(2, 2, :) - J(1, 2, :) .* J(2, 1, :);
 
-	%Terms of B2 matrix
-	B2(1, 1, :) = J(2, 2, :) ./ detJ;
-	B2(1, 2, :) = -J(1, 2, :) ./ detJ;
-	B2(2, 1, :) = -J(2, 1, :) ./ detJ;
-	B2(2, 2, :) = J(1, 1, :) ./ detJ;
-	B2(4, 3, :) = J(2, 2, :) ./ detJ;
-	B2(4, 4, :) = -J(1, 2, :) ./ detJ;
-	B2(5, 3, :) = -J(2, 1, :) ./ detJ;
-	B2(5, 4, :) = J(1, 1, :) ./ detJ;
-	B2(7, 5, :) = J(2, 2, :) ./ detJ;
-	B2(7, 6, :) = -J(1, 2, :) ./ detJ;
-	B2(8, 5, :) = -J(2, 1, :) ./ detJ;
-	B2(8, 6, :) = J(1, 1, :) ./ detJ;
-
-
-	%Calculate B matrix
-	B = pagemtimes(B1, pagemtimes(B2, B3));
-
-	%Evaluate B'DB|J|
+	%Evaluate K = B'DB|J| and accumulate over Gauss points
 	el_K = el_K + pagemtimes(pagemtimes(B, 'transpose', pagemtimes(D, B), 'none'), detJ) * gauss_wts(g);
-
 
 	%Evaluate rho * N'N|J|
 	el_M_tmp = el_M_tmp + rho * pagemtimes(pagemtimes(N, 'transpose', N, 'none'), detJ) * gauss_wts(g);
@@ -147,15 +125,9 @@ end
 
 %Diagonalise M
 el_M = zeros(9, 9, no_els);
-el_M(1, 1, :) = sum(el_M_tmp(:, 1, :), 1);
-el_M(2, 2, :) = sum(el_M_tmp(:, 2, :), 1);
-el_M(3, 3, :) = sum(el_M_tmp(:, 3, :), 1);
-el_M(4, 4, :) = sum(el_M_tmp(:, 4, :), 1);
-el_M(5, 5, :) = sum(el_M_tmp(:, 5, :), 1);
-el_M(6, 6, :) = sum(el_M_tmp(:, 6, :), 1);
-el_M(7, 7, :) = sum(el_M_tmp(:, 7, :), 1);
-el_M(8, 8, :) = sum(el_M_tmp(:, 8, :), 1);
-el_M(9, 9, :) = sum(el_M_tmp(:, 9, :), 1);
+for i = 1:9
+	el_M(i, i, :) = sum(el_M_tmp(:, i, :), 1);
+end
 
 %Remove unwanted DOFs from element matrices
 j = ismember(loc_df, dofs_to_use);
@@ -169,4 +141,5 @@ loc_df = loc_df(j);
 el_K = permute(el_K, [3, 1, 2]);
 el_M = permute(el_M, [3, 1, 2]);
 el_C = permute(el_C, [3, 1, 2]);
+
 end
