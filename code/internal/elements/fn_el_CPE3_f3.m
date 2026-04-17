@@ -1,9 +1,9 @@
-function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE3_f3(nds, els, D, rho, varargin)
+function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE3_F3(nds, els, D, rho, varargin)
 %SUMMARY
 %	This function was created automatically by fn_create_element_matrix_file3
 %	and contains code to return the stiffness and mass matrices
 %	for multiple elements of the same material and type given by the latter
-%	part of the filename, fn_el_CPE3_f3.
+%	part of the filename, fn_el_CPE3_F3.
 %INPUTS
 %	nds - n_nds x n_dims matrix of nodal coordinates
 %	els - n_els x n_nds_per_el matrix of node indices for each elements
@@ -13,7 +13,9 @@ function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_CPE3_f3(nds, els, D, rho, va
 %OUTPUTS
 %	el_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices
 %AUTHOR
-%	Paul Wilcox (12-Apr-2026 09:05:27)
+%	Paul Wilcox (17-Apr-2026 00:29:42)
+
+%--------------------------------------------------------------------------
 
 %Deal with optional argument about which DOFs to use
 if isempty(varargin)
@@ -42,10 +44,10 @@ if isempty(nds) || isempty(els) || isempty(D) || isempty(rho)
 	return
 end
 
-
-%Some constants
+%Constants
 no_gauss_pts = 1;
 no_els = size(els, 1);
+root3 = sqrt(3);
 
 %Matrices of nodal coordinates
 nds_1_1 = nds(els(:, 1), 1);
@@ -61,12 +63,12 @@ gauss_wts(1) = 5.000000000000000000e-01;
 
 %Zero the outputs
 el_K = zeros(9, 9, no_els);
-el_M_tmp = zeros(9, 9, no_els);
 el_C = zeros(9, 9, no_els);
-
+el_M_tmp = zeros(9, 9, no_els);
 detJ = zeros(1, 1, no_els);
 N = zeros(3, 9, no_els);
 J = zeros(2, 2, no_els);
+
 B2 = zeros(9, 6, no_els);
 B3 = zeros(6, 9);
 %Factors of B matrix are B1, B2, and B3. Only B2 is a function of the specific
@@ -83,6 +85,7 @@ B1 = [
 for g = 1:no_gauss_pts
 
 	switch g
+	%Define matrices that depend on Gauss point
 		case 1
 			%Terms of Jacobian
 			J(1, 1, :) = nds_2_1 - nds_1_1;

@@ -6,11 +6,21 @@ else
 end
 
 switch shape
-%2D elements
+    %1D elements
+    case 'line'
+        nds_in_nat_coords = [
+            0
+            1];
+        sf_powers = [
+            0
+            1];
+        gauss_pts = 1/2;
+        gauss_weights = 1;
+    %2D elements
     case 'triangular'
         nds_in_nat_coords = [
-            0, 0;
-            1, 0;
+            0, 0
+            1, 0
             0, 1];
         sf_powers = [
             0, 0

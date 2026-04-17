@@ -51,7 +51,7 @@ no_cycles = 4;
 max_time = 1.2 * (2 * model_size_z) / solid_c_L;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
-els_per_wavelength = 4;
+els_per_wavelength = 6;
 
 %--------------------------------------------------------------------------
 %PREPARE THE MESH
@@ -130,6 +130,6 @@ res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
 %Show the history output as a function of time - here we just sum over all 
 %the nodes where displacments were recorded
 figure;
-plot(steps{1}.load.time, sum(res{1}.dsps, 1));
+plot(steps{1}.load.time, -sum(res{1}.dsps, 1));
 xlabel('Time (s)')
 

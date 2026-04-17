@@ -7,11 +7,16 @@ rng(1);
 cd(fileparts(mfilename('fullpath')));
 addpath(genpath('..\..\..\..\code'));
 
-el_types = {'CPE3', 'AC2D3', 'CPE4', 'AC2D4'};
-el_types = {'AC3D8'};
-ref_el_suffix = '_f3';
-new_el_suffix = '_f3';
-factorisation_level = 3;
+el_types = {'CPE3', 'CPE4', 'C3D8', 'AC2D3', 'AC2D4', 'AC3D8', 'ASI2D2', 'ASI3D3', 'ASI3D4'}; %All elements that can currently be done!
+% el_types = {'AC3D8'};
+el_types = {'ASI2D2'}; %2d line
+% el_types = {'ASI3D3'}; %3d tri
+% el_types = {'ASI3D4'}; %3d quad
+% el_types = {'CPE4'};
+el_types = {'ASI2D2', 'ASI3D3', 'ASI3D4'};
+ref_el_suffix = '_F3';
+new_el_suffix = '_F1';
+factorisation_level = 1;
 no_trials = 100000;
 
 build_element_functions = 1;
@@ -36,27 +41,41 @@ if build_element_functions
         fn_write_element_matrix_file(new_el_fname, sym_mats);
 
         %Test it - this is purely to check for errors
+        if strcmpi(solid_or_fluid,  'interface')
+            test_nds = [nds_in_nat_coords, zeros(size(nds_in_nat_coords, 1), 1)];
+        else
+            test_nds = nds_in_nat_coords;
+        end
         fprintf(['Performing numerical test of ', el_type, '\n']);
-        [el_K, el_M, el_C, time_taken] = fn_test_element_numeric(new_el_fn_name, nds_in_nat_coords, 10);
+        [el_K, el_M, el_C, time_taken] = fn_test_element_numeric(new_el_fn_name, test_nds, 10);
     end
 end
 
 if test_element_functions
     for el = 1:numel(el_types)
         el_type = el_types{el};
-        [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims, solid_or_fluid] = fn_el_details_for_builder(el_type);        new_el_fn_name = ['fn_el_', el_type, new_el_suffix];
+        [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims, solid_or_fluid] = fn_el_details_for_builder(el_type);        
+        if strcmpi(solid_or_fluid,  'interface')
+            test_nds = [nds_in_nat_coords, zeros(size(nds_in_nat_coords, 1), 1)];
+        else
+            test_nds = nds_in_nat_coords;
+        end
+        new_el_fn_name = ['fn_el_', el_type, new_el_suffix];
         ref_el_fn_name = ['fn_el_', el_type, ref_el_suffix];
         fprintf(['Testing ', new_el_fn_name, ' for %d elements:\n'], no_trials);
-        [el_K1, el_M1, el_C1, time_taken1] = fn_test_element_numeric(new_el_fn_name, nds_in_nat_coords, no_trials);
+        [el_K1, el_M1, el_C1, time_taken1] = fn_test_element_numeric(new_el_fn_name, test_nds, no_trials);
         fprintf('\tTime taken: %.3f\n', time_taken1);
         if exist(ref_el_fn_name, 'file')
             fprintf(['Testing ', ref_el_fn_name, ' for %d elements:\n'], no_trials);
-            [el_K2, el_M2, el_C2, time_taken2] = fn_test_element_numeric(ref_el_fn_name, nds_in_nat_coords, no_trials);
+            [el_K2, el_M2, el_C2, time_taken2] = fn_test_element_numeric(ref_el_fn_name, test_nds, no_trials);
             fprintf('\tTime taken: %.3f\n', time_taken2);
             fprintf(['\nComparison between ', new_el_fn_name,' and ', ref_el_fn_name,':\n']);
-            fprintf('  Fractional RMS difference for K: %e\n', fn_compare_matrices(el_K1, el_K2));
-            fprintf('  Fractional RMS difference for M: %e\n', fn_compare_matrices(el_M1, el_M2));
-            fprintf('  Fractional RMS difference for C: %e\n', fn_compare_matrices(el_C1, el_C2));
+            [e, s] = fn_compare_matrices(el_K1, el_K2);
+            fprintf(['  Fractional RMS difference for K: %e - ' , s,'\n'], e);
+            [e, s] = fn_compare_matrices(el_M1, el_M2);
+            fprintf(['  Fractional RMS difference for M: %e - ' , s,'\n'], e);
+            [e, s] = fn_compare_matrices(el_C1, el_C2);
+            fprintf(['  Fractional RMS difference for C: %e - ' , s,'\n'], e);
         end
     end
 end

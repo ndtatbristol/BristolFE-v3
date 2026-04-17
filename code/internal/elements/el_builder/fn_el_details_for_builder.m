@@ -23,6 +23,15 @@ switch el_type
     case 'AC3D8'
         solid_or_fluid = 'fluid';
         el_shape = 'hexahedral';
+    case 'ASI2D2'
+        solid_or_fluid = 'interface';
+        el_shape = 'line';
+    case 'ASI3D3'
+        solid_or_fluid = 'interface';
+        el_shape = 'triangular';
+    case 'ASI3D4'
+        solid_or_fluid = 'interface';
+        el_shape = 'quadrilateral';
 end
 
 [nds_in_nat_coords, sf_powers, gauss_pts, gauss_weights, no_dims] = fn_el_parent_nds_and_shape_functions(el_shape, reduced_integration);
