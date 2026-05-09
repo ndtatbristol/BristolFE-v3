@@ -1,5 +1,5 @@
 clear all
-close all;
+% close all;
 
 addpath(genpath('../code'));
 show_geom_only = 0;
@@ -16,9 +16,17 @@ solid_mat_i = 1;
 solid_c_L = 6300;
 solid_c_T = 3150;
 solid_density = 2700;
-matls{solid_mat_i} = fn_matl_isotropic_solid_defined_by_velocities('Aluminium', solid_c_L, solid_c_T, solid_density);
+solid_name = 'Aluminium';
+matls{solid_mat_i} = fn_matl_isotropic_solid_defined_by_velocities(solid_name, solid_c_L, solid_c_T, solid_density);
+
+fluid_matl_i = 2;
+fluid_velocity = 1500;
+fluid_density = 1000;
+fluid_name = 'water';
+matls{fluid_matl_i} = fn_matl_fluid_defined_by_velocity(fluid_name, fluid_velocity, fluid_density);
 
 solid_element_type = 'C3D8'; %C3D8 is an 8-noded brick
+fluid_element_type = 'AC3D8'; %C3D8 is an 8-noded brick
 
 %Define shape of model
 model_size_x = 10e-3;
@@ -26,8 +34,8 @@ model_size_y = 11e-3;
 model_size_z = 12e-3;
 
 %Spherical void in the middle
-scat_cent = [model_size_x, model_size_y, model_size_z] / 2;
-scat_size = model_size_x / 10;
+scat_cent = [0, 0, 0];
+scat_size = model_size_x;
 
 %Source is a circular disk of excitation in centre of top (max z) surface
 src_radius = 3e-3;
@@ -44,7 +52,7 @@ src_centre = [0.5 * model_size_x, 0.5 * model_size_y, model_size_z];
 src_dir = 3; %direction of forces applied: 1 = x, 2 = y, 3 = z (for solids), 4 = volumetric expansion (for fluids)
 
 %Details of input signal
-centre_freq = 5e6;
+centre_freq = 2e6;
 no_cycles = 4;
 
 %Run model for long enough to see first two echoes
@@ -64,12 +72,17 @@ mod = fn_3d_structured_mesh_hexahedral_els(crnr_pts, el_size);
 % mod.el_types = el_types;
 el_types = fn_3d_el_types(); 
 
-mod.el_typ_i = ones(size(mod.el_typ_i)) * find(strcmp(el_types, solid_element_type));
+fluid_el_typ_i = find(strcmp(el_types, fluid_element_type));
+solid_el_typ_i = find(strcmp(el_types, solid_element_type));
+
+mod.el_typ_i = ones(size(mod.el_typ_i)) * solid_el_typ_i;
 mod.el_mat_i = ones(size(mod.el_typ_i)) * solid_mat_i;
 
 [scat_vtcs, scat_fcs] =  fn_3d_spherical_surface(scat_cent, scat_size /2);
 scat_matl_i = 0;
 scat_el_typ_i = [];
+% scat_matl_i = fluid_matl_i;
+% scat_el_typ_i = fluid_el_typ_i;
 mod = fn_3d_add_inclusion_or_void(mod, el_types, scat_vtcs, scat_fcs, scat_matl_i, scat_el_typ_i);
 
 

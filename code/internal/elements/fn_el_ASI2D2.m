@@ -1,6 +1,6 @@
 function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_ASI2D2(nds, els, D, rho, varargin)
 %SUMMARY
-%	This function was created automatically by fn_create_element_matrix_file
+%	This function was created automatically by fn_create_element_matrix_file3
 %	and contains code to return the stiffness and mass matrices
 %	for multiple elements of the same material and type given by the latter
 %	part of the filename, fn_el_ASI2D2.
@@ -9,11 +9,13 @@ function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_ASI2D2(nds, els, D, rho, var
 %	els - n_els x n_nds_per_el matrix of node indices for each elements
 %	D - ns x ns material stiffness matrix
 %	rho - material density
-%	[dofs_to_use = [] - optional string listing the DoFs to use, e.g. '12'. Use [] for all]
+%	[dofs_to_use = [] - optional vector listing the DoFs to use, e.g. [1, 2]. Use [] for all]
 %OUTPUTS
 %	el_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices
 %AUTHOR
-%	Paul Wilcox (15-Jul-2024 17:15:15)
+%	Paul Wilcox (17-Apr-2026 17:33:07)
+
+%--------------------------------------------------------------------------
 
 %Deal with optional argument about which DOFs to use
 if isempty(varargin)
@@ -38,47 +40,74 @@ if isempty(nds) || isempty(els) || isempty(D) || isempty(rho)
 	el_K = [];
 	el_M = [];
 	el_C = [];
-	el_Q = [];
 	[loc_nd, loc_df] = fn_remove_dofs_from_el_matrices(loc_nd, loc_df, dofs_to_use);
 	return
 end
 
-%Temporary matrices of nodal coordinates to save time
+%Constants
+no_gauss_pts = 1;
+no_els = size(els, 1);
+root3 = sqrt(3);
+
+%Matrices of nodal coordinates
 nds_1_1 = nds(els(:, 1), 1);
 nds_1_2 = nds(els(:, 1), 2);
 nds_2_1 = nds(els(:, 2), 1);
 nds_2_2 = nds(els(:, 2), 2);
 
-%Jacobian
-J = zeros(size(els, 1), 1, 1);
-J(:, 1, 1) = ((nds_1_1 - nds_2_1) .^ 2 + (nds_1_2 - nds_2_2) .^ 2) .^ (1 ./ 2);
+%Vector of Gauss weights
+gauss_wts = zeros(1, 1);
+gauss_wts(1) = 1.000000000000000000e+00;
 
-%Stiffness matrix
-el_K = zeros(size(els, 1), 8, 8);
+%Zero the outputs
+el_K = zeros(8, 8, no_els);
+el_C = zeros(8, 8, no_els);
+el_M = zeros(8, 8, no_els);
 
-%Damping matrix
-el_C = zeros(size(els, 1), 8, 8);
-el_C(:, 1, 4) = nds_2_2 ./ 4 - nds_1_2 ./ 4;
-el_C(:, 1, 8) = nds_2_2 ./ 4 - nds_1_2 ./ 4;
-el_C(:, 2, 4) = nds_1_1 ./ 4 - nds_2_1 ./ 4;
-el_C(:, 2, 8) = nds_1_1 ./ 4 - nds_2_1 ./ 4;
-el_C(:, 4, 1) = nds_2_2 ./ 4 - nds_1_2 ./ 4;
-el_C(:, 4, 2) = nds_1_1 ./ 4 - nds_2_1 ./ 4;
-el_C(:, 4, 5) = nds_2_2 ./ 4 - nds_1_2 ./ 4;
-el_C(:, 4, 6) = nds_1_1 ./ 4 - nds_2_1 ./ 4;
-el_C(:, 5, 4) = nds_2_2 ./ 4 - nds_1_2 ./ 4;
-el_C(:, 5, 8) = nds_2_2 ./ 4 - nds_1_2 ./ 4;
-el_C(:, 6, 4) = nds_1_1 ./ 4 - nds_2_1 ./ 4;
-el_C(:, 6, 8) = nds_1_1 ./ 4 - nds_2_1 ./ 4;
-el_C(:, 8, 1) = nds_2_2 ./ 4 - nds_1_2 ./ 4;
-el_C(:, 8, 2) = nds_1_1 ./ 4 - nds_2_1 ./ 4;
-el_C(:, 8, 5) = nds_2_2 ./ 4 - nds_1_2 ./ 4;
-el_C(:, 8, 6) = nds_1_1 ./ 4 - nds_2_1 ./ 4;
+G = zeros(3, 1, no_els);
 
-%Mass matrix
-el_M = zeros(size(els, 1), 8, 8);
+%Indices into damping matrix for interface terms
+i = loc_df ~= 4;
+j = loc_df == 4;
 
-%CRemove unwanted DOFs from element matrices
-[loc_nd, loc_df, el_K, el_C, el_M] = fn_remove_dofs_from_el_matrices(loc_nd, loc_df, dofs_to_use, el_K, el_C, el_M);
+%Loop over Gauss points
+for g = 1:no_gauss_pts
+
+	switch g
+	%Define matrices that depend on Gauss point
+		case 1
+			%Terms of Nu matrix
+			Nu = [1/2, 0, 0, 1/2, 0, 0
+				 0, 1/2, 0, 0, 1/2, 0
+				 0, 0, 1/2, 0, 0, 1/2];
+
+			%Terms of Np matrix
+			Np = [1/2, 1/2];
+
+			%Terms of G matrix
+			G(1, 1, :) = nds_1_2 - nds_2_2;
+			G(2, 1, :) = nds_2_1 - nds_1_1;
+
+	end
+
+	%Evaluate C = Nu'GNp and accumulate over Gauss points
+	C_up = pagemtimes(Nu, 'transpose', pagemtimes(G, Np), 'none') * gauss_wts(g);
+	el_C(i, j, :) = el_C(i, j, :) - C_up;
+	el_C(j, i, :) = el_C(j, i, :) - pagetranspose(C_up);
+
+end
+
+%Remove unwanted DOFs from element matrices
+j = ismember(loc_df, dofs_to_use);
+el_K = el_K(j, j, :);
+el_M = el_M(j, j, :);
+el_C = el_C(j, j, :);
+loc_nd = loc_nd(j);
+loc_df = loc_df(j);
+
+%Change dimension order of element matrices
+el_K = permute(el_K, [3, 1, 2]);
+el_M = permute(el_M, [3, 1, 2]);
+el_C = permute(el_C, [3, 1, 2]);
 
 end

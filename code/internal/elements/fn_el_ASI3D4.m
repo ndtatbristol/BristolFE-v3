@@ -1,9 +1,9 @@
-function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_ASI3D4_F3(nds, els, D, rho, varargin)
+function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_ASI3D4(nds, els, D, rho, varargin)
 %SUMMARY
 %	This function was created automatically by fn_create_element_matrix_file3
 %	and contains code to return the stiffness and mass matrices
 %	for multiple elements of the same material and type given by the latter
-%	part of the filename, fn_el_ASI3D4_F3.
+%	part of the filename, fn_el_ASI3D4.
 %INPUTS
 %	nds - n_nds x n_dims matrix of nodal coordinates
 %	els - n_els x n_nds_per_el matrix of node indices for each elements
@@ -13,7 +13,7 @@ function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_ASI3D4_F3(nds, els, D, rho, 
 %OUTPUTS
 %	el_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices
 %AUTHOR
-%	Paul Wilcox (17-Apr-2026 01:05:02)
+%	Paul Wilcox (17-Apr-2026 17:33:08)
 
 %--------------------------------------------------------------------------
 

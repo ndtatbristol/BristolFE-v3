@@ -29,6 +29,13 @@ solid_el_i = fn_el_types_of_state(el_types, 'solid');
 fluid_el_i = fn_el_types_of_state(el_types, 'fluid');
 int_el_typ_i = fn_el_types_of_state(el_types, 'fluid_solid_interface');
 
+%need to get interface element with right number of faces
+for i = 1:numel(int_el_typ_i)
+    tmp = fn_query_el_type_info(el_types{int_el_typ_i(i)});
+    s = size(tmp.faces, 1);
+end
+int_el_typ_i = int_el_typ_i(2);
+
 
 % if isempty(solid_el_i) || isempty(fluid_el_i)
 if ~(any(mod.el_typ_i == solid_el_i, 'all') && any(mod.el_typ_i == fluid_el_i, 'all'))
@@ -64,16 +71,23 @@ for i = 1:no_int_els
     % e = els_adjoining_fluid_solid_interface_edges(i, fluid_or_solid(i, :) == 2);
     e = interface_el_fluid(i);
     ec = fn_calc_element_centres(mod.nds, mod.els(e,:));
-    %line between nodes
-    a = mod.nds(interface_facets(i, 2), :) - mod.nds(interface_facets(i, 1), :);
-    %line at right angle to line between nodes
-    b = [a(2), -a(1)];
+    if size(mod.nds, 2) == 2
+        %line between nodes
+        a = mod.nds(interface_facets(i, 2), :) - mod.nds(interface_facets(i, 1), :);
+        %line at right angle to line between nodes
+        b = [a(2), -a(1)];
+    else
+        b = cross(...
+            mod.nds(interface_facets(i, 2), :) - mod.nds(interface_facets(i, 1), :), ...
+            mod.nds(interface_facets(i, 4), :) - mod.nds(interface_facets(i, 1), :));
+    end
     %line from first node to ec
     c = ec - mod.nds(interface_facets(i, 1), :);
     %check sign of dot product
     if dot(c, b) < 0
         interface_facets(i, :) = fliplr(interface_facets(i, : ));
     end
+
 end
 
 %Add the new interface elements to the model

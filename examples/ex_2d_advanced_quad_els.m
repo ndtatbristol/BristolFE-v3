@@ -71,8 +71,8 @@ fluid_matl_i = 2;
 matls{fluid_matl_i} = fn_matl_fluid_defined_by_velocity(fluid_name, fluid_velocity, fluid_density);
 
 %Element types to use
-el_typ_to_use_for_solid = 'CPE4_new'; 
-el_typ_to_use_for_fluid = 'AC2D4_new'; 
+el_typ_to_use_for_solid = 'CPE4'; 
+el_typ_to_use_for_fluid = 'AC2D4'; 
 
 %Define shape of model
 bdry_pts = [

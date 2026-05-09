@@ -9,14 +9,14 @@ addpath(genpath('..\..\..\..\code'));
 
 el_types = {'CPE3', 'CPE4', 'C3D8', 'AC2D3', 'AC2D4', 'AC3D8', 'ASI2D2', 'ASI3D3', 'ASI3D4'}; %All elements that can currently be done!
 % el_types = {'AC3D8'};
-el_types = {'ASI2D2'}; %2d line
+% el_types = {'ASI2D2'}; %2d line
 % el_types = {'ASI3D3'}; %3d tri
 % el_types = {'ASI3D4'}; %3d quad
-% el_types = {'CPE4'};
-el_types = {'ASI2D2', 'ASI3D3', 'ASI3D4'};
-ref_el_suffix = '_F3';
-new_el_suffix = '_F1';
-factorisation_level = 1;
+% el_types = {'CPE3'};
+% el_types = {'ASI2D2', 'ASI3D3', 'ASI3D4'};
+ref_el_suffix = '';
+new_el_suffix = '';
+factorisation_level = 3;
 no_trials = 100000;
 
 build_element_functions = 1;
