@@ -30,11 +30,12 @@ fluid_el_i = fn_el_types_of_state(el_types, 'fluid');
 int_el_typ_i = fn_el_types_of_state(el_types, 'fluid_solid_interface');
 
 %need to get interface element with right number of faces
+%TODO properly
 for i = 1:numel(int_el_typ_i)
     tmp = fn_query_el_type_info(el_types{int_el_typ_i(i)});
-    s = size(tmp.faces, 1);
+    nds_per_interface_face(i) = size(tmp.faces, 2);
 end
-int_el_typ_i = int_el_typ_i(2);
+% int_el_typ_i = int_el_typ_i(2);
 
 
 % if isempty(solid_el_i) || isempty(fluid_el_i)
