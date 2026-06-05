@@ -24,36 +24,13 @@ if isstruct(matls)
     matls = arrayfun(@(x) x, matls, 'UniformOutput', false);
 end
 
-v = [0,0];
-j = 1;
+v = ones(numel(matls), 2) * nan;
 for i = 1:numel(matls)
     if isempty(matls{i})
         continue
     end
-    s = [];
-    if isfield(matls{i}, 'stiffness_matrix')
-        s = matls{i}.stiffness_matrix(:);
-    end
-    if isfield(matls{i}, 'D')
-        s = matls{i}.D(:);
-    end
-    if isfield(matls{i}, 'density') %deal with legacy naming
-        rho = matls{i}.density;
-    else
-        rho = matls{i}.rho;
-    end
-
-    if ~isempty(s)
-        s = s(abs(s) > 0);
-        v(j,1) = sqrt(min(s) / rho);
-        v(j,2) = sqrt(max(s) / rho);
-        j = j + 1;
-        % s = s(abs(s) > 0);
-        % v(j,1) = sqrt(min(s) / rho);
-        % v(j,2) = sqrt(max(s) / rho);
-        % j = j + 1;
-    end
+    [v(i, 1), v(i, 2)] = fn_estimate_matl_vels(matls{i});
 end
-min_velocity = min(v(:,1));
-max_velocity = max(v(:,2));
+min_velocity = min(v(:,2));
+max_velocity = max(v(:,1));
 end

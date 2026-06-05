@@ -1,4 +1,3 @@
-
 function T = fn_polygons_to_triangles(P, padValue)
 %POLYGONS_TO_TRIANGLES Fan-triangulate rows of an m×n matrix of polygon node indices.
 %

@@ -1,11 +1,9 @@
 function [mod, matls, el_types, steps, fe_options, params] = mod_3d_basic(params)
 
 %Solid material properties
-default_params.solid_longitudinal_velocity = 6300;
-default_params.solid_shear_velocity = 3150;
-default_params.solid_density = 2700;
 default_params.solid_name = 'aluminium';
 
+%Shape of elements to use
 default_params.element_shape = 'hex';
 
 %Size of model
@@ -52,7 +50,7 @@ end
 
 %Define the materials in use
 solid_matl_i = 1; 
-matls{solid_matl_i} = fn_matl_isotropic_solid_defined_by_velocities(params.solid_name, params.solid_longitudinal_velocity, params.solid_shear_velocity, params.solid_density);
+matls{solid_matl_i} = fn_material_library(params.solid_name);
 
 %Work out element size
 el_size = fn_get_suitable_el_size(matls, params.centre_freq, params.els_per_wavelength);
@@ -100,7 +98,9 @@ steps{1}.load.frc_dfs = ones(size(steps{1}.load.frc_nds)) * params.src_dir;
 %be applied at all frc_nds/frc_dfs simultaneously; alternatively it can be a matrix
 %of different time signals for each frc_nds/frc_dfs
 %Run model for long enough to see first few echoes depending on params.max_time_multiplier
-max_time = 2 * params.max_time_multiplier * params.model_size(3) / params.solid_longitudinal_velocity;
+[vel, ~] = fn_estimate_max_min_vels(matls{solid_matl_i});
+
+max_time = 2 * params.max_time_multiplier * params.model_size(3) / vel;
 time_step = fn_get_suitable_time_step(matls, el_size);
 steps{1}.load.time = 0: time_step:  max_time;
 steps{1}.load.frcs = fn_gaussian_pulse(steps{1}.load.time, params.centre_freq, params.no_cycles);

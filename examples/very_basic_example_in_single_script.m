@@ -6,8 +6,9 @@ addpath(genpath([fileparts(mfilename('fullpath')), filesep, '..', filesep, 'code
 %This example is designed to show the bare minimum code needed to describe
 %a simple model, execute it, and view the results. In contrast to the other
 %examples, everything is done in one script. However, it is better practice
-%to write a function that defines a model parametrically *explain
-%equivalent for this file*
+%to write a function that defines a model parametrically. The equivalent
+%function for the model defined in this script is mod_2d_basic.m, which can
+%be run with the general examples script.
 
 %PARAMETRIC DESCRIPTION OF MODEL
 %The model is described in terms of a small number of parameters

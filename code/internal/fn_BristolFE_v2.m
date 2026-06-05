@@ -22,7 +22,8 @@ function varargout = fn_BristolFE_v2(mod, matls, el_types, steps, fe_options)
 %eEtermine whether or not to use GPU if one is available
 default_options.use_gpu_if_available = 1;
 %Versions of key functions to use
-default_options.dynamic_solver_version = 'v6';
+default_options.matrix_builder_version = ''; %blank to use default
+default_options.dynamic_solver_version = ''; %blank to use default
 %Whether to calculate velocities at current time step (stable) or last half
 %step (not always stable but maybe faster)
 default_options.solver_mode = 'vel at curent time step';
@@ -52,7 +53,12 @@ end
 
 
 %Build the global matrices
-[mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v5(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, el_types, fe_options);
+switch fe_options.matrix_builder_version
+    case 'v6'
+        [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v6(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, el_types, fe_options);
+    otherwise
+        [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v5(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, el_types, fe_options);
+end
 
 if isempty(steps)
     %Useful if only matrices are required
@@ -108,10 +114,16 @@ for s = 1:numel(steps)
         else
             fn_console_output('')
         end
-        [mon_dsps, fld, mon_frcs, res{s}.fld_time] = ...
-            fn_explicit_dynamic_solver_v6(mats.K, mats.C, mats.M, t, ...
-            frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_available, fe_options.field_output_type, fe_options.solver_mode, fe_options.solver_precision);
-
+        switch fe_options.dynamic_solver_version
+            case 'v7'
+                [mon_dsps, fld, mon_frcs, res{s}.fld_time] = ...
+                    fn_explicit_dynamic_solver_v7(mats.K, mats.C, mats.M, t, ...
+                    frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_available, fe_options.field_output_type, fe_options.solver_mode, fe_options.solver_precision);
+            otherwise
+                [mon_dsps, fld, mon_frcs, res{s}.fld_time] = ...
+                    fn_explicit_dynamic_solver_v6(mats.K, mats.C, mats.M, t, ...
+                    frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_available, fe_options.field_output_type, fe_options.solver_mode, fe_options.solver_precision);
+        end
         %Parse the monitored history outputs
         if isfield(steps{s}.mon, 'nds')
             res{s}.dsps(res{s}.valid_mon_dsps, :) = mon_dsps;

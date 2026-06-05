@@ -1,19 +1,32 @@
 clear all
 close all;
 
-show_geom_only = 0;
-
 %ABOUT THIS SCRIPT
-%This script runs the same basic model twice, once in BristolFE and once in Pogo
+%This script runs the same model twice, once in BristolFE and once in Pogo
 %(which must be installed with a valid license) and compares the results.
+
+%Uncomment one of the following model file names to determine which one
+%will be used for comparison:
+model_to_run = @mod_2d_basic;
+% model_to_run = @mod_3d_basic;
+model_to_run = @mod_2d_advanced;
 
 %Following will need to be set to where the Pogo executable and Pogo Matlab
 %scripts are located respectively
 pogo_path = 'C:\Program Files\Pogo\windows\new version';
 pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
 
+%Parameters for the model - if empty, default values for all parameters 
+%will be used
 params = [];
-params.include_void = 1;
+
+%However, any of the default parameters (see top of model file for complete 
+%list in each case) can be overwritten here, e.g.
+params.els_per_wavelength = 10;
+
+%If you just want to see the model (without running it, set 
+%show_geom_only to 1
+show_geom_only = 0;
 
 %--------------------------------------------------------------------------
 %DEFINE THE MODEL
@@ -25,7 +38,15 @@ addpath(genpath([fileparts(mfilename('fullpath')), filesep, '..', filesep, 'code
 addpath(['.', filesep, 'models']);
 
 %Define the model
-[mod, matls, el_types, steps, fe_options, params] = mod_3d_basic(params);
+params.include_fluid_region = 0; %Pogo does not support fluids so turn this off for any models that might include fluid regions
+[mod, matls, el_types, steps, fe_options, params] = model_to_run(params);
+
+if size(mod.nds) == 3
+    %Currently needed for 3D case for consistent sign to BristolFE
+    pogo_flip_sign = 1;
+else
+    pogo_flip_sign = 0;
+end
 
 %Show the mesh and stop if requested
 if show_geom_only 
@@ -40,6 +61,7 @@ end
 
 %--------------------------------------------------------------------------
 %RUN THE MODEL FOR EACH SOLVER
+
 solvers = {'BristolFE', 'pogo'};
 fe_options.field_output_every_n_frames = inf; %Pogo field output currently not supported
 fe_options.pogo_path = pogo_path;
@@ -49,7 +71,7 @@ for s = 1:numel(solvers)
     res{s} = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
     %Flip sign of pogo results (not sure which solver is correct - it is
     %likely due to node number ordering at element level)
-    if strcmp(solvers{s}, 'pogo')
+    if strcmp(solvers{s}, 'pogo') && pogo_flip_sign
         res{s}{1}.dsps = -res{s}{1}.dsps;
     end
 end

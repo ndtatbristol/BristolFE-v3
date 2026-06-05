@@ -9,7 +9,6 @@ function [mod, matls, el_types, steps, fe_options, params] = mod_2d_basic(params
 % - ex_2d_basic_using_mod.m
 % - ex_2d_bristolFE_pogo_comparison.m
 
-
 default_params.model_size = 20e-3;
 default_params.els_per_wavelength = 10;
 
@@ -22,9 +21,6 @@ default_params.monitor_position_as_fractions = [1 / 3, 1 / 4];
 default_params.monitor_direction = 2; %2 means the second DoF. Possible DoF for solids are 1: x, 2: y, 3: z
 
 %Material properties
-default_params.matl_longitudinal_velocity = 6300;
-default_params.matl_shear_velocity = 3150;
-default_params.matl_density = 2700;
 default_params.matl_name = 'aluminium';
 
 %Details of input signal applied at source
@@ -72,7 +68,7 @@ bdry_pts = [
 %the cell array is given a name, matl_i, so you can see where it is used
 %later when elements in the model are assigned to elements
 matl_i = 1; %material index is given a name so you can see where it appears later
-matls{matl_i} = fn_matl_isotropic_solid_defined_by_velocities(params.matl_name, params.matl_longitudinal_velocity, params.matl_shear_velocity, params.matl_density);
+matls{matl_i} = fn_material_library(params.matl_name);
 
 %Work out element size and time step
 el_size = fn_get_suitable_el_size(matls, params.centre_freq, params.els_per_wavelength);
@@ -100,7 +96,8 @@ steps{1}.load.frc_nds = fn_find_node_nearest_to_point(mod.nds, source_position, 
 steps{1}.load.frc_dfs = ones(size(steps{1}.load.frc_nds)) * params.source_direction;
 
 %Provide the time signal for the loading
-max_time = params.model_size / params.matl_longitudinal_velocity * params.max_time_multiplier;
+[vel, ~] = fn_estimate_max_min_vels(matls{matl_i});
+max_time = params.model_size / vel * params.max_time_multiplier;
 steps{1}.load.time = 0: time_step: max_time;
 steps{1}.load.frcs = fn_gaussian_pulse(steps{1}.load.time, params.centre_freq, params.no_cycles);
 
