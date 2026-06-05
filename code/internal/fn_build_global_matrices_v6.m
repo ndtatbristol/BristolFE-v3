@@ -108,30 +108,25 @@ for t = 1:numel(unique_typs)
     
             %Get the element stiffness and mass matrices - now just for
             %single elements!
-            [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats(nds, els(unique_el_shape_i(s), :), D, rho, fe_options.dof_to_use);
-            % el_K = repmat(el_K, [nnz(el_i3), 1, 1]);
-            % el_M = repmat(el_M, [nnz(el_i3), 1, 1]);
-            % el_C = repmat(el_C, [nnz(el_i3), 1, 1]);
-    
+            [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats(nds, els(unique_el_shape_i(s), :), D, rho, fe_options.dof_to_use, 0);
             %Calculate element damping matrices based on absorbing index of each element
-            el_C = el_C + el_M .* el_abs_i(el_i3) .^ fe_options.damping_power_law *  fe_options.max_damping;
-            el_K = el_K .* exp(log(fe_options.max_stiffness_reduction) .* el_abs_i(el_i3) .^ (fe_options.damping_power_law + 1));
-    
+            abs_ind = permute(el_abs_i(el_i3), [2,3,1]);
+            el_M = repmat(el_M, [1, 1, numel(abs_ind)]);
+            el_C = el_C + el_M .* abs_ind .^ fe_options.damping_power_law *  fe_options.max_damping;
+            el_K = el_K .* exp(log(fe_options.max_stiffness_reduction) .* abs_ind .^ (fe_options.damping_power_law + 1));
             %Work out where the element matrices will go in the global matrices
             [loc_nd_i, loc_nd_j] = meshgrid(loc_nd, loc_nd);
-            nd_i = reshape(els(el_i3, loc_nd_i), size(el_K));
-            nd_j = reshape(els(el_i3, loc_nd_j), size(el_K));
+            nd_i = reshape(els(el_i3, loc_nd_i)', size(el_K));
+            nd_j = reshape(els(el_i3, loc_nd_j)', size(el_K));
             [df_i, df_j] = meshgrid(loc_df, loc_df);
-            df_i = permute(df_i, [3,1,2]);
-            df_j = permute(df_j, [3,1,2]);
-            df_i = repmat(df_i, [size(el_K, 1), 1, 1]);
-            df_j = repmat(df_j, [size(el_K, 1), 1, 1]);
+            df_i = repmat(df_i, [1, 1, size(el_K, 3)]);
+            df_j = repmat(df_j, [1, 1, size(el_K, 3)]);
+
             gi_i = (nd_i - 1) * max_df + df_i;
             gi_j = (nd_j - 1) * max_df + df_j;
-    
-            K = fn_accum_global(K, gi_i, gi_j, el_K);
-            M = fn_accum_global(M, gi_i, gi_j, el_M);
-            C = fn_accum_global(C, gi_i, gi_j, el_C);
+            K = fn_accum_global(K, gi_i(:), gi_j(:), el_K(:));
+            M = fn_accum_global(M, gi_i(:), gi_j(:), el_M(:));
+            C = fn_accum_global(C, gi_i(:), gi_j(:), el_C(:));
         end
     end
 end
@@ -157,65 +152,65 @@ end
 
 end
 
-function X = fn_accum_global(X, i, j, v)
-if size(v, 1) == 1
-    for j = 1:size()
-n = size(X);
-X = X + sparse(i(:), j(:), v(:), n(1), n(2));
-end
-
 % function X = fn_accum_global(X, i, j, v)
-% %FN_ACCUM_GLOBAL Robust sparse assembly avoiding OOM
-% %
-% %   X = fn_accum_global(X, i, j, v)
-% %
-% %   Accumulates triplet data (i,j,v) into sparse matrix X safely by
-% %   chunking to avoid out-of-memory errors during sparse() construction.
-% %
-% %   Inputs:
-% %       X : existing sparse matrix (or empty [])
-% %       i : row indices (vector)
-% %       j : column indices (vector)
-% %       v : values (vector)
-% %
-% %   Output:
-% %       X : updated sparse matrix
-% 
-%     % ---- parameters (tune if needed) ----
-%     chunkSize = 50e6;   % number of entries per chunk
-%     useLocalDedup = false;  % reduce duplicates per chunk
-% 
-%     % ---- initialise if needed ----
-%     if isempty(X)
-%         n = max(max(i), max(j));
-%         X = sparse(n, n);
-%     end
-% 
-%     nDOF = size(X,1);
-%     N = numel(v);
-% 
-%     for k = 1:chunkSize:N
-%         idx = k:min(k+chunkSize-1, N);
-% 
-%         ii = i(idx);
-%         jj = j(idx);
-%         vv = v(idx);
-% 
-%         % ---- optional: reduce duplicates within chunk ----
-%         if useLocalDedup
-%             lin = sub2ind([nDOF nDOF], ii, jj);
-%             [lin_u, ~, ic] = unique(lin);
-%             vv = accumarray(ic, vv);
-% 
-%             % recover i,j
-%             jj = ceil(lin_u / nDOF);
-%             ii = lin_u - (jj-1)*nDOF;
-%         end
-% 
-%         % ---- accumulate into global matrix ----
-%         X = X + sparse(ii, jj, vv, nDOF, nDOF);
-%     end
+% if size(v, 1) == 1
+%     for j = 1:size()
+% n = size(X);
+% X = X + sparse(i(:), j(:), v(:), n(1), n(2));
 % end
+
+function X = fn_accum_global(X, i, j, v)
+%FN_ACCUM_GLOBAL Robust sparse assembly avoiding OOM
+%
+%   X = fn_accum_global(X, i, j, v)
+%
+%   Accumulates triplet data (i,j,v) into sparse matrix X safely by
+%   chunking to avoid out-of-memory errors during sparse() construction.
+%
+%   Inputs:
+%       X : existing sparse matrix (or empty [])
+%       i : row indices (vector)
+%       j : column indices (vector)
+%       v : values (vector)
+%
+%   Output:
+%       X : updated sparse matrix
+
+    % ---- parameters (tune if needed) ----
+    chunkSize = 50e6;   % number of entries per chunk
+    useLocalDedup = false;  % reduce duplicates per chunk
+
+    % ---- initialise if needed ----
+    if isempty(X)
+        n = max(max(i), max(j));
+        X = sparse(n, n);
+    end
+
+    nDOF = size(X,1);
+    N = numel(v);
+
+    for k = 1:chunkSize:N
+        idx = k:min(k+chunkSize-1, N);
+
+        ii = i(idx);
+        jj = j(idx);
+        vv = v(idx);
+
+        % ---- optional: reduce duplicates within chunk ----
+        if useLocalDedup
+            lin = sub2ind([nDOF nDOF], ii, jj);
+            [lin_u, ~, ic] = unique(lin);
+            vv = accumarray(ic, vv);
+
+            % recover i,j
+            jj = ceil(lin_u / nDOF);
+            ii = lin_u - (jj-1)*nDOF;
+        end
+
+        % ---- accumulate into global matrix ----
+        X = X + sparse(ii, jj, vv, nDOF, nDOF);
+    end
+end
 
 
 function [unique_el_shape_i, el_shape_i] = fn_unique_el_shape(nds,  els)

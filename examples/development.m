@@ -21,7 +21,7 @@ pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
 
 %However, any of the default parameters (see top of model file for complete 
 %list in each case) can be overwritten here, e.g.
-params.els_per_wavelength = 20;%13 is OK (775k els); 14 is out-of-memory (932k elements)
+params.els_per_wavelength = 3;%13 is OK (775k els); 14 is out-of-memory (932k elements)
 params.include_fluid_region = 0;
 params.include_absorbing_boundary = 0;
 params.include_crack = 0;

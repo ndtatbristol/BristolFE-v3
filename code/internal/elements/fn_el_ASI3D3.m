@@ -13,15 +13,20 @@ function [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_ASI3D3(nds, els, D, rho, var
 %OUTPUTS
 %	el_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices
 %AUTHOR
-%	Paul Wilcox (17-Apr-2026 17:33:07)
+%	Paul Wilcox (05-Jun-2026 15:19:50)
 
 %--------------------------------------------------------------------------
 
 %Deal with optional argument about which DOFs to use
-if isempty(varargin)
+if numel(varargin) < 1
 	dofs_to_use = [];
 else
 	dofs_to_use = varargin{1};
+end
+if numel(varargin) < 2
+	use_gm_builder_v5_dim_order = 1;
+else
+	use_gm_builder_v5_dim_order = varargin{2};
 end
 
 %Record the local node numbers of the element stiffness matrices
@@ -111,9 +116,11 @@ el_C = el_C(j, j, :);
 loc_nd = loc_nd(j);
 loc_df = loc_df(j);
 
-%Change dimension order of element matrices
-el_K = permute(el_K, [3, 1, 2]);
-el_M = permute(el_M, [3, 1, 2]);
-el_C = permute(el_C, [3, 1, 2]);
+%Change dimension order of element matrices for v5 global matrix builder
+if use_gm_builder_v5_dim_order
+	el_K = permute(el_K, [3, 1, 2]);
+	el_M = permute(el_M, [3, 1, 2]);
+	el_C = permute(el_C, [3, 1, 2]);
+end
 
 end

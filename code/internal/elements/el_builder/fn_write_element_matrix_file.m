@@ -51,7 +51,7 @@ fprintf(fid, '%%----------------------------------------------------------------
 %General stuff at start common to all elements
 fprintf(fid, '%%Deal with optional argument about which DOFs to use\n');
 fprintf(fid, 'if numel(varargin) < 1\n\tdofs_to_use = [];\nelse\n\tdofs_to_use = varargin{1};\nend\n');
-fprintf(fid, 'if numel(varargin) < 2\n\tuse_gm_builder_v5_dime_order = 1;\nelse\n\tuse_gm_builder_v5_dime_order = varargin{2};\nend\n');
+fprintf(fid, 'if numel(varargin) < 2\n\tuse_gm_builder_v5_dim_order = 1;\nelse\n\tuse_gm_builder_v5_dim_order = varargin{2};\nend\n');
 fprintf(fid, '\n');
 
 fprintf(fid, '%%Record the local node numbers of the element stiffness matrices\n');
@@ -288,7 +288,7 @@ fprintf(fid, '\n');
 %Permute dimension order - this may be removed in future version but that
 %requires fn_build_global_matrices to be changed
 fprintf(fid, '%%Change dimension order of element matrices for v5 global matrix builder\n');
-fprintf(fid, 'if use_gm_builder_v5_dime_order\n');
+fprintf(fid, 'if use_gm_builder_v5_dim_order\n');
 fprintf(fid, '\tel_K = permute(el_K, [3, 1, 2]);\n');
 fprintf(fid, '\tel_M = permute(el_M, [3, 1, 2]);\n');
 fprintf(fid, '\tel_C = permute(el_C, [3, 1, 2]);\n');
