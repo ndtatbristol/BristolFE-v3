@@ -8,7 +8,7 @@ close all;
 %will be used for comparison:
 % model_to_run = @mod_2d_basic;
 model_to_run = @mod_3d_basic;
-% model_to_run = @mod_2d_advanced;
+model_to_run = @mod_2d_advanced;
 % model_to_run = @mod_3d_advanced;
 
 %Parameters for the model - if empty, default values for all parameters 
@@ -21,11 +21,11 @@ pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
 
 %However, any of the default parameters (see top of model file for complete 
 %list in each case) can be overwritten here, e.g.
-params.els_per_wavelength = 3;%13 is OK (775k els); 14 is out-of-memory (932k elements)
-params.include_fluid_region = 0;
-params.include_absorbing_boundary = 0;
-params.include_crack = 0;
-params.include_scatterer = 0;
+params.els_per_wavelength = 4;%13 is OK (775k els); 14 is out-of-memory (932k elements)
+params.include_fluid_region = 1;
+params.include_absorbing_boundary = 1;
+params.include_crack = 1;
+params.include_scatterer = 1;
 params.scatterer_is_void = 1;
 params.fe_options.field_output_every_n_frames = inf;
 
@@ -46,8 +46,8 @@ addpath(['.', filesep, 'models']);
 
 %Define the model
 [mod, matls, el_types, steps, fe_options, params] = model_to_run(params);
-i = mod.nds(:, 3) > 6e-3;
-mod.nds(i, 3) = (mod.nds(i, 3) - 6e-3) * 1.5 + 6e-3;
+% i = mod.nds(:, 3) > 6e-3;
+% mod.nds(i, 3) = (mod.nds(i, 3) - 6e-3) * 1.5 + 6e-3;
 
 %Show the mesh and stop if requested
 display_options.node_sets_to_plot(1).nd = steps{1}.load.frc_nds;

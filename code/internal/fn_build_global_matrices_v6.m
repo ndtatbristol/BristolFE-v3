@@ -61,9 +61,10 @@ K = sparse([], [], [], total_dof, total_dof);
 M = sparse([], [], [], total_dof, total_dof);
 C = sparse([], [], [], total_dof, total_dof);
 
-%Find unique types, materials and shapes of elements
+%Find unique types, materials, shapes of elements, and absorbing levels
 unique_typ_i = unique(el_typ_i); %nothing further needed as el_typ_i is the index into unique types
 unique_mat_i = unique(el_mat_i); %nothing further needed as el_mat_i is the index into unique matls
+unique_abs_i = unique(el_abs_i); %nothing further needed as el_abs_i is the absorbing value
 [unique_el_shape_i, el_shape_i] = fn_unique_el_shape(nds, els);
 
 
@@ -84,49 +85,53 @@ for t = 1:numel(unique_typs)
             continue
         end
 
+        if un_mat(m) > 0 
+            D = matls{un_mat(m)}.D;
+            if isfield(matls{un_mat(m)}, 'density') %deal with legacy naming
+                rho = matls{un_mat(m)}.density;
+            else
+                rho = matls{un_mat(m)}.rho;
+            end
+        else
+            D = 0; %For elements with no material e.g. interface
+            rho = 0;
+        end
+
+        %Element stiffness matrices for each unique shape
+        unique_els_of_this_mat_and_type = unique(el_shape_i(el_i2));
+        [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats(nds, els(unique_el_shape_i(unique_els_of_this_mat_and_type), :), D, rho, fe_options.dof_to_use, 0);
+
         %Loop over unique shapes of elements for this material and type
-        for s = 1:numel(unique_el_shape_i)
-            el_i3 = (el_shape_i == s) & el_i2;
+        for s = 1:numel(unique_els_of_this_mat_and_type)
+            el_i3 = (el_shape_i == unique_els_of_this_mat_and_type(s)) & el_i2;
             if ~any(el_i3)
                 %No elements of this shape, type and material so skip to
                 %next shape
                 continue
             end
 
-            %THIS IS WHERE THERE COULD BE CHUNKING LOOP?
-            if un_mat(m) > 0 
-                D = matls{un_mat(m)}.D;
-                if isfield(matls{un_mat(m)}, 'density') %deal with legacy naming
-                    rho = matls{un_mat(m)}.density;
-                else
-                    rho = matls{un_mat(m)}.rho;
-                end
-            else
-                D = 0; %For elements with no material e.g. interface
-                rho = 0;
-            end
-    
-            %Get the element stiffness and mass matrices - now just for
-            %single elements!
-            [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats(nds, els(unique_el_shape_i(s), :), D, rho, fe_options.dof_to_use, 0);
             %Calculate element damping matrices based on absorbing index of each element
             abs_ind = permute(el_abs_i(el_i3), [2,3,1]);
-            el_M = repmat(el_M, [1, 1, numel(abs_ind)]);
-            el_C = el_C + el_M .* abs_ind .^ fe_options.damping_power_law *  fe_options.max_damping;
-            el_K = el_K .* exp(log(fe_options.max_stiffness_reduction) .* abs_ind .^ (fe_options.damping_power_law + 1));
+
+            %TODO - there should be another loop here to only dealwith
+            %unique absorbing levels otherwise the element matrices are
+            %expanded unnecessarily before assembly.
+            el_M2 = el_M(:,:,s);
+            el_C2 = el_C(:,:,s) + el_M(:,:,s) .* abs_ind .^ fe_options.damping_power_law *  fe_options.max_damping;
+            el_K2 = el_K(:,:,s) .* exp(log(fe_options.max_stiffness_reduction) .* abs_ind .^ (fe_options.damping_power_law + 1));
             %Work out where the element matrices will go in the global matrices
             [loc_nd_i, loc_nd_j] = meshgrid(loc_nd, loc_nd);
-            nd_i = reshape(els(el_i3, loc_nd_i)', size(el_K));
-            nd_j = reshape(els(el_i3, loc_nd_j)', size(el_K));
+            nd_i = reshape(els(el_i3, loc_nd_i)', size(el_K2));
+            nd_j = reshape(els(el_i3, loc_nd_j)', size(el_K2));
             [df_i, df_j] = meshgrid(loc_df, loc_df);
-            df_i = repmat(df_i, [1, 1, size(el_K, 3)]);
-            df_j = repmat(df_j, [1, 1, size(el_K, 3)]);
+            df_i = repmat(df_i, [1, 1, size(el_K2, 3)]);
+            df_j = repmat(df_j, [1, 1, size(el_K2, 3)]);
 
             gi_i = (nd_i - 1) * max_df + df_i;
             gi_j = (nd_j - 1) * max_df + df_j;
-            K = fn_accum_global(K, gi_i(:), gi_j(:), el_K(:));
-            M = fn_accum_global(M, gi_i(:), gi_j(:), el_M(:));
-            C = fn_accum_global(C, gi_i(:), gi_j(:), el_C(:));
+            M = fn_accum_global2(M, gi_i, gi_j, el_M2);
+            K = fn_accum_global2(K, gi_i, gi_j, el_K2);
+            C = fn_accum_global2(C, gi_i, gi_j, el_C2);
         end
     end
 end
@@ -152,12 +157,21 @@ end
 
 end
 
-% function X = fn_accum_global(X, i, j, v)
-% if size(v, 1) == 1
-%     for j = 1:size()
-% n = size(X);
-% X = X + sparse(i(:), j(:), v(:), n(1), n(2));
-% end
+function X = fn_accum_global2(X, i, j, v)
+%this version expects 3D matrices for i, j, and v and deals with case when
+%trailing dim of v=1 (i.e. same el matrix is to be repeated at many
+%locations in X
+if size(v, 3) == 1
+    i = reshape(i, [], size(i, 3));
+    j = reshape(j, [], size(j, 3));
+    v = reshape(v, [], size(v, 3));
+    for k = 1:size(v, 1)
+        X = X + sparse(i(k, :), j(k, :), v(k), size(X, 1), size(X, 2));
+    end
+else
+    X = X + sparse(i(:), j(:), v(:), size(X, 1), size(X, 2));
+end
+end
 
 function X = fn_accum_global(X, i, j, v)
 %FN_ACCUM_GLOBAL Robust sparse assembly avoiding OOM

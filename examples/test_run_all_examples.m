@@ -19,6 +19,7 @@ fixed_params.fe_options.field_output_every_n_frames = inf;
 fixed_params.include_fluid_region = 0;
 fixed_params.pogo_path = 'C:\Program Files\Pogo\windows\new version'; %Ignored if solver is not pogo
 fixed_params.pogo_matlab_path = 'C:\Program Files\Pogo\matlab'; %Ignored if solver is not pogo
+fixed_params.fe_options.matrix_builder_version = 'v6';
 
 %--------------------------------------------------------------------------
 
