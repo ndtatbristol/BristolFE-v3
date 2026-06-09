@@ -1,5 +1,9 @@
 function [mod, matls, el_types, steps, fe_options, params] = mod_2d_advanced(params)
 
+%By default, this model uses predictor-corrector (pc) solver mode which is
+%the fastest, but not guaranteed to be stable. Seems to be better behaved
+%with quadrilateral elements rather than triangular ones.
+
 %What to include in model
 default_params.include_fluid_region = 1;
 default_params.include_absorbing_boundary = 1;
@@ -22,7 +26,7 @@ default_params.scatterer_centre_fraction = [0.6, 0.75];
 default_params.scatterer_size = 1e-3;
 
 %Element types to use
-default_params.element_shape = 'tri';
+default_params.element_shape = 'quad';
 
 %Solid material properties of part where scatterers are
 default_params.solid1_name = 'aluminium';
@@ -38,10 +42,11 @@ default_params.centre_freq = 5e6;
 default_params.no_cycles = 5;
 %Run for long enough for longitudinal waves to travel this many lengths of model
 default_params.max_time_multiplier = 3; 
+default_params.safety_factor = 2;
 
-
-default_params.fe_options.field_output_every_n_frames = 10;
 default_params.random_seed = 1;
+default_params.fe_options.field_output_every_n_frames = 10;
+default_params.fe_options.solver_mode = 'pc';
 
 %--------------------------------------------------------------------------
 params = fn_set_default_fields(params, default_params);
@@ -70,7 +75,7 @@ bdry_pts = [
 
 %Work out element and time-step size
 el_size = fn_get_suitable_el_size(matls, params.centre_freq, params.els_per_wavelength);
-time_step = fn_get_suitable_time_step(matls, el_size);
+time_step = fn_get_suitable_time_step(matls, el_size, params.safety_factor);
 
 %Create the nodes and elements of the mesh
 switch params.element_shape
@@ -151,8 +156,8 @@ if params.include_absorbing_boundary
     abs_bdry_pts = [
         abs_bdry_thickness,                 abs_bdry_thickness
         params.model_size(1) - abs_bdry_thickness,  abs_bdry_thickness
-        params.model_size(1) - abs_bdry_thickness,  params.model_size(2) - abs_bdry_thickness
-        abs_bdry_thickness,                 params.model_size(2) - abs_bdry_thickness];
+        params.model_size(1) - abs_bdry_thickness,  params.model_size(2) - 0
+        abs_bdry_thickness,                 params.model_size(2) - 0];
 
     mod = fn_2d_add_absorbing_layer(mod, abs_bdry_pts, abs_bdry_thickness);
     [fe_options.max_damping, fe_options.damping_power_law , fe_options.max_stiffness_reduction]= fn_optimum_absorbing_bdry_properties(abs_bdry_thickness, matls, params.centre_freq);

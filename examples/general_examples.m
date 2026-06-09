@@ -8,16 +8,17 @@ close all;
 %will be used for comparison:
 model_to_run = @mod_2d_basic;
 % model_to_run = @mod_3d_basic;
-% model_to_run = @mod_2d_advanced;
+model_to_run = @mod_2d_advanced;
 % model_to_run = @mod_3d_advanced;
 
 %Parameters for the model - if empty, default values for all parameters 
 %will be used
 params = [];
+params.max_time_multiplier = 3;
 
 %However, any of the default parameters (see top of model file for complete 
 %list in each case) can be overwritten here, e.g.
-params.els_per_wavelength = 8;
+params.els_per_wavelength = 12;
 
 %If you just want to see the model (without running it, set show_geom_only to 1
 show_geom_only = 0;
@@ -70,5 +71,6 @@ if ~isinf(fe_options.field_output_every_n_frames)
     figure;
     h_patch = fn_show_geometry(mod, matls, el_types, display_options);
     anim_options.fld_time = res{1}.fld_time;
+    anim_options.norm_val = 20;
     fn_run_animation(h_patch, res{1}.fld, anim_options);
 end

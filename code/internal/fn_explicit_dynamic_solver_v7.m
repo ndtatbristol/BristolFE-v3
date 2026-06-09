@@ -146,15 +146,15 @@ u_minus_2 = zeros(ndf, 1);
 f = zeros(ndf, 1);
 
 switch lower(solver_mode)
-    case {'vel at last half time step', 'explicit'}
+    case {'vel at last half time step', 'explicit', 'exp'}
         A =  dt ^ 2 * inv_M;
         B = 2 * speye(ndf) - dt * inv_M * C - dt ^ 2 * inv_M * K;
         D = dt * inv_M * C - speye(ndf);
-    case {'vel at curent time step', 'implicit'}
+    case {'vel at curent time step', 'implicit', 'imp'}
         A = (speye(ndf) + dt / 2 * inv_M * C) \ (dt ^ 2 * inv_M);
         B = (speye(ndf) + dt / 2 * inv_M * C) \ (2 * speye(ndf) - dt ^ 2 * inv_M * K);
         D = (speye(ndf) + dt / 2 * inv_M * C) \ (   -speye(ndf) + dt / 2 * inv_M * C);
-    case {'predictor corrector'}
+    case {'predictor corrector', 'pc'}
         A =  dt ^ 2 * inv_M;
         B = 2 * speye(ndf) - dt ^ 2 * inv_M * K - dt * inv_M * C;
         D = -speye(ndf) + dt * inv_M * C;

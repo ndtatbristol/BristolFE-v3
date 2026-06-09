@@ -26,7 +26,7 @@ default_options.matrix_builder_version = ''; %blank to use default
 default_options.dynamic_solver_version = ''; %blank to use default
 %Whether to calculate velocities at current time step (stable) or last half
 %step (not always stable but maybe faster)
-default_options.solver_mode = 'vel at curent time step';
+default_options.solver_mode = 'imp';
 %What to output if field output requested
 default_options.field_output_type = 'KE';
 default_options.max_damping = [];
@@ -54,12 +54,12 @@ end
 
 %Build the global matrices
 switch fe_options.matrix_builder_version
+    case 'v5'
+        [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v5(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, el_types, fe_options);
     case 'v6'
         [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v6(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, el_types, fe_options);
-    case 'v7'
-        [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v7(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, el_types, fe_options);
     otherwise
-        [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v5(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, el_types, fe_options);
+        [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v7(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, el_types, fe_options);
 end
 
 if isempty(steps)
@@ -117,13 +117,13 @@ for s = 1:numel(steps)
             fn_console_output('')
         end
         switch fe_options.dynamic_solver_version
-            case 'v7'
+            case 'v6'
                 [mon_dsps, fld, mon_frcs, res{s}.fld_time] = ...
-                    fn_explicit_dynamic_solver_v7(mats.K, mats.C, mats.M, t, ...
+                    fn_explicit_dynamic_solver_v6(mats.K, mats.C, mats.M, t, ...
                     frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_available, fe_options.field_output_type, fe_options.solver_mode, fe_options.solver_precision);
             otherwise
                 [mon_dsps, fld, mon_frcs, res{s}.fld_time] = ...
-                    fn_explicit_dynamic_solver_v6(mats.K, mats.C, mats.M, t, ...
+                    fn_explicit_dynamic_solver_v7(mats.K, mats.C, mats.M, t, ...
                     frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_available, fe_options.field_output_type, fe_options.solver_mode, fe_options.solver_precision);
         end
         %Parse the monitored history outputs

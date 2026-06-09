@@ -1,5 +1,5 @@
 clear all;
-% close all;
+close all;
 
 %ABOUT THIS SCRIPT
 %Development script!
@@ -9,7 +9,7 @@ clear all;
 % model_to_run = @mod_2d_basic;
 model_to_run = @mod_3d_basic;
 model_to_run = @mod_2d_advanced;
-model_to_run = @mod_3d_advanced;
+% model_to_run = @mod_3d_advanced;
 % model_to_run = @mod_3d_fastener_hole;
 
 %Parameters for the model - if empty, default values for all parameters 
@@ -22,7 +22,7 @@ pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
 
 %However, any of the default parameters (see top of model file for complete 
 %list in each case) can be overwritten here, e.g.
-params.els_per_wavelength = 8;16;%13 is OK (775k els); 14 is out-of-memory (932k elements) with v4; %15 (1.16M elements) still works with v6
+params.els_per_wavelength = 12;16;%13 is OK (775k els); 14 is out-of-memory (932k elements) with v4; %15 (1.16M elements) still works with v6
 params.include_fluid_region = 1;
 params.include_absorbing_boundary = 1;
 params.include_crack = 1;
@@ -49,8 +49,7 @@ addpath(['.', filesep, 'models']);
 fe_options{1} = tmp_fe_options;
 fe_options{1}.solver_mode = 'predictor corrector';
 % fe_options{2} = tmp_fe_options;
-fe_options{1}.solver = 'BristolFE';
-% fe_options{2}.use_gpu_if_available = 0;
+% fe_options{2}.solver_mode = 'implicit';
 
 
 % i = mod.nds(:, 3) > 6e-3;
@@ -72,14 +71,16 @@ figure;
 col = {'k', 'r--'};
 ver = {'v7', 'v6'};
 ver = {'v7'};
+k = 1;
 for v = 1:numel(ver)
     for o = 1:numel(fe_options);
-    fe_options{o}.matrix_builder_version = ver{v};
-    fe_options{o}.dynamic_solver_version = 'v7';
-    res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options{o});
-    %Plot summed history output over monitoring nodes
-    plot(steps{1}.load.time, sum(res{1}.dsps, 1), col{v});
-    hold on;
+        fe_options{o}.matrix_builder_version = ver{v};
+        fe_options{o}.dynamic_solver_version = 'v7';
+        res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options{o});
+        %Plot summed history output over monitoring nodes
+        plot(steps{1}.load.time, sum(res{1}.dsps, 1), col{k});
+        k = k + 1;
+        hold on;
     end
 end
 xlabel('Time (s)')
