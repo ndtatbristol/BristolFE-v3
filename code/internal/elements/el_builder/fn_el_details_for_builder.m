@@ -11,6 +11,12 @@ switch el_type
     case 'CPE4'
         solid_or_fluid = 'solid';
         el_shape = 'quadrilateral';
+    case 'C3D4'
+        solid_or_fluid = 'solid';
+        el_shape = 'tetrahedral';
+    case 'C3D6'
+        solid_or_fluid = 'solid';
+        el_shape = 'triangular_prism';
     case 'C3D8'
         solid_or_fluid = 'solid';
         el_shape = 'hexahedral';
@@ -20,6 +26,12 @@ switch el_type
     case 'AC2D4'
         solid_or_fluid = 'fluid';
         el_shape = 'quadrilateral';
+    case 'AC3D4'
+        solid_or_fluid = 'fluid';
+        el_shape = 'tetrahedral';
+    case 'AC3D6'
+        solid_or_fluid = 'fluid';
+        el_shape = 'triangular_prism';
     case 'AC3D8'
         solid_or_fluid = 'fluid';
         el_shape = 'hexahedral';

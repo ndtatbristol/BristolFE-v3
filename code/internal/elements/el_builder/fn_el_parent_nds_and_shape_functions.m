@@ -66,14 +66,15 @@ switch shape
 
     case 'hexahedral'
         nds_in_nat_coords = [
-            -1, -1, -1 
-            -1,  1, -1
-             1,  1, -1
-             1, -1, -1
-            -1, -1,  1 
-            -1,  1,  1
-             1,  1,  1
-             1, -1,  1];
+            -1  -1  -1
+            1  -1  -1
+            1   1  -1
+            -1   1  -1
+            -1  -1   1
+            1  -1   1
+            1   1   1
+            -1   1   1
+            ];
         sf_powers = [
             0, 0, 0
             1, 0, 0
@@ -91,8 +92,32 @@ switch shape
             gauss_pts = nds_in_nat_coords / sqrt(3);
             gauss_weights = ones(size(gauss_pts, 1), 1);
         end
-
-
+    case 'triangular_prism'
+        nds_in_nat_coords = [
+            0   0  -1
+            1   0  -1
+            0   1  -1
+            0   0   1
+            1   0   1
+            0   1   1
+            ];
+        sf_powers = [
+            0, 0, 0
+            1, 0, 0
+            0, 1, 0
+            0, 0, 1
+            0, 1, 1
+            1, 0, 1
+            ];
+        gauss_pts = [
+            1/6  1/6  -1/sqrt(3)
+            2/3  1/6  -1/sqrt(3)
+            1/6  2/3  -1/sqrt(3)
+            1/6  1/6   1/sqrt(3)
+            2/3  1/6   1/sqrt(3)
+            1/6  2/3   1/sqrt(3)
+            ];
+        gauss_weights = ones(size(gauss_pts, 1), 1) / 6;
 end
 no_dims = size(nds_in_nat_coords, 2);
 

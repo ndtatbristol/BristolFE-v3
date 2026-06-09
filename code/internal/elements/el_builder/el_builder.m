@@ -7,7 +7,9 @@ rng(1);
 cd(fileparts(mfilename('fullpath')));
 addpath(genpath('..\..\..\..\code'));
 
-el_types = {'CPE3', 'CPE4', 'C3D8', 'AC2D3', 'AC2D4', 'AC3D8', 'ASI2D2', 'ASI3D3', 'ASI3D4'}; %All elements that can currently be done!
+el_types = {'CPE3', 'CPE4', 'C3D4', 'C3D6', 'C3D8', 'AC2D3', 'AC2D4', 'AC3D4', 'AC3D6', 'AC3D8', 'ASI2D2', 'ASI3D3', 'ASI3D4'}; %All elements that can currently be done!
+el_types = {'C3D4', 'C3D6', 'AC3D4', 'AC3D6'}; %Tet and prism elements
+el_types = {'C3D8', 'AC3D8'}; %Hexahedral
 % el_types = {'AC3D8'};
 % el_types = {'ASI2D2'}; %2d line
 % el_types = {'ASI3D3'}; %3d tri

@@ -56,6 +56,8 @@ end
 switch fe_options.matrix_builder_version
     case 'v6'
         [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v6(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, el_types, fe_options);
+    case 'v7'
+        [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v7(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, el_types, fe_options);
     otherwise
         [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v5(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, el_types, fe_options);
 end

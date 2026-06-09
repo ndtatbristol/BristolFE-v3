@@ -1,4 +1,4 @@
-function [K, C, M, gl_lookup] = fn_build_global_matrices_v6(nds, els, el_mat_i, el_abs_i, el_typ_i, matls, el_types, fe_options)
+function [K, C, M, gl_lookup] = fn_build_global_matrices_v7(nds, els, el_mat_i, el_abs_i, el_typ_i, matls, el_types, fe_options)
 %SUMMARY
 %   Creates global matrices from mesh definitions
 %INPUTS
@@ -30,6 +30,7 @@ default_options.dof_to_use = []; %Blank uses all of available ones for all eleme
 default_options.damping_power_law = 3;
 default_options.max_damping = 3.1415e+07; %this is the only absolute number in the list - pi * 10e6
 default_options.max_stiffness_reduction = 0.01;
+default_options.chunk_size = 1e4; %max number of elements to do in one chunk
 
 fe_options = fn_set_default_fields(fe_options, default_options);
 
@@ -45,7 +46,7 @@ if length(el_abs_i) ~= no_els
     error('Length of element absorbing indices vector must equal number of elements');
 end
 
-fn_console_output(sprintf('Global matrix builder v6 (nodes = %d, elements = %d) ... ', size(nds, 1), size(els, 1)));
+fn_console_output(sprintf('Global matrix builder v7 (nodes = %d, elements = %d) ... ', size(nds, 1), size(els, 1)));
 t1 = clock;
 
 %find unique element types, max DoF per element, and actual DoFs in use
@@ -60,6 +61,10 @@ total_dof = no_nds * max_df;
 K = sparse([], [], [], total_dof, total_dof);
 M = sparse([], [], [], total_dof, total_dof);
 C = sparse([], [], [], total_dof, total_dof);
+
+K = gpuArray(K);
+M = gpuArray(M);
+C = gpuArray(C);
 
 %Find unique types, materials, shapes of elements, and absorbing levels
 unique_typ_i = unique(el_typ_i); %nothing further needed as el_typ_i is the index into unique types
@@ -99,7 +104,7 @@ for t = 1:numel(unique_typs)
 
         %Element stiffness matrices for each unique shape
         unique_els_of_this_mat_and_type = unique(el_shape_i(el_i2));
-        [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats(nds, els(unique_el_shape_i(unique_els_of_this_mat_and_type), :), D, rho, fe_options.dof_to_use, 0);
+        [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats(nds, els(unique_el_shape_i(unique_els_of_this_mat_and_type), :), D, rho, fe_options.dof_to_use, 0, 0);
 
         %Loop over unique shapes of elements for this material and type
         for s = 1:numel(unique_els_of_this_mat_and_type)
@@ -111,24 +116,36 @@ for t = 1:numel(unique_typs)
             end
 
             %Calculate element damping matrices based on absorbing index of each element
-            abs_ind = permute(el_abs_i(el_i3), [2,3,1]);
+            abs_ind = permute(el_abs_i(el_i3), [2,3,1]); 
+            
+            %this also defines how many elements of this matl and shape need to be added to global matrix 
+            n_els_this_type = numel(abs_ind);
 
-            el_M2 = repmat(el_M(:,:,s), [1,1,numel(abs_ind)]);
-            el_C2 = el_C(:,:,s) + el_M(:,:,s) .* abs_ind .^ fe_options.damping_power_law *  fe_options.max_damping;
-            el_K2 = el_K(:,:,s) .* exp(log(fe_options.max_stiffness_reduction) .* abs_ind .^ (fe_options.damping_power_law + 1));
-            %Work out where the element matrices will go in the global matrices
-            [loc_nd_i, loc_nd_j] = meshgrid(loc_nd, loc_nd);
-            nd_i = reshape(els(el_i3, loc_nd_i)', size(el_K2));
-            nd_j = reshape(els(el_i3, loc_nd_j)', size(el_K2));
-            [df_i, df_j] = meshgrid(loc_df, loc_df);
-            df_i = repmat(df_i, [1, 1, size(el_K2, 3)]);
-            df_j = repmat(df_j, [1, 1, size(el_K2, 3)]);
+            %chuncked loop to add to gloabl matrices
+            for k = 1:fe_options.chunk_size:n_els_this_type
+                i1 = k;
+                i2 = min(k + fe_options.chunk_size - 1, n_els_this_type);
+                el_i4 = false(size(el_i3));
+                tmp = find(el_i3);
+                el_i4(tmp(i1:i2)) = true;
 
-            gi_i = (nd_i - 1) * max_df + df_i;
-            gi_j = (nd_j - 1) * max_df + df_j;
-            M = fn_accum_global(M, gi_i, gi_j, el_M2);
-            K = fn_accum_global(K, gi_i, gi_j, el_K2);
-            C = fn_accum_global(C, gi_i, gi_j, el_C2);
+                el_M2 = repmat(el_M(:,:,s), [1, 1, i2 - i1 + 1]);
+                el_C2 = el_C(:,:,s) + el_M(:,:,s) .* abs_ind(i1: i2) .^ fe_options.damping_power_law *  fe_options.max_damping;
+                el_K2 = el_K(:,:,s) .* exp(log(fe_options.max_stiffness_reduction) .* abs_ind(i1: i2) .^ (fe_options.damping_power_law + 1));
+                %Work out where the element matrices will go in the global matrices
+                [loc_nd_i, loc_nd_j] = meshgrid(loc_nd, loc_nd);
+                nd_i = reshape(els(el_i4, loc_nd_i)', size(el_K2));
+                nd_j = reshape(els(el_i4, loc_nd_j)', size(el_K2));
+                [df_i, df_j] = meshgrid(loc_df, loc_df);
+                df_i = repmat(df_i, [1, 1, size(el_K2, 3)]);
+                df_j = repmat(df_j, [1, 1, size(el_K2, 3)]);
+    
+                gi_i = (nd_i - 1) * max_df + df_i;
+                gi_j = (nd_j - 1) * max_df + df_j;
+                M = fn_accum_global2(M, gi_i, gi_j, el_M2);
+                K = fn_accum_global2(K, gi_i, gi_j, el_K2);
+                C = fn_accum_global2(C, gi_i, gi_j, el_C2);
+            end
         end
     end
 end
@@ -147,7 +164,6 @@ gl_lookup = fn_create_fast_lookup(gl_nds, gl_dofs, no_nds, 0);
 K = gather(K);
 M = gather(M);
 C = gather(C);
-
 tt = etime(clock, t1);
 fn_console_output(sprintf('completed in %.2f secs\n', tt), [], 0);
 
@@ -157,16 +173,16 @@ function X = fn_accum_global2(X, i, j, v)
 %this version expects 3D matrices for i, j, and v and deals with case when
 %trailing dim of v=1 (i.e. same el matrix is to be repeated at many
 %locations in X
-if size(v, 3) == 1
-    i = reshape(i, [], size(i, 3));
-    j = reshape(j, [], size(j, 3));
-    v = reshape(v, [], size(v, 3));
-    for k = 1:size(v, 1)
-        X = X + sparse(i(k, :), j(k, :), v(k), size(X, 1), size(X, 2));
-    end
-else
+% if size(v, 3) == 1
+%     i = reshape(i, [], size(i, 3));
+%     j = reshape(j, [], size(j, 3));
+%     v = reshape(v, [], size(v, 3));
+%     for k = 1:size(v, 1)
+%         X = X + sparse(i(k, :), j(k, :), v(k), size(X, 1), size(X, 2));
+%     end
+% else
     X = X + sparse(i(:), j(:), v(:), size(X, 1), size(X, 2));
-end
+% end
 end
 
 function X = fn_accum_global(X, i, j, v)

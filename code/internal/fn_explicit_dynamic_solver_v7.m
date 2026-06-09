@@ -1,0 +1,263 @@
+function [history_output, field_output, force_output, field_output_time] = fn_explicit_dynamic_solver_v7(...
+    K, C, M, time, ...
+    forcing_indices, forcing_functions, ...
+    disp_indices, disp_functions, ...
+    history_indices, field_output_every_n_frames, varargin)
+%v6 changes - splitting time stepping into two methods depending on whether
+%the velocities are calculated on the preceding half step (old method) or
+%on current step (should be more stable, but slower).
+
+%SUMMARY
+%   Solves explicit dynamic FE problem given applied displacements or
+%   applied forces
+%INPUTS
+%   K - m x m global stiffness matrix
+%   C - m x m global damping matrix
+%   M - m x m global mass matrix
+%   time = n-element vector of times
+%   forcing_indices - p-element vector of global matrix indices at which 
+%   forcing_functions will be applied (i.e. force input)
+%   forcing_functions - p x n matrix of forces to apply
+%   disp_indices - r-element vector of global matrix indices at which 
+%   disp_functions will be applied (i.e. displacement input)
+%   disp_functions - r x n matrix of displacments to apply
+%   history_indices - q-element vector of global matrix indices for complete 
+%   time-history outputs
+%   field_output_every_n_frames - complete displacement field will be
+%   output every n frames (set to inf for no field output
+%OUTPUTS
+%   history_output - q x n matrix of time histories
+%   field_output - m x floor(n / field_output_every_n_frames) matrix of displacements at all nodes
+%   force_output - r x n matrix for force histories at points where
+%   displacements are imposed (empty if no displacement input is used)
+
+%--------------------------------------------------------------------------
+field_output_is_vel = 1;
+if numel(varargin) < 1
+	use_gpu_if_present = 1;
+else
+	use_gpu_if_present = varargin{1};
+end
+if numel(varargin) < 2
+	field_output_type = 'KE';
+else
+	field_output_type = varargin{2};
+end
+if numel(varargin) < 3
+	solver_mode = 'vel at current time step';
+else
+	solver_mode = varargin{3};
+end
+if numel(varargin) < 3
+	solver_precision = 'double';
+else
+	solver_precision = varargin{4};
+end
+
+if isMATLABReleaseOlderThan('R2025a') && strcmpi(solver_precision, 'single')
+    fprintf(['WARNING: Matlab before R2025a does not support sparse, single ' ...
+        'precision matrices, defaulting to double precision instead\n']);
+    solver_precision = 'double';
+end
+
+%--------------------------------------------------------------------------
+switch field_output_type
+    case {'mean(u1)', 'mean(u2)', 'mean(u3)', 'curl(u)', 'div(u)', 'raw(u)'}
+        field_output_is_vel = 0;
+    otherwise
+        field_output_is_vel = 1;
+end
+
+gpu_present = fn_test_if_gpu_present_and_working;
+if use_gpu_if_present && gpu_present
+	use_gpu = 1;
+    % reset(gpuDevice);
+else
+	use_gpu = 0;
+end
+
+%Error checks
+if size(K, 1) ~= size(K, 2)
+    error('K must be square matrix');
+end
+if size(C,1) ~= size(C, 2)
+    error('C must be square matrix');
+end
+if size(M,1) ~= size(M, 2)
+    error('M must be square matrix');
+end
+
+ndf = size(K, 1);
+% nz = nnz(K);
+% if nz > 1e6
+%     fn_console_output(sprintf(['Explicit time marching v7 (GPU = %i, time steps = %d, DoFs = %.3fM, NNZ = %.3fM, ', solver_precision, ')\n'], use_gpu, numel(time), ndf / 1e6, nz / 1e6), [], 0);
+% else
+%     fn_console_output(sprintf(['Explicit time marching v7 (GPU = %i, time steps = %d, DoFs = %.3fk, NNZ = %.3fk, ', solver_precision, ')\n'], use_gpu, numel(time), ndf / 1e3, nz / 1e3), [], 0);
+% end
+fn_console_output(sprintf(['Explicit time marching v7 (GPU = %i, time steps = %d, DoFs = %.3fM, ', solver_precision, ')\n'], use_gpu, numel(time), ndf / 1e6), [], 0);
+
+t1 = clock;
+fn_increment_indent_level;
+fn_console_output('Pre-calculations ... ');
+
+dt = time(2) - time(1);
+
+%initialise history and field output variables
+if isempty(history_indices)
+    history_output = [];
+    hist_output_requested = 0;
+else
+    history_output = zeros(length(history_indices), length(time), solver_precision);
+    hist_output_requested = 1;
+end
+
+if isempty(disp_indices)
+    displacement_input = 0;
+    force_output = [];
+else
+    displacement_input = 1;
+    force_output = zeros(length(disp_indices), length(time), solver_precision);
+    tmp = disp_functions;
+    tmp = [zeros(size(disp_functions, 1), 2), disp_functions];
+    accn = zeros(size(disp_functions), solver_precision);
+    accn = (tmp(:, 3:end) - 2 * tmp(:, 2:end-1) + tmp(:, 1:end-2)) / dt ^ 2;
+end
+
+if ~isinf(field_output_every_n_frames)
+    field_output_requested = 1;
+    field_output_ti = 1:field_output_every_n_frames:length(time);
+    field_output_at_this_time = zeros(size(time));
+    field_output_at_this_time(field_output_ti) = 1:length(field_output_ti);
+    field_output = zeros(ndf, length(field_output_ti), solver_precision);
+    field_output_time = zeros(1, length(field_output_ti));
+else
+    field_output_requested = 0;
+    field_output_ti = [];
+    field_output = [];
+    field_output_time = [];
+end
+
+inv_M = spdiags(1 ./ sum(gather(M)).', 0, ndf, ndf);
+
+u = zeros(ndf, 1);
+u_minus_1 = zeros(ndf, 1);
+u_minus_2 = zeros(ndf, 1);
+
+f = zeros(ndf, 1);
+
+switch solver_mode 
+    case 'vel at last half time step'
+        A =  dt ^ 2 * inv_M;
+        B = 2 * speye(ndf) - dt * inv_M * C - dt ^ 2 * inv_M * K;
+        D = dt * inv_M * C - speye(ndf);
+    case 'vel at curent time step'
+        A = (speye(ndf) + dt / 2 * inv_M * C) \ (dt ^ 2 * inv_M);
+        B = (speye(ndf) + dt / 2 * inv_M * C) \ (2 * speye(ndf) - dt ^ 2 * inv_M * K);
+        D = (speye(ndf) + dt / 2 * inv_M * C) \ (   -speye(ndf) + dt / 2 * inv_M * C);
+end
+
+if use_gpu
+    if strcmpi(solver_precision, 'single')
+    	u = gpuArray(single(u));
+        u_minus_1 = gpuArray(single(u_minus_1));
+    	u_minus_2 = gpuArray(single(u_minus_2));
+        A = gpuArray(single(A));
+        B = gpuArray(single(B));
+        D = gpuArray(single(D));
+        f = gpuArray(single(f));
+        forcing_functions = gpuArray(single(forcing_functions));
+        forcing_indices = gpuArray(single(forcing_indices));
+        history_indices = gpuArray(single(history_indices));
+        history_output = gpuArray(single(history_output));
+    else
+        u = gpuArray(u);
+    	u_minus_1 = gpuArray(u_minus_1);
+    	u_minus_2 = gpuArray(u_minus_2);
+        A = gpuArray(A);
+        B = gpuArray(B);
+        D = gpuArray(D);
+        f = gpuArray(f);
+        forcing_functions = gpuArray(forcing_functions);
+        forcing_indices = gpuArray(forcing_indices);
+        history_indices = gpuArray(history_indices);
+        history_output = gpuArray(history_output);
+    end
+end
+
+%Main time marching loop
+t1 = clock;
+ti_start = inf;
+if ~isempty(forcing_indices)
+    q = sum(abs(forcing_functions));
+    ti_start = min(min(find(q > max(q) * 1e-9)), ti_start);%ugly hard coded number
+end
+if ~isempty(disp_indices)
+    q = sum(abs(disp_functions));
+    tmp_start = min(find(q > max(q) * 1e-9));%ugly hard coded number
+    if ~isempty(tmp_start)
+        ti_start = min(tmp_start, ti_start);
+    end
+end
+if isempty(ti_start)
+    fn_console_output('no input forcing over time window; result will be zero\n', [], 0);
+    return
+end
+%prog_dot_ti = interp1(linspace(0, 1, length(time) - ti_start + 1), ti_start:length(time), linspace(0,1,11), 'nearest');
+prog_dot_ti = round(interp1([0,1], [ti_start,length(time)], linspace(0,1,11), 'linear'));
+prog_dot_ti = prog_dot_ti(2: end);
+progress_output_at_this_time = zeros(size(time));
+progress_output_at_this_time(prog_dot_ti) = 1;
+
+fn_console_output(sprintf('completed in %.2f secs\n', etime(clock, t1)), [], 0);
+
+t1 = clock;
+fn_console_output('Main time-stepping loop ', [], 1);
+for ti = ti_start:length(time)
+    %set force at forcing node equal to excitation signal at this instant in time
+    f(forcing_indices) = full(forcing_functions(:, ti));
+
+    %Main calculation!
+    u = A * f + B * u_minus_1 + D * u_minus_2;
+
+    %impose displacements
+    if displacement_input
+        u(disp_indices) = disp_functions(:, ti);
+        %force output is not correct
+        force_output(:, ti) = 0;%diag_M(disp_indices, disp_indices) * accn(:, ti) + K(disp_indices, :) * u_minus_1;
+    end
+
+    %history output
+    if hist_output_requested
+        history_output(:, ti) = u(history_indices);
+    end
+    
+    %field output
+    % [tmp, fi] = ismember(ti, field_output_ti);
+    if field_output_requested && field_output_at_this_time(ti) > 0
+        fi = field_output_at_this_time(ti);
+        field_output_time(fi) = time(ti);
+        if field_output_is_vel
+            field_output(:, fi) = (u - u_minus_1) / dt;
+        else
+            field_output(:, fi) = u;
+        end
+    end
+    
+    %overwrite previous values with current ones ready for next loop
+    u_minus_2 = u_minus_1;
+    u_minus_1 = u;
+    
+    %Show how far through calculation is
+    if progress_output_at_this_time(ti) 
+        fn_console_output('.', [], 0);
+    end
+end
+
+fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0);
+fn_decrement_indent_level;
+
+history_output = gather(history_output);
+field_output = gather(field_output);
+force_output = gather(force_output);
+field_output_time = gather(field_output_time);
+end

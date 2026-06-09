@@ -8,8 +8,9 @@ close all;
 %will be used for comparison:
 % model_to_run = @mod_2d_basic;
 model_to_run = @mod_3d_basic;
-model_to_run = @mod_2d_advanced;
+% model_to_run = @mod_2d_advanced;
 % model_to_run = @mod_3d_advanced;
+model_to_run = @mod_3d_fastener_hole;
 
 %Parameters for the model - if empty, default values for all parameters 
 %will be used
@@ -21,14 +22,13 @@ pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
 
 %However, any of the default parameters (see top of model file for complete 
 %list in each case) can be overwritten here, e.g.
-params.els_per_wavelength = 4;%13 is OK (775k els); 14 is out-of-memory (932k elements)
+params.els_per_wavelength = 2;16;%13 is OK (775k els); 14 is out-of-memory (932k elements) with v4; %15 (1.16M elements) still works with v6
 params.include_fluid_region = 1;
 params.include_absorbing_boundary = 1;
 params.include_crack = 1;
 params.include_scatterer = 1;
 params.scatterer_is_void = 1;
 params.fe_options.field_output_every_n_frames = inf;
-
 
 
 %If you just want to see the model (without running it, set 
@@ -45,7 +45,13 @@ addpath(genpath([fileparts(mfilename('fullpath')), filesep, '..', filesep, 'code
 addpath(['.', filesep, 'models']);
 
 %Define the model
-[mod, matls, el_types, steps, fe_options, params] = model_to_run(params);
+[mod, matls, el_types, steps, tmp_fe_options, params] = model_to_run(params);
+fe_options{1} = tmp_fe_options;
+fe_options{2} = tmp_fe_options;
+fe_options{1}.solver = 'BristolFE';
+% fe_options{2}.use_gpu_if_available = 0;
+
+
 % i = mod.nds(:, 3) > 6e-3;
 % mod.nds(i, 3) = (mod.nds(i, 3) - 6e-3) * 1.5 + 6e-3;
 
@@ -63,13 +69,16 @@ end
 
 figure;
 col = {'k', 'r--'};
-ver = {'v6', 'v5'};
-% ver = {'v6'};
+ver = {'v7', 'v6'};
+ver = {'v7'};
 for v = 1:numel(ver)
-    fe_options.matrix_builder_version = ver{v};
-    res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
+    for o = 1:numel(fe_options);
+    fe_options{o}.matrix_builder_version = ver{v};
+    fe_options{o}.dynamic_solver_version = 'v7';
+    res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options{o});
     %Plot summed history output over monitoring nodes
     plot(steps{1}.load.time, sum(res{1}.dsps, 1), col{v});
     hold on;
+    end
 end
 xlabel('Time (s)')

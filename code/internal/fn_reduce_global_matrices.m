@@ -6,9 +6,9 @@ function [global_matrix_nodes, global_matrix_dofs, Q, varargout] = fn_reduce_glo
 
 for m = 1:length(varargin)
     if m == 1
-        valid_indices = sum(abs(varargin{m})) > 0;
+        valid_indices = gather(sum(abs(varargin{m}))) > 0;
     else
-        valid_indices = valid_indices | sum(abs(varargin{m})) > 0;
+        valid_indices = valid_indices | gather(sum(abs(varargin{m}))) > 0;
     end
 end
 for m = 1:length(varargin)

@@ -8,8 +8,8 @@ close all;
 %Uncomment one of the following model file names to determine which one
 %will be used for comparison:
 model_to_run = @mod_2d_basic;
-% model_to_run = @mod_3d_basic;
-model_to_run = @mod_2d_advanced;
+model_to_run = @mod_3d_basic;
+% model_to_run = @mod_2d_advanced;
 
 %Following will need to be set to where the Pogo executable and Pogo Matlab
 %scripts are located respectively
@@ -41,13 +41,6 @@ addpath(['.', filesep, 'models']);
 params.include_fluid_region = 0; %Pogo does not support fluids so turn this off for any models that might include fluid regions
 [mod, matls, el_types, steps, fe_options, params] = model_to_run(params);
 
-if size(mod.nds) == 3
-    %Currently needed for 3D case for consistent sign to BristolFE
-    pogo_flip_sign = 1;
-else
-    pogo_flip_sign = 0;
-end
-
 %Show the mesh and stop if requested
 if show_geom_only 
     figure;
@@ -69,11 +62,6 @@ fe_options.pogo_matlab_path = pogo_matlab_path;
 for s = 1:numel(solvers)
     fe_options.solver = solvers{s};
     res{s} = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
-    %Flip sign of pogo results (not sure which solver is correct - it is
-    %likely due to node number ordering at element level)
-    if strcmp(solvers{s}, 'pogo') && pogo_flip_sign
-        res{s}{1}.dsps = -res{s}{1}.dsps;
-    end
 end
 
 %--------------------------------------------------------------------------
