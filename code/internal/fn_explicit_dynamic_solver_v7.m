@@ -145,15 +145,19 @@ u_minus_2 = zeros(ndf, 1);
 
 f = zeros(ndf, 1);
 
-switch solver_mode 
-    case 'vel at last half time step'
+switch lower(solver_mode)
+    case {'vel at last half time step', 'explicit'}
         A =  dt ^ 2 * inv_M;
         B = 2 * speye(ndf) - dt * inv_M * C - dt ^ 2 * inv_M * K;
         D = dt * inv_M * C - speye(ndf);
-    case 'vel at curent time step'
+    case {'vel at curent time step', 'implicit'}
         A = (speye(ndf) + dt / 2 * inv_M * C) \ (dt ^ 2 * inv_M);
         B = (speye(ndf) + dt / 2 * inv_M * C) \ (2 * speye(ndf) - dt ^ 2 * inv_M * K);
         D = (speye(ndf) + dt / 2 * inv_M * C) \ (   -speye(ndf) + dt / 2 * inv_M * C);
+    case {'predictor corrector'}
+        A =  dt ^ 2 * inv_M;
+        B = 2 * speye(ndf) - dt ^ 2 * inv_M * K - dt * inv_M * C;
+        D = -speye(ndf) + dt * inv_M * C;
 end
 
 if use_gpu
@@ -185,7 +189,6 @@ if use_gpu
 end
 
 %Main time marching loop
-t1 = clock;
 ti_start = inf;
 if ~isempty(forcing_indices)
     q = sum(abs(forcing_functions));

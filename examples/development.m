@@ -1,5 +1,5 @@
 clear all;
-close all;
+% close all;
 
 %ABOUT THIS SCRIPT
 %Development script!
@@ -8,9 +8,9 @@ close all;
 %will be used for comparison:
 % model_to_run = @mod_2d_basic;
 model_to_run = @mod_3d_basic;
-% model_to_run = @mod_2d_advanced;
-% model_to_run = @mod_3d_advanced;
-model_to_run = @mod_3d_fastener_hole;
+model_to_run = @mod_2d_advanced;
+model_to_run = @mod_3d_advanced;
+% model_to_run = @mod_3d_fastener_hole;
 
 %Parameters for the model - if empty, default values for all parameters 
 %will be used
@@ -22,7 +22,7 @@ pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
 
 %However, any of the default parameters (see top of model file for complete 
 %list in each case) can be overwritten here, e.g.
-params.els_per_wavelength = 2;16;%13 is OK (775k els); 14 is out-of-memory (932k elements) with v4; %15 (1.16M elements) still works with v6
+params.els_per_wavelength = 8;16;%13 is OK (775k els); 14 is out-of-memory (932k elements) with v4; %15 (1.16M elements) still works with v6
 params.include_fluid_region = 1;
 params.include_absorbing_boundary = 1;
 params.include_crack = 1;
@@ -47,7 +47,8 @@ addpath(['.', filesep, 'models']);
 %Define the model
 [mod, matls, el_types, steps, tmp_fe_options, params] = model_to_run(params);
 fe_options{1} = tmp_fe_options;
-fe_options{2} = tmp_fe_options;
+fe_options{1}.solver_mode = 'predictor corrector';
+% fe_options{2} = tmp_fe_options;
 fe_options{1}.solver = 'BristolFE';
 % fe_options{2}.use_gpu_if_available = 0;
 
@@ -60,7 +61,7 @@ display_options.node_sets_to_plot(1).nd = steps{1}.load.frc_nds;
 display_options.node_sets_to_plot(1).col = 'r.';
 display_options.node_sets_to_plot(2).nd = steps{1}.mon.nds;
 display_options.node_sets_to_plot(2).col = 'g.';
-display_options.draw_elements = 1;
+display_options.draw_elements = 0;
 if show_geom_only
     figure;
     h_patch = fn_show_geometry(mod, matls, el_types, display_options);
