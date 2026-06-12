@@ -8,7 +8,7 @@ close all;
 
 %Uncomment one of the following model file names to determine which one
 %will be used for comparison:
-models_to_run = {@mod_2d_basic, @mod_3d_basic, @mod_2d_advanced};%, @mod_3d_advanced};
+models_to_run = {@mod_2d_basic, @mod_3d_basic, @mod_2d_advanced, @mod_3d_advanced, @mod_2d_oblique};
 solvers_to_use = {'BristolFE', 'pogo'};
 
 % models_to_run = {@mod_2d_basic, @mod_3d_basic};
@@ -16,10 +16,10 @@ solvers_to_use = {'BristolFE', 'pogo'};
 %Parameters for all models
 fixed_params.els_per_wavelength = 3;
 fixed_params.fe_options.field_output_every_n_frames = inf;
+fixed_params.fe_options.solver_mode = 'pc';
 fixed_params.include_fluid_region = 0;
 fixed_params.pogo_path = 'C:\Program Files\Pogo\windows\new version'; %Ignored if solver is not pogo
 fixed_params.pogo_matlab_path = 'C:\Program Files\Pogo\matlab'; %Ignored if solver is not pogo
-fixed_params.fe_options.matrix_builder_version = 'v6';
 
 %--------------------------------------------------------------------------
 

@@ -3,7 +3,7 @@ function [history_output, field_output, force_output, field_output_time] = fn_ex
     forcing_indices, forcing_functions, ...
     disp_indices, disp_functions, ...
     history_indices, field_output_every_n_frames, varargin)
-%v6 changes - splitting time stepping into two methods depending on whether
+%v7 changes - splitting time stepping into two methods depending on whether
 %the velocities are calculated on the preceding half step (old method) or
 %on current step (should be more stable, but slower).
 
@@ -137,27 +137,34 @@ else
     field_output_time = [];
 end
 
-inv_M = spdiags(1 ./ sum(gather(M)).', 0, ndf, ndf);
+% inv_M = spdiags(1 ./ sum(gather(M)).', 0, ndf, ndf);
+inv_M = spdiags(1 ./ spdiags(M, 0), 0, ndf, ndf);
+% inv_M = M \ speye(size(M));
 
 u = zeros(ndf, 1);
 u_minus_1 = zeros(ndf, 1);
 u_minus_2 = zeros(ndf, 1);
 
 f = zeros(ndf, 1);
-
+I = speye(ndf);
 switch lower(solver_mode)
     case {'vel at last half time step', 'explicit', 'exp'}
         A =  dt ^ 2 * inv_M;
-        B = 2 * speye(ndf) - dt * inv_M * C - dt ^ 2 * inv_M * K;
-        D = dt * inv_M * C - speye(ndf);
+        B = 2 * I - dt * inv_M * C - dt ^ 2 * inv_M * K;
+        D = dt * inv_M * C - I;
     case {'vel at curent time step', 'implicit', 'imp'}
-        A = (speye(ndf) + dt / 2 * inv_M * C) \ (dt ^ 2 * inv_M);
-        B = (speye(ndf) + dt / 2 * inv_M * C) \ (2 * speye(ndf) - dt ^ 2 * inv_M * K);
-        D = (speye(ndf) + dt / 2 * inv_M * C) \ (   -speye(ndf) + dt / 2 * inv_M * C);
+        A = (I + dt / 2 * inv_M * C) \ (dt ^ 2 * inv_M);
+        B = (I + dt / 2 * inv_M * C) \ (2 * I - dt ^ 2 * inv_M * K);
+        D = (I + dt / 2 * inv_M * C) \ (   -I + dt / 2 * inv_M * C);
     case {'predictor corrector', 'pc'}
-        A =  dt ^ 2 * inv_M;
-        B = 2 * speye(ndf) - dt ^ 2 * inv_M * K - dt * inv_M * C;
-        D = -speye(ndf) + dt * inv_M * C;
+       % A =  dt ^ 2 * inv_M;
+       A =  dt ^ 2 * inv_M * (I - dt / 2 * C * inv_M);
+       % B = 2 * I - dt * inv_M * C - dt ^ 2 * inv_M * K;
+       B = 2 * I - dt * inv_M * C - dt ^ 2 * inv_M * K + dt ^ 3 / 2 * inv_M * C * inv_M * K;
+       % D = dt * inv_M * C - I;
+       D = dt * inv_M * C - I;
+    otherwise
+        error('Unrecognised solver mode')
 end
 
 if use_gpu

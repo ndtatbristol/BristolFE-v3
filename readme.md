@@ -164,7 +164,7 @@ fn_run_animation(h_patch, res{1}.fld, anim_options);
 
 Adds an absorbing boundary by increasing element absorbing indices proportional to their distance from the specified boundary divided by the specified absorbing boundary layer thickness (i.e. so it reaches one when the distance is equal to the absorbing boundary layer thickness. The boundary defines the start of the absorbing layer; within the boundary the absorbing index is set to zero.
 ```
-mod = fn_2d_add_absorbing_layer(mod, abs_bdry_pts, abs_bdry_thickness)
+mod = fn_2d_add_absorbing_layer(mod, abs_bdry_pts, abs_bdry_thickness [, els_to_apply_to])
 ```
 ### fn_2d_add_crack
 
@@ -200,13 +200,25 @@ Returns logical n_els x 1 vectors indicating whether elements in model are insid
 
 Returns
 ```
-pts = fn_2d_random_walk(npts, step_mean, step_std, angle_mean, angle_std)
+pts = fn_2d_random_walk(npts, step_mean, step_std, angle_start, angle_mean, angle_std)
+```
+### fn_2d_rough_line
+
+Returns rough line relative to mean straight line described by rms roughness and correlation length
+```
+pts = fn_2d_rough_line(length, angle, rms_roughness, corr_len)
 ```
 ### fn_2d_signed_dist_to_bdry
 
 Returns signed (positive exterior) shortest distance of point(s) to boundary surface described by vertices of triangular facets
 ```
 [d, nearest_pts, norm_vecs, type_of_nearest_entity, nearest_entity, bdry_edges] = fn_2d_signed_dist_to_bdry(pts, bdry_nds, bdry_edges)
+```
+### fn_2d_structured_mesh
+
+Utility function for generating a structured mesh of triangular or quadrilateral elements, that fills the region specified by bdry_nds.
+```
+mod = fn_2d_structured_mesh(bdry_pts, el_size, el_type [, force_equilateral_els])
 ```
 ### fn_2d_structured_mesh_rectangular_els
 
@@ -220,6 +232,12 @@ Utility function for generating a isometric structured mesh of triangular elemen
 ```
 mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size [, force_equilateral_els])
 ```
+### fn_3d_add_absorbing_layer
+
+Adds an absorbing boundary by increasing element absorbing indices proportional to their distance from the specified boundary divided by the specified absorbing boundary layer thickness (i.e. so it reaches one when the distance is equal to the absorbing boundary layer thickness. The boundary defines the start of the absorbing layer; within the boundary the absorbing index is set to zero.
+```
+mod = fn_3d_add_absorbing_layer(mod, abs_bdry_nds, abs_bdry_fcs, abs_bdry_thickness [, els_to_apply_to])
+```
 ### fn_3d_add_crack
 
 Adds a crack into a 3D model by identifying nearest element edges/faces and 'splitting' model along them, by duplicating nodes. Default is a zero width crack unless optional Crack Opening Displacement (COD) is specified in which case the nodes are displaced away from plane of crack
@@ -232,11 +250,29 @@ Adds scatterer to existing model by turning all elements inside scat_pts to eith
 ```
 mod = fn_3d_add_inclusion_or_void(mod, el_types, scat_pts, scat_matl, scat_el_typ)
 ```
+### fn_3d_cylindrical_surface
+
+Create a 3D cylindrical surface described by vertices and triangular faces
+```
+[vtcs, fcs] = fn_3d_cylindrical_surface(pt1, pt2, rad [, n_ang_divisions])
+```
+### fn_3d_disk_surface
+
+Create a 3D disk surface described by vertices and triangular faces
+```
+[vtcs, fcs] = fn_3d_disk_surface(pt1, pt2, rad [, n_ang_divisions])
+```
 ### fn_3d_el_types
 
 Returns cell array of available 3D element types. Use in 3D models, usually exactly like this: el_types = fn_3d_el_types()
 ```
 el_types = fn_3d_el_types()
+```
+### fn_3d_elliptical_surface
+
+Create a 3D elliptical surface described by vertices and triangular faces
+```
+[vtcs, fcs] = fn_3d_elliptical_surface(pt1, pt2, rad [, n_ang_divisions])
 ```
 ### fn_3d_find_elements_in_region
 
@@ -244,11 +280,23 @@ Returns logical n_els x 1 vectors indicating whether elements in model are insid
 ```
 [in, out] = fn_3d_find_elements_in_region(mod, vtcs, fcs)
 ```
+### fn_3d_hexahedral_surface
+
+Create a 3D hexahedral surface described by vertices and triangular faces based list of 8 corner vertices, ordered cyclically around 'bottom' face and the cyclically around 'top' face in same sense (i.e. like Abaqus node numbering)
+```
+[vtcs, fcs] = fn_3d_hexahedral_surface(pts)
+```
+### fn_3d_rectalinear_surface
+
+Create a 3D rectalinear surface described by vertices and triangular faces based on two opposing corner positions
+```
+[vtcs, fcs] = fn_3d_rectalinear_surface(pt1, pt2)
+```
 ### fn_3d_signed_dist_to_bdry
 
 Returns signed (positive exterior) shortest distance of point(s) to boundary surface described by vertices of triangular facets
 ```
-d = fn_3d_signed_dist_to_bdry(pts, bdry_nds, bdry_fcs, interior_pt)
+d = fn_3d_signed_dist_to_bdry(pts, bdry_nds, bdry_fcs)
 ```
 ### fn_3d_spherical_surface
 
@@ -279,6 +327,12 @@ mod = fn_add_fluid_solid_interface_els(mod, el_types)
 Displays mesh from 2D or 3D model, returning handle to patches for later animations
 ```
 fn_display_result(nodes, elements, display_options) to display mesh OR
+```
+### fn_estimate_matl_vels
+
+Estimates minimum and maximum speeds of sound possible for given material. For isotropic elastic solids these correspond to shear and longitudinal wave speeds. For fluids they will be same and correspond to bulk pressure wave speed. For anisotropic solids, who knows?
+```
+[max_velocity, min_velocity] = fn_estimate_matl_vels(matls)
 ```
 ### fn_estimate_max_min_vels
 
@@ -339,6 +393,18 @@ time_step = fn_get_suitable_time_step(matls, el_size [, safety_factor])
 Returns a Hann-windowed pulse with specifed centre frequency and number of cycles given a specified time axis.
 ```
 s = fn_hann_pulse(t, centre_freq, no_cycles)
+```
+### fn_hilbert
+
+Performs Hilbert transform
+```
+h = fn_hilbert(s)
+```
+### fn_material_library
+
+Returns material structure for material with given name if found in libary
+```
+matl = fn_material_library(name)
 ```
 ### fn_matl_fluid_defined_by_bulk_modulus
 

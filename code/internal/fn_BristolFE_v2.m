@@ -30,9 +30,10 @@ default_options.solver_mode = 'imp';
 %What to output if field output requested
 default_options.field_output_type = 'KE';
 default_options.max_damping = [];
+default_options.return_matrices_only = 0;
 %--------------------------------------------------------------------------
 fe_options = fn_set_default_fields(fe_options, default_options);
-if isempty(steps)
+if isempty(steps) && ~fe_options.return_matrices_only
     %Special case to get options
     varargout{1} = fe_options;
     return
@@ -62,9 +63,9 @@ switch fe_options.matrix_builder_version
         [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v7(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, el_types, fe_options);
 end
 
-if isempty(steps)
+if fe_options.return_matrices_only
     %Useful if only matrices are required
-    res = {};
+    varargout{1} = mats;
     return
 end
 

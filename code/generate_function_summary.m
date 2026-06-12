@@ -1,6 +1,11 @@
 clear
 close all
 
+%Swtich to current folder so that files can be found and created in correct
+%place
+cd(fileparts(mfilename('fullpath')));
+
+
 readme_fname = '..\readme.md';
 function_summary_heading = '## Function summary';
 fn_summary_line = 'SUMMARY';

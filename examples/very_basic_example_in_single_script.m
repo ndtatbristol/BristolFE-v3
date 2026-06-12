@@ -18,7 +18,7 @@ model_size = 10e-3;
 
 %Elements per wavelength which is used to determine element size (more 
 %elements per wavelength = more accurate model but higher computational cost)
-els_per_wavelength = 15;
+els_per_wavelength = 12;
 
 %Source details (expressed here in terms of model_size)
 source_position = [model_size / 5, model_size / 7];

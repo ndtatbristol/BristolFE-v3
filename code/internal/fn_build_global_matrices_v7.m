@@ -31,7 +31,7 @@ default_options.damping_power_law = 3;
 default_options.max_damping = 3.1415e+07; %this is the only absolute number in the list - pi * 10e6
 default_options.max_stiffness_reduction = 0.01;
 default_options.chunk_size = 1e5; %max number of elements to do in one chunk
-default_options.force_symm = true;
+default_options.force_symm = true; %assumes element matrices are symmetrical and forces final matrices to also be (saves time)
 
 fe_options = fn_set_default_fields(fe_options, default_options);
 
@@ -62,10 +62,6 @@ total_dof = no_nds * max_df;
 K = sparse([], [], [], total_dof, total_dof);
 M = sparse([], [], [], total_dof, total_dof);
 C = sparse([], [], [], total_dof, total_dof);
-
-% K = gpuArray(K);
-% M = gpuArray(M);
-% C = gpuArray(C);
 
 %Find unique types, materials, shapes of elements, and absorbing levels
 unique_typ_i = unique(el_typ_i); %nothing further needed as el_typ_i is the index into unique types
@@ -152,9 +148,7 @@ if fe_options.force_symm
     C = C + C.' - diag(diag(C));
     M = M + M.' - diag(diag(M));
 end
-% K = gather(K);
-% M = gather(M);
-% C = gather(C);
+
 tt = etime(clock, t1);
 fn_console_output(sprintf('completed in %.2f secs\n', tt), [], 0);
 
@@ -162,8 +156,7 @@ end
 
 
 function [M, K, C] = fn_assembly(M, K, C, el_M, el_K, el_C, loc_nd, loc_df, abs_ind, els, max_df, fe_options)
-%this is now all done with flattened matrices - a bit faster than keeping
-%3D
+%This is done with flattened matrices - a bit faster than keeping 3D forms
 [loc_nd_i, loc_nd_j] = meshgrid(loc_nd, loc_nd);
 [df_i, df_j] = meshgrid(loc_df, loc_df);
 if fe_options.force_symm
@@ -196,92 +189,13 @@ C = fn_accum_global2(C, gi_i, gi_j, el_C2);
 
 end
 
-% function X = fn_accum_global2(X, i, j, v, symm)
-%     ndof = size(X,1);
-%     if symm
-%         Number of local DOFs
-%         nd = size(i,2);
-% 
-%         Logical mask for lower triangular part
-%         mask = tril(true(nd));
-% 
-%         Extract lower triangle entries only
-%         I = i(:,mask);
-%         J = j(:,mask);
-%         V = v(:,mask);
-% 
-%         Assemble lower triangle
-%         S = sparse(I(:), J(:), V(:), ndof, ndof);
-% 
-%         Reflect to full matrix (avoid doubling diagonal)
-%         X = X + S + triu(S.',1);
-%     else
-%         Standard assembly
-%         X = X + sparse(i(:), j(:), v(:), ndof, ndof);
-%     end
-% 
-% end
-
 function X = fn_accum_global2(X, i, j, v)
 X = X + sparse(i(:), j(:), v(:), size(X, 1), size(X, 2));
 end
 
-% function X = fn_accum_global(X, i, j, v)
-% %FN_ACCUM_GLOBAL Robust sparse assembly avoiding OOM
-% %
-% %   X = fn_accum_global(X, i, j, v)
-% %
-% %   Accumulates triplet data (i,j,v) into sparse matrix X safely by
-% %   chunking to avoid out-of-memory errors during sparse() construction.
-% %
-% %   Inputs:
-% %       X : existing sparse matrix (or empty [])
-% %       i : row indices (vector)
-% %       j : column indices (vector)
-% %       v : values (vector)
-% %
-% %   Output:
-% %       X : updated sparse matrix
-% 
-%     % ---- parameters (tune if needed) ----
-%     chunkSize = 50e6;   % number of entries per chunk
-%     useLocalDedup = false;  % reduce duplicates per chunk
-% 
-%     % ---- initialise if needed ----
-%     if isempty(X)
-%         n = max(max(i), max(j));
-%         X = sparse(n, n);
-%     end
-% 
-%     nDOF = size(X,1);
-%     N = numel(v);
-% 
-%     for k = 1:chunkSize:N
-%         idx = k:min(k+chunkSize-1, N);
-% 
-%         ii = i(idx);
-%         jj = j(idx);
-%         vv = v(idx);
-% 
-%         % ---- optional: reduce duplicates within chunk ----
-%         if useLocalDedup
-%             lin = sub2ind([nDOF nDOF], ii, jj);
-%             [lin_u, ~, ic] = unique(lin);
-%             vv = accumarray(ic, vv);
-% 
-%             % recover i,j
-%             jj = ceil(lin_u / nDOF);
-%             ii = lin_u - (jj-1)*nDOF;
-%         end
-% 
-%         % ---- accumulate into global matrix ----
-%         X = X + sparse(ii, jj, vv, nDOF, nDOF);
-%     end
-% end
-
 
 function [unique_el_shape_i, el_shape_i] = fn_unique_el_shape(nds,  els)
-zero_vals = els == 0; %needed to avoid zero indices for elements with less than full complement of nodes
+zero_vals = (els == 0) | (isnan(els)); %needed to avoid zero indices for elements with less than full complement of nodes
 els(zero_vals) = 1;
 
 %get flattened matrix of nodal coordinates
