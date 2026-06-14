@@ -4,8 +4,9 @@ function [main, fe_options, params] = mod_2d_subdomain(params)
 %pristine model. The crack that would normally defined in mod_2d_advanced
 %is then put in a sub-domain model.
 
-default_params.dummy = [];
+default_params.fe_options.field_output_every_n_frames = 20;
 %--------------------------------------------------------------------------
+params.fe_options = fn_set_default_fields(params.fe_options, default_params.fe_options);
 params = fn_set_default_fields(params, default_params);
 
 params.include_crack = 0;

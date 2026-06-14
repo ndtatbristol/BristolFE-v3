@@ -49,11 +49,11 @@ default_params.no_cycles = 5;
 %Run for long enough for longitudinal waves to travel this many lengths of model
 default_params.max_time_multiplier = 3; 
 
-default_params.fe_options.field_output_every_n_frames = 10;
+default_params.fe_options.field_output_every_n_frames = 20;
 
 %--------------------------------------------------------------------------
 %PREPARE THE MESH
-
+params.fe_options = fn_set_default_fields(params.fe_options, default_params.fe_options);
 params = fn_set_default_fields(params, default_params);
 
 fe_options = params.fe_options;

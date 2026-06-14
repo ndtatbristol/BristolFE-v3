@@ -38,6 +38,7 @@ default_params.random_seed = 1;
 default_params.fe_options.field_output_every_n_frames = 20; %set to inf to suppress animations
 
 %--------------------------------------------------------------------------
+params.fe_options = fn_set_default_fields(params.fe_options, default_params.fe_options);
 params = fn_set_default_fields(params, default_params);
 fe_options = params.fe_options;
 rng(params.random_seed); 
@@ -150,17 +151,18 @@ mod.el_abs_i(els_to_go) = [];
 mod.el_typ_i(els_to_go) = [];
 [mod.nds, mod.els, ~, ~] = fn_remove_unused_nodes(mod.nds, mod.els);
 
-%Add a crack
+%Define crack and notch geometry (may or may not be included in model
+%defined, but points are used anyway in subdomain examples
 crack_len = params.defect_region_size(2);
 crack_pts = 50;
 params.crack_vtcs = fn_2d_random_walk(crack_pts, crack_len / crack_pts, 0, pi / 2, 0, pi / 4 / sqrt(crack_pts));
+params.notch_pts = [
+    0, 0
+    params.defect_region_size(1) / 2, 0
+    params.defect_region_size(1) / 2, params.defect_region_size(2)
+    0, params.defect_region_size(2)];
 if params.reference_notch
-    scat_pts = [
-        0, 0
-        params.defect_region_size(1) / 2, 0
-        params.defect_region_size(1) / 2, params.defect_region_size(2)
-        0, params.defect_region_size(2)];
-    mod = fn_2d_add_inclusion_or_void(mod, el_types, scat_pts, 0, 0);
+    mod = fn_2d_add_inclusion_or_void(mod, el_types, params.notch_pts, 0, 0);
 else
     if params.include_crack
         mod = fn_2d_add_crack(mod, el_types, params.crack_vtcs);

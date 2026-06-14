@@ -6,6 +6,7 @@ close all;
 
 %Uncomment one of the following model file names to determine which one
 model_to_run = @mod_2d_subdomain;
+model_to_run = @mod_2d_subdomain_oblique;
 
 %Parameters for the model - if empty, default values for all parameters 
 %will be used
@@ -14,12 +15,12 @@ params = [];
 %However, any of the default parameters (see top of model file for complete 
 %list in each case) can be overwritten here, e.g.
 params.els_per_wavelength = 8;
-params.fe_options.field_output_every_n_frames = inf;
+% params.fe_options.field_output_every_n_frames = inf;
 params.fe_options.solver_mode = 'imp';
 
 %This will also run full domain validation models to compare to subdomain
 %results if set
-run_validation_models = 1;
+run_validation_models = 0;
 
 %If you just want to see the model (without running it, set show_geom_only to 1
 show_geom_only = 0;
@@ -89,7 +90,7 @@ for i = 1:numel(main.doms)
 end
 
 %Animate results if requested
-if ~isinf(fe_options.field_output_every_n_frames)
+if ~isinf(params.fe_options.field_output_every_n_frames)
     figure;
     anim_options.repeat_n_times = 1;
     anim_options.db_range = [-40, 0];

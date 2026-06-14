@@ -24,6 +24,7 @@ default_params.element_shape = 'quad';
 default_params.fe_options.field_output_every_n_frames = 5;
 
 %--------------------------------------------------------------------------
+params.fe_options = fn_set_default_fields(params.fe_options, default_params.fe_options);
 params = fn_set_default_fields(params, default_params);
 fe_options = params.fe_options;
 el_types = fn_2d_el_types();

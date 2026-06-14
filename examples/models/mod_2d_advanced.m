@@ -44,10 +44,11 @@ default_params.max_time_multiplier = 3;
 default_params.safety_factor = 1.5;
 
 default_params.random_seed = 1;
-default_params.fe_options.field_output_every_n_frames = 10;
+default_params.fe_options.field_output_every_n_frames = 20;
 default_params.fe_options.solver_mode = 'pc';
 
 %--------------------------------------------------------------------------
+params.fe_options = fn_set_default_fields(params.fe_options, default_params.fe_options);
 params = fn_set_default_fields(params, default_params);
 rng(params.random_seed); 
 
