@@ -7,9 +7,10 @@ close all;
 
 %Uncomment one of the following model file names to determine which one
 %will be used for comparison:
-model_to_run = @mod_2d_basic;
-model_to_run = @mod_3d_basic;
+% model_to_run = @mod_2d_basic;
+% model_to_run = @mod_3d_basic;
 % model_to_run = @mod_2d_advanced;
+model_to_run = @mod_3d_advanced;
 
 %Following will need to be set to where the Pogo executable and Pogo Matlab
 %scripts are located respectively
@@ -22,7 +23,7 @@ params = [];
 
 %However, any of the default parameters (see top of model file for complete 
 %list in each case) can be overwritten here, e.g.
-params.els_per_wavelength = 10;
+params.els_per_wavelength = 5;
 
 %If you just want to see the model (without running it, set 
 %show_geom_only to 1

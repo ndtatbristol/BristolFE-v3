@@ -15,7 +15,7 @@ accn = (tmp(:, 3:end) - 2 * tmp(:, 2:end-1) + tmp(:, 1:end-2)) / time_step ^ 2;
 switch lower(solver_mode)
     case {'vel at last half time step', 'explicit', 'exp'}
         vel = (tmp(:, 2:end - 1) - tmp(:, 1:end - 2)) / time_step;
-    case {'vel at curent time step', 'implicit', 'imp'}
+    case {'vel at current time step', 'vel at curent time step', 'implicit', 'imp'}
         vel = (tmp(:, 3:end) - tmp(:, 1:end - 2)) / (2 * time_step);
     case {'predictor corrector', 'pc'}
         I_sub = speye(size(K_sub));

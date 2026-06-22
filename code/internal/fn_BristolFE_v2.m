@@ -26,7 +26,7 @@ default_options.matrix_builder_version = ''; %blank to use default
 default_options.dynamic_solver_version = ''; %blank to use default
 %Whether to calculate velocities at current time step (stable) or last half
 %step (not always stable but maybe faster)
-default_options.solver_mode = 'imp';
+default_options.solver_mode = 'implicit';
 %What to output if field output requested
 default_options.field_output_type = 'KE';
 default_options.max_damping = [];

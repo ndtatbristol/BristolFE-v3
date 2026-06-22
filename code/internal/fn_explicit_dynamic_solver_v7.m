@@ -152,7 +152,7 @@ switch lower(solver_mode)
         A =  dt ^ 2 * inv_M;
         B = 2 * I - dt * inv_M * C - dt ^ 2 * inv_M * K;
         D = dt * inv_M * C - I;
-    case {'vel at curent time step', 'implicit', 'imp'}
+    case {'vel at current time step', 'vel at curent time step', 'implicit', 'imp'}
         A = (I + dt / 2 * inv_M * C) \ (dt ^ 2 * inv_M);
         B = (I + dt / 2 * inv_M * C) \ (2 * I - dt ^ 2 * inv_M * K);
         D = (I + dt / 2 * inv_M * C) \ (   -I + dt / 2 * inv_M * C);

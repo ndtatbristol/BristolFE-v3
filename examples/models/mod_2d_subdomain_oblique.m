@@ -6,7 +6,11 @@ function [main, fe_options, params] = mod_2d_subdomain_oblique(params)
 
 default_params.fe_options.field_output_every_n_frames = 20;
 %--------------------------------------------------------------------------
-params.fe_options = fn_set_default_fields(params.fe_options, default_params.fe_options);
+if isfield(params, 'fe_options') && isfield(default_params, 'fe_options')
+    params.fe_options = fn_set_default_fields(params.fe_options, default_params.fe_options);
+else
+    default_params.fe_options = [];
+end
 params = fn_set_default_fields(params, default_params);
 
 params.include_crack = 0;

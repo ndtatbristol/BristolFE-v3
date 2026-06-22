@@ -98,6 +98,12 @@ el_type_info{i}.state = 'solid';
 el_type_info{i}.shape = 'tetrahedral';
 
 i = i + 1;
+el_type_info{i}.name = 'C3D6';
+el_type_info{i}.dims = 3;
+el_type_info{i}.state = 'solid';
+el_type_info{i}.shape = 'triangular prism';
+
+i = i + 1;
 el_type_info{i}.name = 'C3D8';
 el_type_info{i}.dims = 3;
 el_type_info{i}.state = 'solid';
