@@ -21,6 +21,11 @@ switch lower(name)
         shear_velocity = 3220;
         density = 7850;
         matl = fn_matl_isotropic_solid_defined_by_velocities(name, longitudinal_velocity, shear_velocity, density);
+    case {'copper', 'cu'}
+        longitudinal_velocity = 4648;
+        shear_velocity = 2260;
+        density = 8960;
+        matl = fn_matl_isotropic_solid_defined_by_velocities(name, longitudinal_velocity, shear_velocity, density);
     case {'perspex', 'plexiglass'}
         longitudinal_velocity = 2730;
         shear_velocity = 1345;
