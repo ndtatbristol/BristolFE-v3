@@ -3,6 +3,7 @@ function [B, detJ, N, loc_nd, loc_df] = fn_symbolic_B_matrix(diff_matrix, n, inv
 no_dfs = size(diff_matrix, 2);
 
 N = fn_symbolic_shape_function_matrix(n, no_dfs, no_nds);
+% N = fn_symbolic_shape_function_matrix(n, no_dfs);
 
 detJ = sym('J', 'real'); %J used in file for consistency with old version but really this is detJ
 

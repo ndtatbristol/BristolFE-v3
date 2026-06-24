@@ -185,12 +185,14 @@ t1 = clock;
 ti_start = inf;
 if ~isempty(forcing_indices)
     q = sum(abs(forcing_functions));
-    ti_start = min(min(find(q > max(q) * 1e-9)), ti_start);%ugly hard codede number
+    ti_start = min(min(find(q > max(q) * 1e-9)), ti_start);%ugly hard coded number
 end
 if ~isempty(disp_indices)
     q = sum(abs(disp_functions));
-    ti_start = min(min(find(q > max(q) * 1e-9)), ti_start);%ugly hard codede number
-    % ti_start = min(min(find(sum(abs(disp_functions)))), ti_start);
+    tmp_start = min(find(q > max(q) * 1e-9));%ugly hard coded number
+    if ~isempty(tmp_start)
+        ti_start = min(tmp_start, ti_start);
+    end
 end
 if isempty(ti_start)
     fn_console_output('...no input forcing over time window; result will be zero\n', [], 0);
@@ -212,7 +214,8 @@ for ti = ti_start:length(time)
     %impose displacements
     if displacement_input
         u(disp_indices) = disp_functions(:, ti);
-        force_output(:, ti) = diag_M(disp_indices, disp_indices) * accn(:, ti) + K(disp_indices, :) * u_previous;
+        %force output is not correct
+        force_output(:, ti) = 0;%diag_M(disp_indices, disp_indices) * accn(:, ti) + K(disp_indices, :) * u_minus_1;
     end
 
     %history output

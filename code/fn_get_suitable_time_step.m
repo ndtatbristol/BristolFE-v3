@@ -17,7 +17,7 @@ function time_step = fn_get_suitable_time_step(matls, el_size, varargin)
 %OUTPUTS
 %   time_step - a suitable time step
 %--------------------------------------------------------------------------
-if isempty(varargin)
+if numel(varargin) < 1 || (numel(varargin) >= 1 && isempty(varargin{1}))
     safety_factor = sqrt(2);
 else
     safety_factor = varargin{1};

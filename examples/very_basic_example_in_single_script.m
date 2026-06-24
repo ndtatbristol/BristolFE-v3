@@ -1,26 +1,24 @@
-clear all
+clear all;
 close all;
+addpath(genpath([fileparts(mfilename('fullpath')), filesep, '..', filesep, 'code']))
 
-%ABOUT THIS SCRIPT
-%This script runs the same model twice, once in BristolFE and once in Pogo
-%(which must be installed with a valid license) and compares the results.
-%The model is the same as in ex_2d_basic.
-
-%Following will need to be set to where the Pogo executable and Pogo Matlab
-%scripts are located respectively
-fe_options.pogo_path = 'C:\Program Files\Pogo\windows\new version';
-fe_options.pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
-
+%ABOUT THIS EXAMPLE
+%This example is designed to show the bare minimum code needed to describe
+%a simple model, execute it, and view the results. In contrast to the other
+%examples, everything is done in one script. However, it is better practice
+%to write a function that defines a model parametrically. The equivalent
+%function for the model defined in this script is mod_2d_basic.m, which can
+%be run with the general examples script.
 
 %PARAMETRIC DESCRIPTION OF MODEL
 %The model is described in terms of a small number of parameters
 %that are defined in the first part of the script. This is good practice as
 %it makes it easier to alter.
-model_size = 20e-3;
+model_size = 10e-3;
 
 %Elements per wavelength which is used to determine element size (more 
 %elements per wavelength = more accurate model but higher computational cost)
-els_per_wavelength = 10;
+els_per_wavelength = 12;
 
 %Source details (expressed here in terms of model_size)
 source_position = [model_size / 5, model_size / 7];
@@ -47,15 +45,13 @@ max_time = 3 * model_size / matl_longitudinal_velocity;
 %from, e.g. quadrilateral elements, second order elements)
 el_typ_to_use_for_solid = 'CPE3'; 
 
-solvers = {'BristolFE', 'pogo'};
+%Solver options - specify how ofter field output is produced to use in
+%animation
+fe_options.field_output_every_n_frames = 5;
 
 %--------------------------------------------------------------------------
 %THE ACTUAL CODE STARTS HERE
 %--------------------------------------------------------------------------
-
-%SET UP THE MODEL
-%Add path to BristolFE functions in case not already on path
-addpath(genpath('../code')); 
 
 %BUILD THE MODEL USING THE PARAMETERS GIVEN ABOVE
 %Polygon vertices define shape of model (in this case a square with side
@@ -79,13 +75,13 @@ el_size = fn_get_suitable_el_size(matls, centre_freq, els_per_wavelength);
 time_step = fn_get_suitable_time_step(matls, el_size);
 
 %Create the nodes and elements of the mesh
-mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
+mod = fn_2d_structured_mesh(bdry_pts, el_size, el_typ_to_use_for_solid);
 
 %A cell array that includes all element types used in a model is required 
 %(same idea as the cell array of materials that contains all materials used 
 %in the model). The function below produces a list of all available 2d
 %elements, which is fine (it doesn't matter that some won't be used)
-el_types = fn_2d_el_types();%{el_typ_to_use_for_solid}; 
+el_types = fn_2d_el_types(); 
 
 %Associate each element with a material index and element type index
 mod.el_mat_i(:) = matl_i;
@@ -96,7 +92,7 @@ steps{1}.load.frc_nds = fn_find_node_nearest_to_point(mod.nds, source_position, 
 steps{1}.load.frc_dfs = ones(size(steps{1}.load.frc_nds)) * source_direction;
 
 %Provide the time signal for the loading
-steps{1}.load.time = 0: time_step:  max_time;
+steps{1}.load.time = 0: time_step: max_time;
 steps{1}.load.frcs = fn_gaussian_pulse(steps{1}.load.time, centre_freq, no_cycles);
 
 %Say where the displacement should be monitored
@@ -140,26 +136,22 @@ drawnow
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 
-for s = 1:numel(solvers)
-    fe_options.solver = solvers{s};
-    res{s} = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
-end
+%This is where the model actually gets executed.
+res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
 
 %--------------------------------------------------------------------------
 %SHOW THE RESULTS
 
-%Plot history output at monitoring node for both solvers
+%Plot history output at monitoring node
 figure;
-subplot(2,1,1);
-cols = {'r', 'k--'};
-for s = 1:numel(solvers)
-    plot(steps{1}.load.time, res{s}{1}.dsps, cols{s});
-    hold on;
-    xlabel('Time (s)')
-end
-legend(solvers)
-subplot(2,1,2);
-plot(steps{1}.load.time, 20*log10(abs(res{1}{1}.dsps - res{2}{1}.dsps) / max(abs(res{1}{1}.dsps))));
+plot(steps{1}.load.time, res{1}.dsps);
 xlabel('Time (s)')
-ylabel('Difference (db)')
 
+%Animate field output result
+figure;
+%Exactly the same function as that used to show the geometry is used to
+%produce the plot for animation. It returns a handle to the patches representing
+%elements and it is the colours of these that are animated by fn_run_animation
+h_patch = fn_show_geometry(mod, matls, el_types, display_options);
+anim_options.fld_time = res{1}.fld_time;
+fn_run_animation(h_patch, res{1}.fld, anim_options);

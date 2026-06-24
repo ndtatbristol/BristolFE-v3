@@ -37,6 +37,14 @@ for i = 1:numel(un_el_typ_i)
                 1,2,4
                 2,3,4
                 1,4,3];
+        case 'triangular prism' %3D  triangular prism
+            fc_i = [
+                1,3,2,2 %last node repeated for triangular faces so that it is still a matrix!
+                4,6,5,5 %last node repeated for triangular faces so that it is still a matrix!
+                1,3,6,4
+                3,2,5,6
+                2,1,4,5];
+            
         case 'hexahedral' %3D hexahedral
             fc_i = [
                 1,4,3,2
