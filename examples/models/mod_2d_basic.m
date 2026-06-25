@@ -34,16 +34,12 @@ default_params.element_shape = 'tri';
 
 %Solver options - specify how ofter field output is produced to use in
 %animation
-default_params.fe_options.field_output_every_n_frames = 20;
+default_params.fe_options_field_output_every_n_frames = 20;
 
 %--------------------------------------------------------------------------
-if isfield(params, 'fe_options') && isfield(default_params, 'fe_options')
-    params.fe_options = fn_set_default_fields(params.fe_options, default_params.fe_options);
-else
-    default_params.fe_options = [];
-end
 params = fn_set_default_fields(params, default_params);
-fe_options = params.fe_options;
+fe_options = fn_set_fe_options_from_params(params);
+
 el_types = fn_2d_el_types();
 
 switch params.element_shape
@@ -108,7 +104,7 @@ steps{1}.load.frcs = fn_gaussian_pulse(steps{1}.load.time, params.centre_freq, p
 
 %Say where the displacement should be monitored
 monitor_position = params.model_size * params.monitor_position_as_fractions;
-steps{1}.mon.nds = fn_find_node_nearest_to_point(mod.nds, monitor_position, el_size);
-steps{1}.mon.dfs =  ones(size(steps{1}.mon.nds)) * params.monitor_direction;
+steps{1}.mon.dsp_nds = fn_find_node_nearest_to_point(mod.nds, monitor_position, el_size);
+steps{1}.mon.dsp_dfs =  ones(size(steps{1}.mon.dsp_nds)) * params.monitor_direction;
 
 end

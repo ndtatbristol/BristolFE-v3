@@ -6,12 +6,11 @@ close all;
 
 %Uncomment one of the following model file names to determine which one
 %will be used for comparison:
-model_to_run = @mod_2d_basic;
-% model_to_run = @mod_3d_basic;
-model_to_run = @mod_2d_advanced;
-% model_to_run = @mod_3d_advanced;
-% model_to_run = @mod_3d_islaa;
-model_to_run = @mod_2d_oblique;
+model_to_run = @mod_2d_basic; 
+% model_to_run = @mod_3d_basic; 
+% model_to_run = @mod_2d_advanced; 
+% model_to_run = @mod_3d_advanced; %keep els_per_wavelength to 6 if you want this to run in a reasonable time!
+% model_to_run = @mod_2d_oblique; 
 
 %Parameters for the model - if empty, default values for all parameters 
 %will be used
@@ -19,9 +18,9 @@ params = [];
 
 %However, any of the default parameters (see top of model file for complete 
 %list in each case) can be overwritten here, e.g.
-params.els_per_wavelength = 8;
+params.els_per_wavelength = 6;
 
-%If you just want to see the model (without running it, set show_geom_only to 1
+%If you just want to see the model (without running it), set show_geom_only to 1
 show_geom_only = 0;
 
 %--------------------------------------------------------------------------
@@ -45,7 +44,7 @@ end
 %Show the mesh and stop if requested
 display_options.node_sets_to_plot(1).nd = steps{1}.load.frc_nds;
 display_options.node_sets_to_plot(1).col = 'r.';
-display_options.node_sets_to_plot(2).nd = steps{1}.mon.nds;
+display_options.node_sets_to_plot(2).nd = steps{1}.mon.dsp_nds;
 display_options.node_sets_to_plot(2).col = 'g.';
 if show_geom_only
     figure;
@@ -62,21 +61,17 @@ res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
 %--------------------------------------------------------------------------
 %SHOW THE RESULTS
 
-%Plot summed history output over monitoring nodes
+%Plot history output(s). For models with a weighting matrix for monitoring,
+%this will be a weighted sum(s) across the monitoring nodes; for models
+%that don't it will be the raw displacements from the monitoring nodes.
 figure;
-if isfield(steps{1}.load, 'wts')
-    ascan = steps{1}.load.wts .' * res{1}.dsps;
-else
-    ascan = sum(res{1}.dsps, 1);
-end
-plot(steps{1}.load.time, ascan);
+plot(steps{1}.load.time, res{1}.dsps');
 xlabel('Time (s)')
 
 %Animate field output result if available
-if ~isinf(fe_options.field_output_every_n_frames)
+if ~isempty(res{1}.fld)
     figure;
     h_patch = fn_show_geometry(mod, matls, el_types, display_options);
     anim_options.fld_time = res{1}.fld_time;
-    % anim_options.norm_val = 20;
     fn_run_animation(h_patch, res{1}.fld, anim_options);
 end

@@ -35,16 +35,12 @@ default_params.trans_diam = 5e-3;
 
 default_params.random_seed = 1;
 
-default_params.fe_options.field_output_every_n_frames = 20; %set to inf to suppress animations
+default_params.fe_options_field_output_every_n_frames = 20; %set to inf to suppress animations
 
 %--------------------------------------------------------------------------
-if isfield(params, 'fe_options') && isfield(default_params, 'fe_options')
-    params.fe_options = fn_set_default_fields(params.fe_options, default_params.fe_options);
-else
-    default_params.fe_options = [];
-end
 params = fn_set_default_fields(params, default_params);
-fe_options = params.fe_options;
+fe_options = fn_set_fe_options_from_params(params);
+
 rng(params.random_seed); 
 
 %Define the materials
@@ -185,13 +181,14 @@ steps{1}.load.frc_dfs = [
     ones(size(nds)) * 1
     ones(size(nds)) * 2
     ];
-steps{1}.load.wts = [
+steps{1}.load.frc_wts = [
     ones(size(nds)) * cosd(force_angle_degs)
     ones(size(nds)) * sind(force_angle_degs)
     ];
 
-steps{1}.mon.nds = steps{1}.load.frc_nds;
-steps{1}.mon.dfs = steps{1}.load.frc_dfs;
+steps{1}.mon.dsp_nds = steps{1}.load.frc_nds;
+steps{1}.mon.dsp_dfs = steps{1}.load.frc_dfs;
+steps{1}.mon.dsp_wts = steps{1}.load.frc_wts';
 
 %Input signal
 time_step = fn_get_suitable_time_step(matls, params.el_size);

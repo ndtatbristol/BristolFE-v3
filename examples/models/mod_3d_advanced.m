@@ -49,18 +49,14 @@ default_params.no_cycles = 5;
 %Run for long enough for longitudinal waves to travel this many lengths of model
 default_params.max_time_multiplier = 3; 
 
-default_params.fe_options.field_output_every_n_frames = 20;
+default_params.fe_options_field_output_every_n_frames = 20;
+default_params.fe_options_solver_mode = 'pc';
 
 %--------------------------------------------------------------------------
 %PREPARE THE MESH
-if isfield(params, 'fe_options') && isfield(default_params, 'fe_options')
-    params.fe_options = fn_set_default_fields(params.fe_options, default_params.fe_options);
-else
-    default_params.fe_options = [];
-end
 params = fn_set_default_fields(params, default_params);
+fe_options = fn_set_fe_options_from_params(params);
 
-fe_options = params.fe_options;
 el_types = fn_3d_el_types();
 
 switch params.element_shape
@@ -177,6 +173,7 @@ d = fn_3d_signed_dist_to_bdry(mod.nds, bdry_nds, bdry_fcs);
 tmp = find(abs(d) < el_size / 2);
 steps{1}.load.frc_nds = tmp(:);
 steps{1}.load.frc_dfs = ones(size(steps{1}.load.frc_nds)) * transducer_dof;
+steps{1}.load.frc_wts = ones(1, numel(steps{1}.load.frc_dfs));
 
 %Run for long enough for longitudinal waves to travel 3 lengths of model
 [vel1, ~] = fn_estimate_max_min_vels(matls{matl1_i});
@@ -188,9 +185,11 @@ time_step = fn_get_suitable_time_step(matls, el_size);
 steps{1}.load.time = 0: time_step:  max_time;
 steps{1}.load.frcs = fn_gaussian_pulse(steps{1}.load.time, params.centre_freq, params.no_cycles);
 
+
 %Also record displacement history at same points (NB there is no reason why
 %these have to be same as forcing points)
-steps{1}.mon.nds = steps{1}.load.frc_nds;
-steps{1}.mon.dfs = steps{1}.load.frc_dfs;
+steps{1}.mon.dsp_nds = steps{1}.load.frc_nds;
+steps{1}.mon.dsp_dfs = steps{1}.load.frc_dfs;
+steps{1}.mon.dsp_wts = steps{1}.load.frc_wts;
 
 end

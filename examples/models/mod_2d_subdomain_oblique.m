@@ -4,14 +4,10 @@ function [main, fe_options, params] = mod_2d_subdomain_oblique(params)
 %pristine model. The crack and reference notch that would normally defined 
 %in mod_2d_oblique are then put into two sub-domain models
 
-default_params.fe_options.field_output_every_n_frames = 20;
+default_params.fe_options_field_output_every_n_frames = 20;
 %--------------------------------------------------------------------------
-if isfield(params, 'fe_options') && isfield(default_params, 'fe_options')
-    params.fe_options = fn_set_default_fields(params.fe_options, default_params.fe_options);
-else
-    default_params.fe_options = [];
-end
 params = fn_set_default_fields(params, default_params);
+fe_options = fn_set_fe_options_from_params(params);
 
 params.include_crack = 0;
 

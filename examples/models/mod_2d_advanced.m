@@ -44,19 +44,15 @@ default_params.max_time_multiplier = 3;
 default_params.safety_factor = 1.5;
 
 default_params.random_seed = 1;
-default_params.fe_options.field_output_every_n_frames = 20;
-default_params.fe_options.solver_mode = 'pc';
+
+default_params.fe_options_field_output_every_n_frames = 20;
+default_params.fe_options_solver_mode = 'imp';
 
 %--------------------------------------------------------------------------
-if isfield(params, 'fe_options') && isfield(default_params, 'fe_options')
-    params.fe_options = fn_set_default_fields(params.fe_options, default_params.fe_options);
-else
-    default_params.fe_options = [];
-end
 params = fn_set_default_fields(params, default_params);
-rng(params.random_seed); 
+fe_options = fn_set_fe_options_from_params(params);
 
-fe_options = params.fe_options;
+rng(params.random_seed); 
 el_types = fn_2d_el_types();
 
 %Define the materials in use
@@ -186,13 +182,16 @@ transducer_end_pts = [
     params.model_size(1) / 2 - transducer_width / 2, params.abs_bdry_thickness];
 steps{1}.load.frc_nds = fn_find_nodes_nearest_to_line(mod.nds, transducer_end_pts(1, :), transducer_end_pts(2, :), params.el_size / 2);
 steps{1}.load.frc_dfs = ones(size(steps{1}.load.frc_nds)) * transducer_dof;
+steps{1}.load.frc_wts = ones(1, numel(steps{1}.load.frc_nds));
 
 steps{1}.load.time = 0: time_step:  max_time;
 steps{1}.load.frcs = fn_gaussian_pulse(steps{1}.load.time, params.centre_freq, params.no_cycles);
 
 %Also record displacement history at same points (NB there is no reason why
 %these have to be same as forcing points)
-steps{1}.mon.nds = steps{1}.load.frc_nds;
-steps{1}.mon.dfs = steps{1}.load.frc_dfs;
+steps{1}.mon.dsp_nds = steps{1}.load.frc_nds;
+steps{1}.mon.dsp_dfs = steps{1}.load.frc_dfs;
+steps{1}.mon.dsp_wts = steps{1}.load.frc_wts;
 
 end
+

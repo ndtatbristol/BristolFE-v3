@@ -8,23 +8,23 @@ default_params.els_per_wavelength = 40;
 %Material properties
 default_params.matl_name = 'copper';
 default_params.section_fname = 'contact_wire107.mat';
+default_params.array_fname = 'contact_wire_array.mat';
 
 %Details of input signal applied at source
-default_params.centre_freq = 0.1e6; %used to determine element size - final result is in frequency domain anyway
-default_params.no_cycles = 5;
+default_params.centre_freq = 50e3; %used to determine element size - final result is in frequency domain anyway
+default_params.no_cycles = 6;
 default_params.source_direction = 3;
 
 %Shape and length of cross section - can be fully specified in 2D, or 2D perimeter
 %can be specified or it can just be a rod of specified diameter
-default_params.z_max = 500e-3;
-
+default_params.z_max =  500e-3;
+default_params.z_min = -250e-3;
 
 %Run for long enough for longitudinal waves to travel this many times
-%across model (while scattered signal rings down)
+%the length of the waveguide
 default_params.max_time_multiplier = 6; 
 
-%Element shape to use (tri or quad since this is 2d model)
-default_params.element_shape = 'tri'; 
+default_params.safety_factor = 3;
 
 %Solver options - specify how ofter field output is produced to use in
 %animation
@@ -36,26 +36,15 @@ params = fn_set_default_fields(params, default_params);
 fe_options = params.fe_options;
 el_types = [fn_2d_el_types(), fn_3d_el_types()];
 
-switch params.element_shape
-    case {'tri', 'triangular'}
-        el_typ_to_use_for_solid_2d = 'CPE3';
-        el_typ_to_use_for_fluid_2d = 'AC2D3';
-        el_typ_to_use_for_solid_3d = 'C3D6';
-        el_typ_to_use_for_fluid_3d = 'AC3D6';
-    case {'quad', 'rect', 'quadrilateral', 'rectangle', 'rectangular'}
-        el_typ_to_use_for_solid_2d = 'CPE4';
-        el_typ_to_use_for_fluid_2d = 'AC2D4';
-        el_typ_to_use_for_solid_3d = 'C3D8';
-        el_typ_to_use_for_fluid_3d = 'AC3D8';
-    otherwise
-        error('Unknown element shape')
-end
+el_typ_to_use_for_solid_2d = 'CPE3';
+el_typ_to_use_for_fluid_2d = 'AC2D3';
+el_typ_to_use_for_solid_3d = 'C3D6';
+el_typ_to_use_for_fluid_3d = 'AC3D6';
 
 %BUILD THE MODEL USING THE PARAMETERS GIVEN ABOVE
 
 matl_i = 1; 
 matls{matl_i} = fn_material_library(params.matl_name);
-
 
 max_wavelength = fn_estimate_max_min_wavelengths(matls, params.centre_freq);
 % abs_bdry_thickness = params.abs_bdry_thickness_in_wavelengths * max_wavelength;
@@ -70,46 +59,114 @@ matls{matl_i} = fn_material_library(params.matl_name);
 
 %Work out element size and time step
 params.el_size = fn_get_suitable_el_size(matls, params.centre_freq, params.els_per_wavelength);
-time_step = fn_get_suitable_time_step(matls, params.el_size);
+time_step = fn_get_suitable_time_step(matls, params.el_size, params.safety_factor);
 
 tmp = load(params.section_fname);
-mod.nds = tmp.mod.nds;
-mod.els = tmp.mod.els;
+mod2d.nds = tmp.mod.nds;
+mod2d.els = tmp.mod.els;
 
-mod = fn_remesh(mod, params.el_size);
+params.array = load(params.array_fname)
+params.array = params.array.array;
 
+%Correct element size so that rows are at integer spacing (assumes rows are
+%equi-spaced!
+tmp = mean(abs(diff(params.array.row_pos)));
+params.el_size = tmp / ceil(tmp / params.el_size);
 
+%------DEBUG
+params.array.row_pos = 0;
+params.array.trans_pos = [1,2];
+params.array.trans_row = [1,1];
+params.array.trans_pos_orientations = [
+    0,1,0
+    0,0,1];
+params.array.trans_node_list = [379 373];
+%------
 
-mod.el_mat_i = zeros(size(mod.els, 1), 1);
-mod.el_typ_i = ones(size(mod.els, 1), 1);
-mod.el_abs_i = zeros(size(mod.els, 1), 1);
+%find XY positions of transducers from original section mesh
+trans_pos_xy = [mod2d.nds(params.array.trans_node_list,1),mod2d.nds(params.array.trans_node_list,2)];
+
+mod2d = fn_remesh(mod2d, params.el_size);
+
+mod2d.el_mat_i = zeros(size(mod2d.els, 1), 1);
+mod2d.el_typ_i = ones(size(mod2d.els, 1), 1);
+mod2d.el_abs_i = zeros(size(mod2d.els, 1), 1);
 
 %Create the nodes and elements of the mesh
 if isfield(params, 'z_pts')
     z_pts = params.z_pts;
 else
-    z_pts = linspace(0, params.z_max, ceil(params.z_max / params.el_size));
+    z_pts = linspace(params.z_min, params.z_max, ceil((params.z_max - params.z_min) / params.el_size));
 end
-mod = fn_extrude_2d_mesh(mod, z_pts);
+mod = fn_extrude_2d_mesh(mod2d, z_pts);
 
 
 mod.el_mat_i(:) = matl_i;
 mod.el_typ_i(:) = find(strcmp(el_types, el_typ_to_use_for_solid_3d)); %extracts the index of the chosen element type from the cell array of possible element types
 
-%Identify all nodes at z = 0
-steps{1}.load.frc_nds = find(abs(mod.nds(:, 3)) < params.el_size / 2);
-steps{1}.load.frc_dfs = ones(size(steps{1}.load.frc_nds)) * params.source_direction;
+%Identify the transducer nodes
+no_trans = numel(params.array.trans_pos);
+trans_nds = zeros(no_trans, 1);
+trans_z = params.array.row_pos(params.array.trans_row(:));
+trans_pos_xyz = [trans_pos_xy(params.array.trans_pos(:), :), trans_z(:)];
+for i = 1:no_trans
+    trans_nds(i) = fn_find_node_nearest_to_point(mod.nds, trans_pos_xyz(i, :), params.el_size);
+end
+
+trans_nds = repmat(trans_nds, [1,3]);
+trans_dfs = repmat([1:3], [no_trans, 1]);
+trans_wts = params.array.trans_pos_orientations;
+
+% figure;plot3(mod.nds(:,1), mod.nds(:,2), mod.nds(:,3), 'k.');
+% hold on;plot3(mod.nds(trans_nds,1), mod.nds(trans_nds,2), mod.nds(trans_nds,3), 'ro');
 
 %Provide the time signal for the loading
 params.model_size = max(mod.nds(:,3)) - min(mod.nds(:,3));
 [vel, ~] = fn_estimate_max_min_vels(matls{matl_i});
 max_time = params.model_size / vel * params.max_time_multiplier;
-steps{1}.load.time = 0: time_step: max_time;
-steps{1}.load.frcs = fn_gaussian_pulse(steps{1}.load.time, params.centre_freq, params.no_cycles);
+in_time = 0: time_step: max_time;
+in_signal = fn_gaussian_pulse(in_time, params.centre_freq, params.no_cycles);
 
-%Say where the displacement should be monitored
-steps{1}.mon.nds = steps{1}.load.frc_nds;
-steps{1}.mon.dfs = steps{1}.load.frc_dfs;
+%create the load steps
+for s = 1:no_trans
+    steps{s}.load.frc_nds = trans_nds(s, :);
+    steps{s}.load.frc_dfs = trans_dfs(s, :);
+    steps{s}.load.frc_wts = trans_wts(s, :);
+    steps{s}.load.time = in_time;
+    steps{s}.load.frcs = in_signal;
+
+    %Where the displacement should be monitored (same for all steps)
+    steps{s}.mon.dsp_nds = trans_nds(:);
+    steps{s}.mon.dsp_dfs = trans_dfs(:);
+    steps{s}.mon.dsp_wts = zeros(no_trans, numel(trans_nds));
+    no_dfs = size(trans_wts, 2);
+    for t = 1:no_trans
+        cols = ([1:no_dfs]-1) * no_trans + t;
+        steps{s}.mon.dsp_wts(t, cols) = trans_wts(t, :);
+    end
+end
+
+%---------debug (reciprocity test)
+% steps{1}.load.frc_nds = [137, 489];
+% steps{1}.load.frc_dfs = [2, 3];
+% steps{1}.load.frc_wts = randn(1,2);
+% steps{1}.load.time = in_time;
+% steps{1}.load.frcs = in_signal;
+% steps{1}.mon.nds = [956, 1024];
+% steps{1}.mon.dfs = [1, 3];
+% steps{1}.mon.wts = randn(1,2);
+% 
+% steps{2}.load.frc_nds = steps{1}.mon.nds;
+% steps{2}.load.frc_dfs = steps{1}.mon.dfs;
+% steps{2}.load.wts = steps{1}.mon.wts;
+% steps{2}.load.time = in_time;
+% steps{2}.load.frcs = in_signal;
+% steps{2}.mon.nds = steps{1}.load.frc_nds;
+% steps{2}.mon.dfs = steps{1}.load.frc_dfs;
+% steps{2}.mon.wts = steps{1}.load.wts;
+
+%---------debug
+
 
 end
 

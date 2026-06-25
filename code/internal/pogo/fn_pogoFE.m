@@ -148,11 +148,15 @@ for s = 1:numel(steps)
         fn = fname;
     end
     h = loadPogoHist(fn);
-    res{s}.dsps = h.sets(1).MeasureSet1.histTraces';
+    if isfield(steps{s}.mon, 'dsp_wts')
+        res{s}.dsps = steps{s}.mon.dsp_wts * h.sets(1).MeasureSet1.histTraces';
+    else
+        res{s}.dsps = h.sets(1).MeasureSet1.histTraces';
+    end
     if nargout > 1
         [res{s}.dsp_gi, ~, ~, res{s}.valid_mon_dsps] = fn_nds_and_dfs_to_gi(h.sets(1).MeasureSet1.nodeNums, h.sets(1).MeasureSet1.nodeDofs, mats.gl_lookup);
     else
-        res{s}.valid_mon_dsps = h.sets(1).MeasureSet1.nodeNums == steps{s}.mon.nds & h.sets(1).MeasureSet1.nodeDofs == steps{s}.mon.dfs;
+        res{s}.valid_mon_dsps = h.sets(1).MeasureSet1.nodeNums == steps{s}.mon.dsp_nds & h.sets(1).MeasureSet1.nodeDofs == steps{s}.mon.dsp_dfs;
     end
     delete([fn, '.*']);
 end
@@ -278,8 +282,12 @@ for n = 1:numel(steps)
         model.shots{n}.sigs{1}.nodeSpec = steps{n}.load.frc_nds(:)';    % - nodes the signal is applied to.
         model.shots{n}.sigs{1}.dofSpec = steps{n}.load.frc_dfs(:)';     %- DOF to apply the signal to (matches nodeSpec) in (range: 1 to model.nDofPerNode)
         model.shots{n}.sigs{1}.sigType = 0;                         %- 0 force, 1 displacement or (unused at present) 2 velocity
+        %Piuck up deprecated name - unlike mon.dps_nds vs mon.nds, this won't throw error if frc_wts is not present
         if isfield(steps{n}.load, 'wts')
-            model.shots{n}.sigs{1}.sigAmps = steps{n}.load.wts(:)';
+            steps{n}.load.frc_wts = steps{n}.load.wts;
+        end
+        if isfield(steps{n}.load, 'frc_wts')
+            model.shots{n}.sigs{1}.sigAmps = steps{n}.load.frc_wts(:)';
         else
             model.shots{n}.sigs{1}.sigAmps = ones(size(model.shots{n}.sigs{1}.dofSpec));                         %- amplitudes the signals are multiplied by for each dof specified
         end
@@ -308,8 +316,8 @@ for n = 1:numel(steps)
     model.measSets{1}.name = 'MeasureSet1'; %- string name for the set
     model.measSets{1}.isDofGroup = 0; %- do we refer to DoF groups or do we use nodal values (0 or 1)
     %if 0:
-    model.measSets{1}.measNodes = steps{1}.mon.nds;  %- nodes to take history measurements from
-    model.measSets{1}.measDof = steps{1}.mon.dfs; %- degrees of freedom to take history measurements from
+    model.measSets{1}.measNodes = steps{1}.mon.dsp_nds;  %- nodes to take history measurements from
+    model.measSets{1}.measDof = steps{1}.mon.dsp_dfs; %- degrees of freedom to take history measurements from
     %if 1:
     % model.measSets{n}.dofGroup - which Dof groups
     %

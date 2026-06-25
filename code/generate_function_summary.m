@@ -6,7 +6,7 @@ close all
 cd(fileparts(mfilename('fullpath')));
 
 
-readme_fname = '..\readme v3.1.md';
+readme_fname = '..\readme.md';
 function_summary_heading = '## Function summary';
 fn_summary_line = 'SUMMARY';
 

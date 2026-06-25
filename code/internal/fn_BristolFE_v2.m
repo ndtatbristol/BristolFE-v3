@@ -82,8 +82,13 @@ for s = 1:numel(steps)
         if isfield(steps{s}.load, 'frcs')
             [frc_gi, ~, ~, valid_appl_frcs] = fn_nds_and_dfs_to_gi(steps{s}.load.frc_nds, steps{s}.load.frc_dfs, mats.gl_lookup);
             frcs = steps{s}.load.frcs;
-            if isfield(steps{1}.load, 'wts')
-                frcs = steps{1}.load.wts(:) * frcs;
+            %Update deprecated names
+            if isfield(steps{s}.load, 'wts')
+                steps{s}.load.frc_wts = steps{s}.load.wts;
+            end
+            %End update deprecated names
+            if isfield(steps{s}.load, 'frc_wts')
+                frcs = steps{s}.load.frc_wts(:) * frcs;
             end
             if size(frcs, 1) > 1
                 frcs = frcs(valid_appl_frcs, :);
@@ -95,8 +100,13 @@ for s = 1:numel(steps)
         if isfield(steps{s}.load, 'dsps')
             [dsp_gi, ~, ~, res{s}.valid_appl_dsps] = fn_nds_and_dfs_to_gi(steps{s}.load.dsp_nds, steps{s}.load.dsp_dfs, mats.gl_lookup);
             dsps = steps{s}.load.dsps;
-            if isfield(steps{1}.load, 'wts')
-                dsps = steps{1}.load.wts(:) * dsps;
+            %Update deprecated names
+            if isfield(steps{s}.load, 'wts')
+                steps{s}.load.dsp_wts = steps{s}.load.wts;
+            end
+            %End update deprecated names
+            if isfield(steps{s}.load, 'dsp_wts')
+                dsps = steps{s}.load.dsp_wts(:) * dsps;
             end
             if size(dsps,1) > 1
                 dsps = dsps(res{s}.valid_appl_dsps, :);
@@ -105,8 +115,18 @@ for s = 1:numel(steps)
             dsp_gi = [];
             dsps = [];
         end
+        %Update deprecated names
         if isfield(steps{s}.mon, 'nds')
-            [hist_gi, ~, ~, res{s}.valid_mon_dsps] = fn_nds_and_dfs_to_gi(steps{s}.mon.nds, steps{s}.mon.dfs, mats.gl_lookup);
+            steps{s}.mon.dsp_nds = steps{s}.mon.nds;
+        end
+        if isfield(steps{s}.mon, 'dfs')
+            steps{s}.mon.dsp_dfs = steps{s}.mon.dfs;
+        end
+        %End update deprecated names
+
+        if isfield(steps{s}.mon, 'dsp_nds')
+            [hist_gi, ~, ~, res{s}.valid_mon_dsps] = fn_nds_and_dfs_to_gi(steps{s}.mon.dsp_nds, steps{s}.mon.dsp_dfs, mats.gl_lookup);
+            res{s}.valid_mon_dsps = logical(res{s}.valid_mon_dsps);
         else
             hist_gi = [];
         end
@@ -127,10 +147,17 @@ for s = 1:numel(steps)
                     fn_explicit_dynamic_solver_v7(mats.K, mats.C, mats.M, t, ...
                     frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_available, fe_options.field_output_type, fe_options.solver_mode, fe_options.solver_precision);
         end
+
         %Parse the monitored history outputs
-        if isfield(steps{s}.mon, 'nds')
-            res{s}.dsps(res{s}.valid_mon_dsps, :) = mon_dsps;
-            res{s}.dsp_gi = hist_gi; %note that this is NOT dsp_gi above as that is indices of applied displacements (confusing!)
+        if isfield(steps{s}.mon, 'dsp_nds')
+            if isfield(steps{s}.mon, 'dsp_wts')
+                res{s}.dsps = steps{s}.mon.dsp_wts(:, res{s}.valid_mon_dsps) * mon_dsps(res{s}.valid_mon_dsps, :);
+                res{s}.dsp_gi = [];
+            else
+                res{s}.dsps = zeros(numel(res{s}.valid_mon_dsps), size(mon_dsps, 2));
+                res{s}.dsps(res{s}.valid_mon_dsps, :) = mon_dsps;
+                res{s}.dsp_gi = hist_gi; %note that this is NOT dsp_gi above as that is indices of applied displacements (confusing!)
+            end
         else
             res{s}.dsps = [];
             res{s}.dsp_gi = [];

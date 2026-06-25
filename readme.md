@@ -164,13 +164,14 @@ Typical contents of `step{s}.load`:
 - `step{s}.load.frc_nds` - an `n_frc_nds`×1 vector of node indices where loads will be applied (`n_frc_nds` is the number of nodes at which forcing will be applied)
 - `step{s}.load.frc_dfs` - an `n_frc_nds`×1 vector of the associated DoFs where loads will be applied
 - `step{s}.load.frcs` - a 1×`n_time_pts` or `n_frc_nds`×`n_time_pts` matrix or vector of the forcing histories to be applied. If it is a vector, then same forcing history is applied at all nodes/DoFs.
-- `steps{s}.load.wts` - an `n_frc_nds`×1 optional vector of weightings to be applied to forces at each node/DoF. This provides an efficient way of applying a single load that is not aligned to a single DoF direction at each node while still only requiring a vector for `steps{s}.load.frcs`
+- `steps{s}.load.frc_wts` - an `n_frc_nds`×1 optional vector of weightings to be applied to forces at each node/DoF. This provides an efficient way of applying a single load that is not aligned to a single DoF direction at each node while still only requiring a vector for `steps{s}.load.frcs` (note that `wts` is now deprecated and `frc_wts` should be used instead although `wts` will still work for the moment)
 
 #### Requesting history outputs
 
 The contents of `step{s}.mon` define what history outputs will be recorded in the output by specifying the node/DoF pairs in a similar manner to the way loads are specified:
-- `step{s}.mon.nds` - an `n_mon_nds`×1 vector of node indices where history values will be recorded (`n_mon_nds` is the number of nodes at which history outputs are requested)
-- `step{s}.mon.dfs` - an `n_mon_nds`×1 vector of the associated DoFs for which history values will be recorded
+- `step{s}.mon.dsp_nds` - an `n_mon_nds`×1 vector of node indices where history values will be recorded (`n_mon_nds` is the number of nodes at which history outputs are requested) (note that `nds` is now deprecated and `dsp_nds` should be used instead although `nds` will still work for the moment)
+- `step{s}.mon.dsp_dfs` - an `n_mon_nds`×1 vector of the associated DoFs for which history values will be recorded (note that `dfs` is now deprecated and `dsp_dfs` should be used instead although `dfs` will still work for the moment)
+- `step{s}.mon.dsp_wts` - an optional `n_output`×`n_mon_nds` matrix of weightings to get linear combination(s) of the monitored nodal displacements rather than those values directly, effectively complementing the concept of frc_wts for loading
 
 #### Requesting field output
 

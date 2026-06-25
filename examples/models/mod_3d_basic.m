@@ -32,14 +32,9 @@ default_params.fe_options.field_output_every_n_frames = 10;
 
 %--------------------------------------------------------------------------
 %PREPARE THE MESH
-if isfield(params, 'fe_options') && isfield(default_params, 'fe_options')
-    params.fe_options = fn_set_default_fields(params.fe_options, default_params.fe_options);
-else
-    default_params.fe_options = [];
-end
 params = fn_set_default_fields(params, default_params);
+fe_options = fn_set_fe_options_from_params(params);
 
-fe_options = params.fe_options;
 el_types = fn_3d_el_types();
 
 switch params.element_shape
@@ -89,14 +84,12 @@ end
 src_centre = [0.5 * params.model_size(1), 0.5 * params.model_size(2), params.model_size(3)];
 src_radius = params.src_radius_fraction * min(params.model_size);
 
-steps{1}.load.frc_nds = fn_find_node_nearest_to_point(mod.nds, src_centre, el_size);
 steps{1}.load.frc_nds = find(...
     abs(mod.nds(:, 3) - src_centre(3)) < el_size / 2 & ...
     sqrt(sum( (mod.nds(:, 1:2) - src_centre(1:2)) .^ 2, 2 )) < src_radius ...
     );
-
-
 steps{1}.load.frc_dfs = ones(size(steps{1}.load.frc_nds)) * params.src_dir;
+steps{1}.load.frc_wts = ones(1, numel(steps{1}.load.frc_dfs));
 
 %Also provide the time signal for the loading (if this is a vector, it will
 %be applied at all frc_nds/frc_dfs simultaneously; alternatively it can be a matrix
@@ -111,7 +104,7 @@ steps{1}.load.frcs = fn_gaussian_pulse(steps{1}.load.time, params.centre_freq, p
 
 %Also record displacement history at same points (NB there is no reason why
 %these have to be same as forcing points)
-steps{1}.mon.nds = steps{1}.load.frc_nds;
-steps{1}.mon.dfs = steps{1}.load.frc_dfs;
-
+steps{1}.mon.dsp_nds = steps{1}.load.frc_nds;
+steps{1}.mon.dsp_dfs = steps{1}.load.frc_dfs;
+steps{1}.mon.dsp_wts = steps{1}.load.frc_wts;
 end
