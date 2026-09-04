@@ -64,8 +64,8 @@ for d = fe_options.doms_to_run
         steps{si}.load.time = main.inp.time;
 
         %Create the load step - monitoring
-        steps{si}.mon.nds = bdry_nds;
-        steps{si}.mon.dfs = bdry_dfs;
+        steps{si}.mon.dsp_nds = bdry_nds;
+        steps{si}.mon.dsp_dfs = bdry_dfs;
         steps{si}.mon.field_output_every_n_frames = fe_options.field_output_every_n_frames;
 
     end
@@ -103,8 +103,8 @@ for d = fe_options.doms_to_run
 
         %Main model node numbers and DoFs associated with forcing points
         %that represent boundary displacements around subdomain
-        mn_nds_i = main.doms{d}.mod.main_nd_i(steps{t}.mon.nds(frce_set));
-        mn_bdry_nds_dfs = [mn_nds_i, steps{t}.mon.dfs(frce_set)];
+        mn_nds_i = main.doms{d}.mod.main_nd_i(steps{t}.mon.dsp_nds(frce_set));
+        mn_bdry_nds_dfs = [mn_nds_i, steps{t}.mon.dsp_dfs(frce_set)];
 
         %Work out which of the pristine model result indices correspond to
         %the boundary forcing points

@@ -27,7 +27,7 @@ end
 fprintf(str);
 if exist('LOG_TO_FILE', "var")
     try
-        fid = fopen(LOG_TO_FILE,"a");
+        fid = fopen(LOG_TO_FILE, "a");
         fprintf(fid, str);
         fclose(fid);
     catch

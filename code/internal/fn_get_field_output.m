@@ -26,12 +26,14 @@ else
 end
 
 switch field_output_type
-    case {'mean(u1)', 'mean(u2)', 'mean(u3)', 'curl(u)', 'div(u)', 'mean(v1)', 'mean(v2)', 'mean(v3)', 'curl(v)', 'div(v)'}
+    case {'sum(u)', 'mean(u1)', 'mean(u2)', 'mean(u3)', 'curl(u)', 'div(u)', 'mean(v1)', 'mean(v2)', 'mean(v3)', 'curl(v)', 'div(v)'}
         %components at element nodes
         nodal_values = fn_convert_from_global_to_nodal(f_out, mats.gl_lookup);
 
         %extract appropriate value for each elemeent
         switch field_output_type
+            case {'sum(u)'}
+                v = sum(nodal_values, 3);
             case {'mean(u1)', 'mean(u2)', 'mean(u3)', 'mean(v1)', 'mean(v2)', 'mean(v3)'}
                 k = str2num(field_output_type(7));
                 v = fn_average_over_nodes_of_element(nodal_values(:,:,k), mod.els);
@@ -43,6 +45,9 @@ switch field_output_type
                 switch field_output_type
                     case {'div(u)', 'div(v)'}
                         unit_vecs = fn_get_unit_vecs_div(mod);
+                        if size(nodal_values, 3) == 4
+                            unit_vecs = cat(3, unit_vecs, zeros(size(unit_vecs,1), size(unit_vecs,2)), ones(size(unit_vecs,1), size(unit_vecs,2)));
+                        end
                     case {'curl(u)', 'curl(v)'}
                         if size(mod.nds) > 2
                             error('Cannot output curl for 3D models')
@@ -54,10 +59,10 @@ switch field_output_type
                 for i = 1:size(mod.els, 2)
                     j = mod.els(:, i);
                     j(~j) = 1; %avoid indexing error - should be OK because unit vecs are zero for these ones anyway
-                    v = v + sum(nodal_values(j, : , 1:size(unit_vecs, 3)) .* unit_vecs(:, i, :), 3);
+                    v(j, :) = v(j, :) + sum(nodal_values(j, : , 1:size(unit_vecs, 3)) .* unit_vecs(:, i, :), 3);
                 end
         end
-        
+        v = fn_average_over_nodes_of_element(v, mod.els);
     case {'raw(u)', 'raw(v)'}
         v = field_output_type;
     

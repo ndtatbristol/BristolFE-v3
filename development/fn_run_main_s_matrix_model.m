@@ -1,10 +1,10 @@
-function main = fn_run_main_model(main, fe_options)
+function main = fn_run_main_s_matrix_model(main, fe_options)
 
-default_options.doms_to_run = []; %only relevant in validation mode
+% default_options.doms_to_run = []; %only relevant in validation mode
 default_options.dof_to_use = [];
 default_options.tx_trans = 1:numel(main.trans); %by default all transducers are transmitters
 default_options.rx_trans = 1:numel(main.trans); %by default all transducers are also receivers
-default_options.validation_mode = 0;
+% default_options.validation_mode = 0;
 
 fe_options = fn_set_default_fields(fe_options, default_options);
 if isempty(fe_options.doms_to_run)
@@ -259,14 +259,13 @@ for k = 1:numel(fmc.tx)
     rx_nds_dfs = [trans{rx}.nds, trans{rx}.dfs];
     
     %nds/dfs for monitored nodes
-    mon_nds_dfs = [steps{tx}.mon.dsp_nds, steps{tx}.mon.dsp_dfs];
+    mon_nds_dfs = [steps{tx}.mon.nds, steps{tx}.mon.dfs];
 
     %find indices of monitored nds/dfs for receiving transducer and extract
     %displacements
     [tmp, i] = ismember(rx_nds_dfs, mon_nds_dfs, 'rows');
     rx_dsps = res{tx}.dsps(i, :);
     
-
     if isfield(trans{rx} ,'wts')
         fmc.time_data(:, k) = (trans{rx}.wts' * rx_dsps).';
     else
@@ -286,13 +285,10 @@ step.load.frcs = inp;
 step.load.frc_nds = trans.nds;
 step.load.frc_dfs = trans.dfs;
 if isfield(trans, 'wts')
-    step.load.frc_wts = trans.wts;
+    step.load.wts = trans.wts;
 end
-step.mon.dsp_nds = mon_nds;
-step.mon.dsp_dfs = mon_dfs;
-%Weights are not applied here to monitored displacements as they would only
-%apply to the monitor nodes at transducer location, not on sub-domain
-%boundary. Something to improve later!
+step.mon.nds = mon_nds;
+step.mon.dfs = mon_dfs;
 step.mon.field_output_every_n_frames = f_every;
 end
 

@@ -52,3 +52,19 @@ plot(steps{1}.load.time, fmc_data(:, 2, 1), 'r--')
 hold on;
 xlabel('Time (s)')
 title(sprintf('%i EPW', params.els_per_wavelength))
+
+figure;
+
+t = tiledlayout(12,1, ...
+    'TileSpacing','compact', ...
+    'Padding','compact');
+
+for k = 1:12
+    nexttile;
+    % ax = axes('Position', [0.1, 1 - k*(1/12), 0.85, (1/6)-0.01]);
+    plot(steps{1}.load.time, fmc_data(:, 1, k));
+
+    set(gca, 'XTickLabel', []);
+    set(gca, 'YTickLabel', []);
+
+end

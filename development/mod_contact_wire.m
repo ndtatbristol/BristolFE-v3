@@ -73,14 +73,14 @@ params.array = params.array.array;
 tmp = mean(abs(diff(params.array.row_pos)));
 params.el_size = tmp / ceil(tmp / params.el_size);
 
-%------DEBUG
-params.array.row_pos = 0;
-params.array.trans_pos = [1,2];
-params.array.trans_row = [1,1];
-params.array.trans_pos_orientations = [
-    0,1,0
-    0,0,1];
-params.array.trans_node_list = [379 373];
+%------DEBUG - reduce to 2 transducer array!
+% params.array.row_pos = 0;
+% params.array.trans_pos = [1,2];
+% params.array.trans_row = [1,1];
+% params.array.trans_pos_orientations = [
+%     0,1,0
+%     0,0,1];
+% params.array.trans_node_list = [379 373];
 %------
 
 %find XY positions of transducers from original section mesh

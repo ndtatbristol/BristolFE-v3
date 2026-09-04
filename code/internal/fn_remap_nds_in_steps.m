@@ -15,5 +15,9 @@ for s = 1:numel(steps)
         steps{s}.mon.orig_nds = steps{s}.mon.nds;
         steps{s}.mon.nds = fn_remap_matrix(steps{s}.mon.nds, new_nds);
     end
+    if isfield(steps{s}.mon, 'dsp_nds')
+        steps{s}.mon.orig_nds = steps{s}.mon.dsp_nds;
+        steps{s}.mon.dsp_nds = fn_remap_matrix(steps{s}.mon.dsp_nds, new_nds);
+    end
 end
 end

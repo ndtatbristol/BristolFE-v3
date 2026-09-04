@@ -20,7 +20,7 @@ params.fe_options_solver_mode = 'imp';
 
 %This will also run full domain validation models to compare to subdomain
 %results if set
-run_validation_models = 1;
+run_validation_models = 0;
 
 %If you just want to see the model (without running it, set show_geom_only to 1
 show_geom_only = 0;

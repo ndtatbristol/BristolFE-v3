@@ -11,16 +11,18 @@ close all;
 models_to_run = {@mod_2d_basic, @mod_3d_basic, @mod_2d_advanced, @mod_3d_advanced, @mod_2d_oblique};
 solvers_to_use = {'BristolFE', 'pogo'};
 
-% models_to_run = {@mod_2d_basic, @mod_3d_basic};
+% solvers_to_use = {'pogo'}; 
+% models_to_run = {@mod_2d_oblique};
+
 
 %Parameters for all models
 fixed_params.els_per_wavelength = 3;
 fixed_params.include_fluid_region = 0;
 fixed_params.fe_options_field_output_every_n_frames = inf;
 fixed_params.fe_options_solver_mode = 'pc';
-fixed_params.fe_options_sort_nds = 1;
-fixed_params.fe_options_pogo_path = 'C:\Program Files\pogo\bin'; %Ignored if solver is not pogo
-fixed_params.fe_options_pogo_matlab_path = 'C:\Program Files\Pogo\matlab'; %Ignored if solver is not pogo
+fixed_params.fe_options_sort_nds = 0;
+fixed_params.fe_options_pogo_path = 'C:\Program Files\pogo v2026.06.3\bin'; %Ignored if solver is not pogo
+fixed_params.fe_options_pogo_matlab_path = 'C:\Program Files\pogo v2026.06.3\matlab'; %Ignored if solver is not pogo
 
 %--------------------------------------------------------------------------
 

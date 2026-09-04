@@ -15,8 +15,8 @@ model_to_run = @mod_2d_oblique;
 
 %Following will need to be set to where the Pogo executable and Pogo Matlab
 %scripts are located respectively
-pogo_path = 'C:\Program Files\pogo\bin'; %Ignored if solver is not pogo
-pogo_matlab_path = 'C:\Program Files\Pogo\matlab'; %Ignored if solver is not pogo
+pogo_path = 'C:\Program Files\pogo v2026.06.3\bin'; %Ignored if solver is not pogo
+pogo_matlab_path = 'C:\Program Files\pogo v2026.06.3\matlab'; %Ignored if solver is not pogo
 
 %Parameters for the model - if empty, default values for all parameters 
 %will be used

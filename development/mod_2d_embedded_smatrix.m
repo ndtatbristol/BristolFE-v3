@@ -1,32 +1,35 @@
-function [mod, matls, el_types, steps, fe_options, params, subdomain_mod] = mod_2d_embedded_smatrix(params)
+function [subdomain_mod, matls, el_types, steps, fe_options, params] = mod_2d_embedded_smatrix(params)
 %This is a parametric model description specifically for calculating 2D
 %S-matrices of scatterers embedded in an isotropic medium
 
-default_params.max_scatterer_size = 20e-3; %models are circular with this diameter
+default_params.max_scatterer_size = 5e-3; %models are circular with this diameter
 default_params.els_per_wavelength = 10;
-default_params.abs_bdry_thickness_in_wavelengths = 1;
+default_params.abs_bdry_thickness_in_wavelengths = 2;
 
-%Material properties
+%Material properties - this is intentionally specified as isotropic elastic
+%solid as this is the only kind of matls that can be handled
 default_params.matl_name = 'aluminium';
+default_params.long_vel = 6300;
+default_params.shear_vel = default_params.long_vel / 2;
+default_params.density = 2700;
 
 %Details of input signal applied at source
 default_params.centre_freq = 5e6; %used to determine element size - final result is in frequency domain anyway
 
 %Run for long enough for longitudinal waves to travel this many times
 %across model (while scattered signal rings down)
-default_params.max_time_multiplier = 10; 
+default_params.max_time_multiplier = 3; 
 
 %Element shape to use (tri or quad since this is 2d model)
 default_params.element_shape = 'quad'; 
 
 %Solver options - specify how ofter field output is produced to use in
 %animation
-default_params.fe_options.field_output_every_n_frames = 5;
+default_params.fe_options_field_output_every_n_frames = 5;
 
 %--------------------------------------------------------------------------
-params.fe_options = fn_set_default_fields(params.fe_options, default_params.fe_options);
 params = fn_set_default_fields(params, default_params);
-fe_options = params.fe_options;
+fe_options = fn_set_fe_options_from_params(params);
 el_types = fn_2d_el_types();
 
 switch params.element_shape
@@ -44,7 +47,7 @@ end
 %BUILD THE MODEL USING THE PARAMETERS GIVEN ABOVE
 
 matl_i = 1; 
-matls{matl_i} = fn_material_library(params.matl_name);
+matls{matl_i} = fn_matl_isotropic_solid_defined_by_velocities(params.matl_name, params.long_vel, params.shear_vel, params.density);
 
 
 max_wavelength = fn_estimate_max_min_wavelengths(matls, params.centre_freq);
@@ -105,6 +108,11 @@ a = linspace(0, 2 *pi, 361)';
 inner_bdry_vtcs = [cos(a), sin(a)] * params.max_scatterer_size / 2;
 
 subdomain_mod = fn_create_subdomain(mod, el_types, inner_bdry_vtcs, [], abs_bdry_thickness)
+
+%this is where wave will be at time zero (just outside layers)
+params.wave_start_distance = max(sqrt(sum(subdomain_mod.nds(subdomain_mod.bdry_lyrs ~= 0, :).^ 2, 2)));
+time_max = (2 *  params.wave_start_distance * params.max_time_multiplier) / params.shear_vel;
+params.time = 0:time_step:time_max;
 
 steps = [];
 

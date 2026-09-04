@@ -21,7 +21,7 @@ params = [];
 params.els_per_wavelength = 6;
 
 %If you just want to see the model (without running it), set show_geom_only to 1
-show_geom_only = 0;
+show_geom_only = 1;
 
 %--------------------------------------------------------------------------
 %DEFINE THE MODEL

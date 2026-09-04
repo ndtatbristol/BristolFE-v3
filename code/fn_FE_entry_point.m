@@ -84,10 +84,13 @@ switch fe_options.solver
     otherwise
         error('Invalid FE solver');
 end
+%Time the total run, but only if it is not a dummy run with steps = []
+if ~isempty(steps)
+    t1 = clock;
+    fn_console_output(['Starting FE solver (', fe_options.solver, ')\n'])
+end
 
 %Call selected solver with appropriate number of outputs
-t1 = clock;
-fn_console_output(['Starting FE solver (', fe_options.solver, ')\n'])
 fn_increment_indent_level;
 if nargout == 1
     varargout{1} = fn_solver(mod, matls, el_types, steps, fe_options);
@@ -101,7 +104,10 @@ if fe_options.sort_nds
     steps = fn_unmap_nds_in_steps(steps);
 end
 
-fn_console_output(sprintf(['FE solver (', fe_options.solver, ') completed in %.2f secs\n'], etime(clock, t1)));
+%Time the total run, but only if it is not a dummy run with steps = []
+if ~isempty(steps)
+    fn_console_output(sprintf(['FE solver (', fe_options.solver, ') completed in %.2f secs\n'], etime(clock, t1)));
+end
 end
 
 

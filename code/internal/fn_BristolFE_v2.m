@@ -151,7 +151,7 @@ for s = 1:numel(steps)
         %Parse the monitored history outputs
         if isfield(steps{s}.mon, 'dsp_nds')
             if isfield(steps{s}.mon, 'dsp_wts')
-                res{s}.dsps = steps{s}.mon.dsp_wts(:, res{s}.valid_mon_dsps) * mon_dsps(res{s}.valid_mon_dsps, :);
+                res{s}.dsps = steps{s}.mon.dsp_wts(:, res{s}.valid_mon_dsps) * mon_dsps;%(res{s}.valid_mon_dsps, :);
                 res{s}.dsp_gi = [];
             else
                 res{s}.dsps = zeros(numel(res{s}.valid_mon_dsps), size(mon_dsps, 2));

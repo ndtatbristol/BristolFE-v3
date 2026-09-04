@@ -28,8 +28,8 @@ function varargout = fn_pogoFE(mod, matls, el_types, steps, fe_options)
 %--------------------------------------------------------------------------
 %FE_OPTIONS meanings and defaults
 %Path to where pogo binaries and Pogo Matlab code are
-default_options.pogo_path = 'C:\Program Files\Pogo\windows';
-default_options.pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
+default_options.pogo_path = 'C:\Program Files\pogo v2026.06.3\bin';
+default_options.pogo_matlab_path = 'C:\Program Files\pogo v2026.06.3\matlab';
 default_options.pogo_job_name = 'pogo_from_bristol_fe';
 %Level of pogo output to Matlab console (-1 = none)
 default_options.pogo_verbosity = -1;
