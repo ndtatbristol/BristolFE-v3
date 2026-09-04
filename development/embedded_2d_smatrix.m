@@ -3,6 +3,29 @@ close all
 
 %This is work in progress!!
 
+%Basic idea (see note below for where it's at):
+
+%Run defect-free sub-domain model for each incident direction to get
+%transfer functions between boundary displacemenets and incident/scattered
+%plane waves. Then run defect model for each incident direction (probably
+%subtracted defect-free scattered results first (see note at end) and 
+%project measured scattered field back to each scattering direction using
+%reciprocity. There need to be a bit of Fourier and phase shifting action
+%and probably some scaling to get freq-domain results in exact same form as
+%usual S-matrix definition.
+
+%30/6/26 - incident wave works ok if toneburst used, but there is still 
+%some leakage due to analytical model of incident wave not matching FE 
+%exactly. In case with free surface this is always going to be case, so 
+%probably solution is to always run defect-free case and subtract result of
+%this from any defect ones.
+
+%The projection back to scattered directions is not yet done. Probably this
+%can be achieved by adapting the subdomain code as that deals with all the
+%reciprocity stuff. You would end up with FMC-like data where each
+%transmitter is an incident plane wave angle and each receiver is a plane
+%wave receiver angle.
+
 model_to_run = @mod_2d_embedded_smatrix;
 
 %Parameters for the model - if empty, default values for all parameters 
@@ -12,6 +35,8 @@ params = [];
 %However, any of the default parameters (see top of model file for complete 
 %list in each case) can be overwritten here, e.g.
 params.els_per_wavelength = 20;
+
+params.surface_model = 0; %test to see what heppens with free surface in model
 
 %If you just want to see the model (without running it, set show_geom_only to 1
 show_geom_only = 0;
@@ -29,8 +54,6 @@ addpath(['.', filesep, 'models']);
 %Define the model - subdomain code is used for this in order to get the
 %nodes around the edge
 [mod, matls, el_types, steps, fe_options, params] = model_to_run(params);
-
-
 
 %Show the subdomain mesh and stop if requested
 col = 'rgbc';
@@ -113,29 +136,7 @@ if ~isempty(res{1}.fld)
     fn_run_animation(h_patch, res{1}.fld, anim_options);
 end
 
-%30/6/26 - this works ok, but cummulative numerical discrepancy between
-%theory and numerical model causes it to breakdown as wavefront crosses
-%model. Think we need to run all numerical simulation of incidence wave
-%(put a line of sources outside in main model and record displacements at
-%the nodes). Line will need to be long enough to avoid diffraction effects
-%from ends and it can't be curves otherwise you are back where you
-%started - say 3x diameter of region with smooth taper of amplitude towards 
-%ends.
 
 
 
-%use create sub-domain function as usual and add scatterer
-
-%rather than running main model to generate incident field on boundary
-%nodes, use analytical solution for incident plane wave from each incident
-%direction (may need some tricks here to deal with time shifted delta
-%functions). Will need to have specify time-shift back from sub-domain
-%centre so that incident field hits boundary at t = 0 or a bit later.
-
-%run sub-domain model as usual for each incident direction and project into
-%each scattered direction as usual (scatterer-free sub-domain should giev
-%near-zero but it will be less accurate than pure FE version, especially at
-%higher frequencies)
-
-%FFT responses, remove in and out phase-shift due to propagation delay and that should be it.
 

@@ -23,6 +23,9 @@ default_params.max_time_multiplier = 3;
 %Element shape to use (tri or quad since this is 2d model)
 default_params.element_shape = 'quad'; 
 
+%Set to 1 to model free surface case
+default_params.surface_model = 0;
+
 %Solver options - specify how ofter field output is produced to use in
 %animation
 default_params.fe_options_field_output_every_n_frames = 5;
@@ -76,12 +79,19 @@ switch params.element_shape
 end
 
 model_half_size = params.max_scatterer_size / 2 + abs_bdry_thickness + 6 * el_size;
-bdry_pts = [
-    -1,          -1 
-    1, -1 
-    1, 1
-    -1, 1] * model_half_size;
-
+if params.surface_model
+    bdry_pts = [
+        -1, 0 
+        1, 0 
+        1, 1
+        -1, 1] * model_half_size;
+else
+    bdry_pts = [
+        -1,          -1 
+        1, -1 
+        1, 1
+        -1, 1] * model_half_size;
+end
 %Create the nodes and elements of the mesh
 mod = fn_2d_structured_mesh(bdry_pts, el_size, el_typ_to_use_for_solid);
 
