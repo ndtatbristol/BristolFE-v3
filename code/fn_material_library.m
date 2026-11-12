@@ -31,6 +31,11 @@ switch lower(name)
         shear_velocity = 1345;
         density = 1190;
         matl = fn_matl_isotropic_solid_defined_by_velocities(name, longitudinal_velocity, shear_velocity, density);
+    case {'tungsten', 'w'}
+        longitudinal_velocity = 5200;
+        shear_velocity = 2850;
+        density = 19300;
+        matl = fn_matl_isotropic_solid_defined_by_velocities(name, longitudinal_velocity, shear_velocity, density);
     case {'water', 'h2o'}
         velocity = 1500;
         density = 1000;
