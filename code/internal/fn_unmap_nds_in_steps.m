@@ -13,4 +13,8 @@ for s = 1:numel(steps)
         steps{s}.mon.nds = steps{s}.mon.orig_nds;
         steps{s}.mon = rmfield(steps{s}.mon, 'orig_nds');
     end
+    if isfield(steps{s}.mon, 'orig_dsp_nds')
+        steps{s}.mon.dsp_nds = steps{s}.mon.orig_dsp_nds;
+        steps{s}.mon = rmfield(steps{s}.mon, 'orig_dsp_nds');
+    end
 end
