@@ -196,8 +196,8 @@ fmc_template.array.el_z2 = zeros(1, ne);
 
 fmc_template.array.el_type = 'rectangular';
 for t = 1:ne
-    c = mean(main.mod.nds(main.trans{t}.nds, :));
-    m = max(main.mod.nds(main.trans{t}.nds, :));
+    c = mean(main.mod.nds(main.trans{t}.nds, :), 1);
+    m = max(main.mod.nds(main.trans{t}.nds, :),  [], 1);
     if numel(c) == 2
         %2D models
         fmc_template.array.el_xc(t) = c(1);
