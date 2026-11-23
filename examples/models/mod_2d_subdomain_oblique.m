@@ -15,6 +15,7 @@ params.include_crack = 0;
 params.fe_options = fe_options;
 main.trans{1}.nds = steps{1}.load.frc_nds;
 main.trans{1}.dfs = steps{1}.load.frc_dfs;
+main.trans{1}.wts = steps{1}.load.frc_wts;
 
 %Create a subdomain based on params.defect_region_size
 inner_bdry = [-1,0;-1,2;1,2;1,0] / 2 .* (params.defect_region_size + 2 * params.el_size);
