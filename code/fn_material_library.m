@@ -7,7 +7,7 @@ function matl = fn_material_library(name)
 %INPUTS
 %   name - name of material to look for
 %RETURNS
-%   matls - structure in correct form for usin BristolFE
+%   matl - structure in correct form for using in BristolFE
 %--------------------------------------------------------------------------
 
 switch lower(name)
@@ -39,6 +39,10 @@ switch lower(name)
     case {'water', 'h2o'}
         velocity = 1500;
         density = 1000;
+        matl = fn_matl_fluid_defined_by_velocity(name, velocity, density);
+    case {'glycerin', 'glycerol'}
+        velocity = 2700;
+        density = 1260;
         matl = fn_matl_fluid_defined_by_velocity(name, velocity, density);
     otherwise
         error(['Material "', name, '" not found in material library']);
