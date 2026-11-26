@@ -31,7 +31,8 @@ default_options.solver_mode = 'implicit';
 default_options.field_output_type = 'KE';
 default_options.max_damping = [];
 default_options.return_matrices_only = 0;
-default_options.impose_dsps_as_frcs = 0; %special option to convert desired displacements into equivalent forces
+default_options.input_dsps_as_equiv_frcs = 0; %special option to convert input displacements into equivalent forces
+default_options.output_dsps_as_equiv_frcs = 0; %special option to convert output displacements into equivalent forces
 %--------------------------------------------------------------------------
 fe_options = fn_set_default_fields(fe_options, default_options);
 if isempty(steps) && ~fe_options.return_matrices_only
@@ -192,8 +193,9 @@ for s = 1:numel(steps)
         %Unlike for time-domain analysis, multiple different load cases
         %(and frequencies) are done in a single step as this is more
         %efficient
-        if fe_options.impose_dsps_as_frcs
-            %Special case - convert specified displacements to forces
+        if fe_options.input_dsps_as_equiv_frcs
+            %Special case - convert input displacements at dsp_nds to
+            %forces at frc_nds
             [frc_gi, ~, ~, valid_appl_frcs] = fn_nds_and_dfs_to_gi(steps{s}.load.frc_nds, steps{s}.load.frc_dfs, mats.gl_lookup);
             [dsp_gi, ~, ~, valid_appl_dsps] = fn_nds_and_dfs_to_gi(steps{s}.load.dsp_nds, steps{s}.load.dsp_dfs, mats.gl_lookup);
             frcs = zeros(numel(frc_gi), size(steps{s}.load.dsps, 2), numel(steps{s}.load.freq));
@@ -213,6 +215,7 @@ for s = 1:numel(steps)
                 frc_gi = [];
                 forcing_functions = [];
             end
+            %TODO - direct displacement loading
             disp_indices = [];
             disp_functions = [];
         end
@@ -223,20 +226,39 @@ for s = 1:numel(steps)
             disp_indices, disp_functions, ...
             fe_options.use_gpu_if_available, fe_options.solver_precision);
         
-        if isfield(steps{s}.mon, 'dsp_nds')
-            [dsp_gi, ~, ~, res{s}.valid_mon_dsps] = fn_nds_and_dfs_to_gi(steps{s}.mon.dsp_nds, steps{s}.mon.dsp_dfs, mats.gl_lookup);
+        if fe_options.output_dsps_as_equiv_frcs
+            %Special case - convert output displacements at dsp_nds to
+            %forces at frc_nds
+            [frc_gi, ~, ~, valid_mon_frcs] = fn_nds_and_dfs_to_gi(steps{s}.mon.frc_nds, steps{s}.mon.frc_dfs, mats.gl_lookup);
+            [dsp_gi, ~, ~, valid_mon_dsps] = fn_nds_and_dfs_to_gi(steps{s}.mon.dsp_nds, steps{s}.mon.dsp_dfs, mats.gl_lookup);
             mon_dsps = dsps(dsp_gi, :, :);
-            if isfield(steps{s}.mon, 'dsp_wts')
-                res{s}.dsps = steps{s}.mon.dsp_wts(:, res{s}.valid_mon_dsps) * mon_dsps;%(res{s}.valid_mon_dsps, :);
-                res{s}.dsp_gi = [];
-            else
-                res{s}.dsps = dsps(dsp_gi, :, :);
-                res{s}.dsp_gi = dsp_gi;
+            mon_frcs = zeros(numel(frc_gi), size(steps{s}.load.dsps, 2), numel(steps{s}.load.freq));
+            for fi = 1:numel(steps{s}.load.freq)
+                omega = steps{s}.load.freq(fi) * 2 * pi;
+                X = mats.K(frc_gi, dsp_gi) - 1i * omega * mats.C(frc_gi, dsp_gi) - omega ^ 2 * mats.M(frc_gi, dsp_gi);
+                mon_frcs(:, :, fi) = X * mon_dsps(:, :, fi);
             end
-        end
-        if isfield(steps{s}.mon, 'frc_nds')
-            [frc_gi, ~, ~, res{s}.valid_mon_frcs] = fn_nds_and_dfs_to_gi(steps{s}.mon.frc_nds, steps{s}.mon.frc_dfs, mats.gl_lookup);
-            res{s}.frcs = frc_gi(frc_gi, :, :);
+            res{s}.dsps = mon_dsps;
+            res{s}.dsp_gi = dsp_gi;
+            res{s}.frcs = mon_frcs;
+            res{s}.frc_gi = frc_gi;
+        else
+            %Normal cases
+            if isfield(steps{s}.mon, 'dsp_nds')
+                [dsp_gi, ~, ~, res{s}.valid_mon_dsps] = fn_nds_and_dfs_to_gi(steps{s}.mon.dsp_nds, steps{s}.mon.dsp_dfs, mats.gl_lookup);
+                mon_dsps = dsps(dsp_gi, :, :);
+                if isfield(steps{s}.mon, 'dsp_wts')
+                    res{s}.dsps = steps{s}.mon.dsp_wts(:, res{s}.valid_mon_dsps) * mon_dsps;%(res{s}.valid_mon_dsps, :);
+                    res{s}.dsp_gi = [];
+                else
+                    res{s}.dsps = dsps(dsp_gi, :, :);
+                    res{s}.dsp_gi = dsp_gi;
+                end
+            end
+            if isfield(steps{s}.mon, 'frc_nds')
+                [frc_gi, ~, ~, res{s}.valid_mon_frcs] = fn_nds_and_dfs_to_gi(steps{s}.mon.frc_nds, steps{s}.mon.frc_dfs, mats.gl_lookup);
+                res{s}.frcs = frc_gi(frc_gi, :, :);
+            end
         end
 
         if fe_options.freq_domain_fld
