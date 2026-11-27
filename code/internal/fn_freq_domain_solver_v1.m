@@ -87,7 +87,8 @@ if ~isempty(disp_indices)
 end
 n_freqs = numel(freq);
 n_dofs = size(K, 1);
-fn_console_output(sprintf(['Frequency domain solver v1 (GPU = %i, load cases = %d, frequencies = %d, DoFs = %.3fM, ', solver_precision, ')\n'], use_gpu, n_loads, n_freqs, n_dofs / 1e6), [], 0);
+
+fn_console_output(sprintf(['Frequency domain solver v1 (GPU = %i, load cases = %d, frequencies = %d, DoFs = %.3fM, ', solver_precision, ') ...'], use_gpu, n_loads, n_freqs, n_dofs / 1e6));
 
 t1 = clock;
 disp_output = zeros(n_dofs, n_loads, n_freqs);
@@ -102,7 +103,6 @@ end
 force_output = [];
 
 fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0);
-fn_decrement_indent_level;
 
 force_output = gather(force_output);
 disp_output = gather(disp_output);
